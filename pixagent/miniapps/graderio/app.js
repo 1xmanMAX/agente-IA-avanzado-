@@ -109,7 +109,7 @@
     const checks = [];
     checks.push({ lv: s.cOk ? "ok" : "bad", text: "Contrahuella c = " + fmt(s.c, 3) + " m" + (s.cOk ? " dentro de " : " fuera de ") + fmt(p.cmin, 2) + "–" + fmt(p.cmax, 2) + " m" });
     if (!s.geomOk) checks.push({ lv: "bad", text: "La distancia L no permite ni una huella por tramo: aumenta L o reduce el descanso." });
-    else checks.push({ lv: s.hOk ? "ok" : "bad", text: "Huella h = " + fmt(s.h, 3) + " m" + (s.hOk ? " dentro de " : (s.h < p.hmin ? " (corta) · mín " : " (larga) · máx ")) + (s.hOk ? fmt(p.hmin, 2) + "–" + fmt(p.hmax, 2) + " m" : (s.h < p.hmin ? fmt(p.hmin, 2) : fmt(p.hmax, 2)) + " m") });
+    else checks.push({ lv: s.hOk ? "ok" : (s.h > p.hmax ? "warn" : "bad"), text: "Huella h = " + fmt(s.h, 3) + " m" + (s.hOk ? " dentro de " : (s.h < p.hmin ? " (corta) · mín " : " (larga) · máx ")) + (s.hOk ? fmt(p.hmin, 2) + "–" + fmt(p.hmax, 2) + " m" : (s.h < p.hmin ? fmt(p.hmin, 2) : fmt(p.hmax, 2)) + " m") });
     if (s.geomOk) checks.push({ lv: s.blOk ? "ok" : (Math.abs(s.bl - 0.62) < 0.05 ? "warn" : "bad"), text: "Blondel 2c + h = " + fmt(s.bl, 3) + " m" + (s.blOk ? " ✓ (0.60–0.64)" : " · objetivo 0.60–0.64") });
     if (s.geomOk && (!s.hOk || !s.blOk)) {
       const sobra = s.h > p.hmax;
@@ -133,7 +133,7 @@
       kpis: [
         { k: "Contrahuellas", v: s.n, u: "ud", d: s.f > 1 ? s.f + " tramos" : "1 tramo" },
         { k: "Contrahuella c", v: fmt(s.c, 3), u: "m", lv: s.cOk ? "ok" : "bad" },
-        { k: "Huella h", v: fmt(s.h, 3), u: "m", lv: s.hOk ? "ok" : "bad" },
+        { k: "Huella h", v: fmt(s.h, 3), u: "m", lv: s.hOk ? "ok" : (s.h > p.hmax ? "warn" : "bad") },
         { k: "2c + h", v: fmt(s.bl, 3), u: "m", d: "Blondel 0.60–0.64", lv: s.blOk ? "ok" : "warn" },
         { k: "Inclinación", v: fmt(deg(angle), 1), u: "°" },
         { k: "Hormigón", v: fmt(volume, 2), u: "m³" },
@@ -214,8 +214,8 @@
     const checks = [];
     checks.push({ lv: s.NOk ? "ok" : "bad", text: "Peralte N = " + fmt(s.N, 3) + " m" + (s.NOk ? " dentro de " : " fuera de ") + fmt(p.Nmin, 2) + "–" + fmt(p.Nmax, 2) + " m" });
     if (!s.geomOk) checks.push({ lv: "bad", text: "El pasillo consume toda la longitud L: aumenta L o reduce el pasillo." });
-    else checks.push({ lv: s.TOk ? "ok" : "bad", text: "Profundidad T = " + fmt(s.T, 3) + " m" + (s.TOk ? " dentro de " : (s.T < p.Tmin ? " (corta) · mín " : " (larga) · máx ")) + (s.TOk ? fmt(p.Tmin, 2) + "–" + fmt(p.Tmax, 2) + " m" : (s.T < p.Tmin ? fmt(p.Tmin, 2) : fmt(p.Tmax, 2)) + " m") });
-    if (s.geomOk && !s.TOk) checks.push({ lv: s.T > p.Tmax ? "warn" : "bad", text: (s.T > p.Tmax ? "Sobra longitud: " : "L insuficiente: ") + "con " + s.n + " gradas conviene L = " + fmt(Lrec, 2) + " m" + (aisle ? " (incluido pasillo de " + fmt(aisle.W, 2) + ")" : ""), action: { label: "Usar " + fmt(Lrec, 2), value: Lrec } });
+    else checks.push({ lv: s.TOk ? "ok" : (s.T > p.Tmax ? "warn" : "bad"), text: "Profundidad T = " + fmt(s.T, 3) + " m" + (s.TOk ? " dentro de " : (s.T < p.Tmin ? " (corta) · mín " : " (larga) · máx ")) + (s.TOk ? fmt(p.Tmin, 2) + "–" + fmt(p.Tmax, 2) + " m" : (s.T < p.Tmin ? fmt(p.Tmin, 2) : fmt(p.Tmax, 2)) + " m") });
+    if (s.geomOk && !s.TOk) checks.push({ lv: s.T > p.Tmax ? "warn" : "bad", text: (s.T > p.Tmax ? "Sobra longitud: " : "L insuficiente: ") + "con " + s.n + " gradas conviene L = " + fmt(Lrec, 2) + " m" + (aisle ? " (incluido pasillo de " + fmt(aisle.W, 2) + ")" : (s.T > p.Tmax ? " o destina el sobrante (" + fmt(L - Lrec, 2) + " m) a un pasillo" : "")), action: { label: "Usar " + fmt(Lrec, 2), value: Lrec } });
     else if (s.geomOk) checks.push({ lv: "ok", text: "L = " + fmt(L, 2) + " m encaja: " + s.n + " gradas × " + fmt(s.T, 3) + (aisle ? " + pasillo " + fmt(aisle.W, 2) : "") });
     let ce = 0, he = 0;
     if (k > 1) {
@@ -270,7 +270,7 @@
     const kpis = [
       { k: "Gradas", v: s.n, u: "ud", d: "filas" },
       { k: "Peralte N", v: fmt(s.N, 3), u: "m", lv: s.NOk ? "ok" : "bad" },
-      { k: "Profundidad T", v: fmt(s.T, 3), u: "m", lv: s.TOk ? "ok" : "bad" },
+      { k: "Profundidad T", v: fmt(s.T, 3), u: "m", lv: s.TOk ? "ok" : (s.T > p.Tmax ? "warn" : "bad") },
       { k: "Pendiente", v: fmt(deg(angle), 1), u: "°" },
       { k: "Aforo aprox.", v: capacity, u: "pers.", d: "0.50 m por asiento" },
       { k: "Hormigón", v: fmt(volume, 1), u: "m³" },
@@ -368,7 +368,14 @@
     "</style>";
   const HATCH = '<defs><pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" stroke="#9aa3ba" stroke-width="0.8"/></pattern>' +
     '<pattern id="hatch2" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#c3c9d6" stroke-width="0.7"/></pattern></defs>';
-  const svgOpen = (w, h) => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + w + " " + h + '" width="' + w + '" height="' + h + '" font-family="' + FONT.replace(/'/g, "") + '">' + SVG_STYLE + HATCH + '<rect width="' + w + '" height="' + h + '" fill="#fff"/>';
+  let svgSeq = 0;
+  function svgOpen(w, h) {
+    const id = "g" + (++svgSeq) + "_";
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + w + " " + h + '" width="' + w + '" height="' + h + '" font-family="' + FONT.replace(/'/g, "") + '">' +
+      SVG_STYLE.replace("url(#hatch)", "url(#" + id + "hatch)") + HATCH.replace('id="hatch"', 'id="' + id + 'hatch"').replace('id="hatch2"', 'id="' + id + 'hatch2"') +
+      '<rect width="' + w + '" height="' + h + '" fill="#fff"/>' + "<!--" + id + "-->";
+  }
+  const hatch2 = (o) => "url(#" + (o.match(/<!--(g\d+_)-->/) || [0, ""])[1] + "hatch2)";
   const pline = (pts, cls) => "<polygon points=\"" + pts.map((q) => q[0].toFixed(1) + "," + q[1].toFixed(1)).join(" ") + "\" class=\"" + cls + "\"/>";
   const line = (x1, y1, x2, y2, cls) => '<line x1="' + x1.toFixed(1) + '" y1="' + y1.toFixed(1) + '" x2="' + x2.toFixed(1) + '" y2="' + y2.toFixed(1) + '" class="' + cls + '"/>';
   const text = (x, y, s, cls, anchor, extra) => '<text x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" class="' + cls + '"' + (anchor ? ' text-anchor="' + anchor + '"' : "") + (extra ? " " + extra : "") + ">" + esc(s) + "</text>";
@@ -388,8 +395,8 @@
     else s += '<text class="dt" text-anchor="middle" transform="translate(' + (mx + (side === "right" ? 12 : -4)).toFixed(1) + " " + my.toFixed(1) + ') rotate(-90)">' + esc(label) + "</text>";
     return s;
   }
-  function levelMark(x, y, label, anchor) {
-    return '<path class="lvl" d="M' + x.toFixed(1) + " " + y.toFixed(1) + "l-5 -8h10z\"/>" + text(x + (anchor === "end" ? -8 : 8), y - 3, label, "tx", anchor || "start");
+  function levelMark(x, y, label, below) {
+    return '<path class="lvl" d="M' + x.toFixed(1) + " " + y.toFixed(1) + "l-5 -8h10z\"/>" + (below ? text(x - 6, y + 17, label, "tx") : text(x + 8, y - 3, label, "tx"));
   }
   function scaleBar(x, y, s) {
     const unit = s * 0.25 >= 14 ? 0.25 : 0.5, nseg = unit === 0.25 ? 4 : 2;
@@ -412,8 +419,8 @@
   // ------------------------------------------------------------------ SVG: corte
   function svgSection(d, W) {
     const g = d.geom, isStair = d.mode === "stair";
-    const xMin = -0.6, xMax = g.xMax + 0.75, zMin = -0.22, zMax = g.H + 0.45;
-    const M = fitMap(W, xMin, xMax, zMin, zMax, 12, 12, 28, 92, 0.8);
+    const xMin = -0.6, xMax = g.xMax + 0.75, zMin = -0.22, zMax = g.H + (d.mode === "bleacher" && d.vis ? d.p.eyeH + 0.25 : 0.45);
+    const M = fitMap(W, xMin, xMax, zMin, zMax, 12, 12, 40, 92, 0.64);
     const X = M.X, Y = M.Y, s = M.s;
     let o = svgOpen(M.W, M.H);
     const yG = Y(0);
@@ -439,15 +446,15 @@
       });
       o += dimLine(X(0), rowB, X(g.xEnd), rowB, X(0), yG, X(g.xEnd), Y(g.H), "L = " + fmt(g.xEnd, 2));
       // c (primera contrahuella) y h (primera huella)
-      o += dimLine(X(-0.32), yG, X(-0.32), Y(d.c), X(0), yG, X(0), Y(d.c), "c = " + fmt(d.c, 3));
+      o += dimLine(X(0) - 22, yG, X(0) - 22, Y(d.c), X(0), yG, X(0), Y(d.c), "c = " + fmt(d.c, 3));
       if (g.flights[0].nk > 1) o += dimLine(X(0), Y(2 * d.c + 0.22), X(d.h), Y(2 * d.c + 0.22), X(0), Y(d.c), X(d.h), Y(2 * d.c), "h = " + fmt(d.h, 3));
       // H total a la derecha
-      o += dimLine(X(g.xMax + 0.32), yG, X(g.xMax + 0.32), Y(g.H), X(g.xMax), yG, X(g.xMax), Y(g.H), "H = " + fmt(g.H, 2), "right");
+      o += dimLine(X(g.xMax) + 24, yG, X(g.xMax) + 24, Y(g.H), X(g.xMax), yG, X(g.xMax), Y(g.H), "H = " + fmt(g.H, 2), "right");
       // garganta
       const F0 = g.flights[0], xm = (F0.xTop + F0.xBot) / 2, zm = F0.zs - d.p.t * d.h / F0.len + (xm - F0.xs - d.p.t * d.c / F0.len) * (d.c / d.h);
       o += line(X(xm), Y(zm), X(xm + 0.45), Y(zm - 0.3), "thin") + text(X(xm + 0.5), Y(zm - 0.3) + 4, "garganta t = " + fmt(d.p.t, 2), "tx");
       // niveles
-      o += levelMark(X(-0.45), yG, "±0.00", "end") + levelMark(X(g.xEnd + g.a / 2), Y(g.H), "+" + fmt(g.H, 2));
+      o += levelMark(X(-0.42), yG, "±0.00", true) + levelMark(X(g.xEnd + g.a / 2), Y(g.H), "+" + fmt(g.H, 2));
       g.flights.slice(0, -1).forEach((F) => { o += levelMark(X(F.xe + d.Ld / 2), Y(F.ze), "+" + fmt(F.ze, 2)); });
       o += text(X(g.xEnd + 0.08), Y(g.H) - 14, "nivel superior", "sub");
     } else {
@@ -455,16 +462,16 @@
       o += dimLine(X(g.x0), rowA, X(g.xBack), rowA, X(g.x0), yG, X(g.xBack), Y(g.H), d.n + " × " + fmt(d.T, 3) + " = " + fmt(g.xBack - g.x0, 2));
       if (g.Wtop) o += dimLine(X(g.xBack), rowA, X(g.xMax), rowA, X(g.xBack), Y(g.H), X(g.xMax), Y(g.H), "pasillo " + fmt(g.Wtop, 2));
       o += dimLine(X(0), rowB, X(g.xMax), rowB, X(0), yG, X(g.xMax), Y(g.H), "L = " + fmt(g.xMax, 2));
-      o += dimLine(X(g.x0 - 0.32), yG, X(g.x0 - 0.32), Y(d.N), X(g.x0), yG, X(g.x0), Y(d.N), "N = " + fmt(d.N, 3));
+      o += dimLine(X(g.x0) - 22, yG, X(g.x0) - 22, Y(d.N), X(g.x0), yG, X(g.x0), Y(d.N), "N = " + fmt(d.N, 3));
       o += dimLine(X(g.x0), Y(Math.min(2 * d.N, g.H) + 0.22), X(g.x0 + d.T), Y(Math.min(2 * d.N, g.H) + 0.22), X(g.x0), Y(d.N), X(g.x0 + d.T), Y(Math.min(2 * d.N, g.H)), "T = " + fmt(d.T, 3));
-      o += dimLine(X(g.xMax + 0.32), yG, X(g.xMax + 0.32), Y(g.H), X(g.xMax), yG, X(g.xMax), Y(g.H), "H = " + fmt(g.H, 2), "right");
+      o += dimLine(X(g.xMax) + 24, yG, X(g.xMax) + 24, Y(g.H), X(g.xMax), yG, X(g.xMax), Y(g.H), "H = " + fmt(g.H, 2), "right");
       const xm = (g.xBot + g.xBack) / 2, zm = (g.zSoffBack) * (xm - g.xBot) / (g.xBack - g.xBot);
       o += line(X(xm), Y(zm), X(xm + 0.45), Y(zm - 0.3), "thin") + text(X(xm + 0.5), Y(zm - 0.3) + 4, "losa t = " + fmt(d.p.t, 2), "tx");
-      o += levelMark(X(-0.45), yG, "±0.00", "end") + levelMark(X(g.xBack - d.T / 2), Y(g.H), "+" + fmt(g.H, 2));
+      o += levelMark(X(-0.42), yG, "±0.00", true) + levelMark(X(g.xBack - d.T / 2), Y(g.H), "+" + fmt(g.H, 2));
       g.rows.forEach((r) => { if (M.s * d.T > 22) o += text(X((r.xf + r.xb) / 2), Y(r.z) + 11, String(r.i), "num"); });
     }
     o += text(14, 18, isStair ? "CORTE A-A · ESCALERA" : "CORTE A-A · GRADERÍO", "ttl");
-    o += text(14, 31, d.summary, "sub");
+    if (W >= 560) o += text(14, 31, d.summary, "sub");
     o += scaleBar(X(xMin) + 2, rowB + 22, s);
     return o + "</svg>";
   }
@@ -475,18 +482,18 @@
     let o;
     if (d.mode === "stair") {
       const xMin = -0.5, xMax = g.xMax + 0.75, yMin = -0.2, yMax = B + 0.45;
-      const M = fitMap(W, xMin, xMax, yMin, yMax, 12, 12, 28, 78, 0.75);
+      const M = fitMap(W, xMin, xMax, yMin, yMax, 12, 12, 40, 78, 0.7);
       const X = M.X, Y = M.Y;
       o = svgOpen(M.W, M.H);
       o += '<rect x="' + X(0).toFixed(1) + '" y="' + Y(B).toFixed(1) + '" width="' + (X(g.xMax) - X(0)).toFixed(1) + '" height="' + (Y(0) - Y(B)).toFixed(1) + '" class="geo" fill="#f4f6fa"/>';
       // descansos y llegada
       g.flights.forEach((F, k) => {
         if (k < g.flights.length - 1) {
-          o += '<rect x="' + X(F.xe).toFixed(1) + '" y="' + Y(B).toFixed(1) + '" width="' + (X(F.xe + d.Ld) - X(F.xe)).toFixed(1) + '" height="' + (Y(0) - Y(B)).toFixed(1) + '" fill="url(#hatch2)" stroke="none"/>';
+          o += '<rect x="' + X(F.xe).toFixed(1) + '" y="' + Y(B).toFixed(1) + '" width="' + (X(F.xe + d.Ld) - X(F.xe)).toFixed(1) + '" height="' + (Y(0) - Y(B)).toFixed(1) + '" fill="' + hatch2(o) + '" stroke="none"/>';
           o += text(X(F.xe + d.Ld / 2), Y(B * 0.5) + 4, "DESCANSO", "tx", "middle");
         }
       });
-      o += '<rect x="' + X(g.xEnd).toFixed(1) + '" y="' + Y(B).toFixed(1) + '" width="' + (X(g.xMax) - X(g.xEnd)).toFixed(1) + '" height="' + (Y(0) - Y(B)).toFixed(1) + '" fill="url(#hatch2)" stroke="none"/>';
+      o += '<rect x="' + X(g.xEnd).toFixed(1) + '" y="' + Y(B).toFixed(1) + '" width="' + (X(g.xMax) - X(g.xEnd)).toFixed(1) + '" height="' + (Y(0) - Y(B)).toFixed(1) + '" fill="' + hatch2(o) + '" stroke="none"/>';
       // peldaños
       g.steps.forEach((st) => {
         o += line(X(st.x), Y(0), X(st.x), Y(B), "thin");
@@ -505,20 +512,20 @@
         if (k < g.flights.length - 1) o += dimLine(X(F.xe), rowA, X(F.xe + d.Ld), rowA, X(F.xe), Y(0), X(F.xe + d.Ld), Y(0), "Ld = " + fmt(d.Ld, 2));
       });
       o += dimLine(X(0), rowB, X(g.xEnd), rowB, X(0), Y(0), X(g.xEnd), Y(0), "L = " + fmt(g.xEnd, 2));
-      o += dimLine(X(g.xMax + 0.34), Y(0), X(g.xMax + 0.34), Y(B), X(g.xMax), Y(0), X(g.xMax), Y(B), "B = " + fmt(B, 2), "right");
+      o += dimLine(X(g.xMax) + 24, Y(0), X(g.xMax) + 24, Y(B), X(g.xMax), Y(0), X(g.xMax), Y(B), "B = " + fmt(B, 2), "right");
       if (g.flights[0].nk > 1) o += dimLine(X(0), Y(B + 0.2), X(d.h), Y(B + 0.2), X(0), Y(B), X(d.h), Y(B), "h = " + fmt(d.h, 3));
-      o += text(14, 18, "PLANTA · ESCALERA", "ttl") + text(14, 31, d.n + " contrahuellas · " + d.f + (d.f > 1 ? " tramos" : " tramo") + " · ancho " + fmt(B, 2) + " m", "sub");
+      o += text(14, 18, "PLANTA · ESCALERA", "ttl"); if (W >= 560) o += text(14, 31, d.n + " contrahuellas · " + d.f + (d.f > 1 ? " tramos" : " tramo") + " · ancho " + fmt(B, 2) + " m", "sub");
       o += scaleBar(X(xMin) + 2, rowB + 22, M.s);
       return o + "</svg>";
     }
     // graderío: frente B en horizontal, fondo hacia arriba (campo abajo)
-    const yMin = -0.5, yMax = B + 0.75, dMin = -0.25, dMax = g.xMax + 0.45;
-    const M = fitMap(W, yMin, yMax, dMin, dMax, 12, 12, 28, 70, 0.85);
+    const yMin = -0.5, yMax = B + 0.3 + 60 / 60, dMin = -0.25, dMax = g.xMax + 0.45;
+    const M = fitMap(W, yMin, yMax, dMin, dMax, 12, 12, 40, 104, 0.8);
     const X = M.X, Yd = M.Y; // Yd(depth): x del mundo (fondo)
     o = svgOpen(M.W, M.H);
     o += '<rect x="' + X(0).toFixed(1) + '" y="' + Yd(g.xMax).toFixed(1) + '" width="' + (X(B) - X(0)).toFixed(1) + '" height="' + (Yd(0) - Yd(g.xMax)).toFixed(1) + '" class="geo" fill="#f4f6fa"/>';
-    if (g.x0) { o += '<rect x="' + X(0).toFixed(1) + '" y="' + Yd(g.x0).toFixed(1) + '" width="' + (X(B) - X(0)).toFixed(1) + '" height="' + (Yd(0) - Yd(g.x0)).toFixed(1) + '" fill="url(#hatch2)"/>' + text(X(B / 2), (Yd(0) + Yd(g.x0)) / 2 + 4, "PASILLO", "tx", "middle"); }
-    if (g.Wtop) { o += '<rect x="' + X(0).toFixed(1) + '" y="' + Yd(g.xMax).toFixed(1) + '" width="' + (X(B) - X(0)).toFixed(1) + '" height="' + (Yd(g.xBack) - Yd(g.xMax)).toFixed(1) + '" fill="url(#hatch2)"/>' + text(X(B / 2), (Yd(g.xBack) + Yd(g.xMax)) / 2 + 4, "PASILLO", "tx", "middle"); }
+    if (g.x0) { o += '<rect x="' + X(0).toFixed(1) + '" y="' + Yd(g.x0).toFixed(1) + '" width="' + (X(B) - X(0)).toFixed(1) + '" height="' + (Yd(0) - Yd(g.x0)).toFixed(1) + '" fill="' + hatch2(o) + '"/>' + text(X(B / 2), (Yd(0) + Yd(g.x0)) / 2 + 4, "PASILLO", "tx", "middle"); }
+    if (g.Wtop) { o += '<rect x="' + X(0).toFixed(1) + '" y="' + Yd(g.xMax).toFixed(1) + '" width="' + (X(B) - X(0)).toFixed(1) + '" height="' + (Yd(g.xBack) - Yd(g.xMax)).toFixed(1) + '" fill="' + hatch2(o) + '"/>' + text(X(B / 2), (Yd(g.xBack) + Yd(g.xMax)) / 2 + 4, "PASILLO", "tx", "middle"); }
     g.rows.forEach((r) => {
       o += line(X(0), Yd(r.xf), X(B), Yd(r.xf), "thin");
       if (M.s * d.T > 14) o += text(X(0.12), (Yd(r.xf) + Yd(r.xb)) / 2 + 3.5, String(r.i), "num", undefined, 'text-anchor="start"');
@@ -533,12 +540,12 @@
       o += '<text class="tx" transform="translate(' + (xc + 12).toFixed(1) + " " + (Yd(g.x0 + d.T) ).toFixed(1) + ') rotate(-90)">SUBE</text>';
       o += dimLine(X(y1), Yd(0) + 18, X(y2), Yd(0) + 18, X(y1), Yd(0), X(y2), Yd(0), "Be = " + fmt(d.p.Be, 2));
     }
-    o += text(X(B / 2), Yd(0) + 14 + (d.k > 1 ? 0 : 0) + 30, "CAMPO / PUNTO FOCAL", "sub", "middle");
+    o += text(X(B / 2), Yd(0) + 66, "CAMPO / PUNTO FOCAL", "sub", "middle");
     o += dimLine(X(0), Yd(0) + 42, X(B), Yd(0) + 42, X(0), Yd(0), X(B), Yd(0), "B = " + fmt(B, 2));
-    o += dimLine(X(B + 0.3), Yd(g.x0), X(B + 0.3), Yd(g.x0 + d.T), X(B), Yd(g.x0), X(B), Yd(g.x0 + d.T), "T = " + fmt(d.T, 3), "right");
-    o += dimLine(X(B + 0.62), Yd(0), X(B + 0.62), Yd(g.xMax), X(B), Yd(0), X(B), Yd(g.xMax), "L = " + fmt(g.xMax, 2), "right");
-    o += text(14, 18, "PLANTA · GRADERÍO", "ttl") + text(14, 31, d.n + " gradas · frente " + fmt(B, 2) + " m · fondo " + fmt(g.xMax, 2) + " m", "sub");
-    o += scaleBar(X(yMin) + 2, Yd(0) + 62, M.s);
+    o += dimLine(X(B) + 22, Yd(g.x0), X(B) + 22, Yd(g.x0 + d.T), X(B), Yd(g.x0), X(B), Yd(g.x0 + d.T), "T = " + fmt(d.T, 3), "right");
+    o += dimLine(X(B) + 50, Yd(0), X(B) + 50, Yd(g.xMax), X(B), Yd(0), X(B), Yd(g.xMax), "L = " + fmt(g.xMax, 2), "right");
+    o += text(14, 18, "PLANTA · GRADERÍO", "ttl"); if (W >= 560) o += text(14, 31, d.n + " gradas · frente " + fmt(B, 2) + " m · fondo " + fmt(g.xMax, 2) + " m", "sub");
+    o += scaleBar(X(yMin) + 2, Yd(0) + 82, M.s);
     return o + "</svg>";
   }
 
@@ -547,7 +554,7 @@
   const ISO_LIGHT = norm3([-0.55, 0.3, 1]);
   function isoProj(p) { const u = -p[0], v = p[1]; return [(u - v) * 0.8660254, (u + v) * 0.5 - p[2], u + v + p[2]]; }
   function svgIso(d, W) {
-    const g = d.geom, B = d.p.B, xE = g.xMax;
+    const g = d.geom, B = d.p.B, xE = d.mode === "stair" ? g.xEnd : g.xMax;
     const view = { proj: isoProj, visible: (n) => dot3(n, ISO_VIEW_DIR) > 1e-6, shade: (n) => 0.52 + 0.48 * Math.max(0, dot3(n, ISO_LIGHT)) };
     const list = drawList(d.meshes, view);
     // cotas generales en isométrico
@@ -563,7 +570,7 @@
     pts.forEach((q) => { x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]); y0 = Math.min(y0, q[1]); y1 = Math.max(y1, q[1]); });
     const mL = 40, mR = 40, mT = 44, mB = 30;
     let s = (W - mL - mR) / (x1 - x0); let Hs = (y1 - y0) * s + mT + mB;
-    if (Hs > W * 0.8) { s = (W * 0.8 - mT - mB) / (y1 - y0); Hs = W * 0.8; }
+    if (Hs > W * 0.66) { s = (W * 0.66 - mT - mB) / (y1 - y0); Hs = W * 0.66; }
     const offX = mL + (W - mL - mR - (x1 - x0) * s) / 2;
     const P = (q) => [offX + (q[0] - x0) * s, mT + (q[1] - y0) * s];
     let o = svgOpen(W, Math.ceil(Hs));
@@ -579,7 +586,7 @@
       const mx = (a[0] + b[0]) / 2 + (a[0] - ea[0]) * 0.35, my = (a[1] + b[1]) / 2 + (a[1] - ea[1]) * 0.35;
       o += text(mx, my + 4, dm.label, "dt", "middle");
     });
-    o += text(14, 18, "ISOMÉTRICO", "ttl") + text(14, 31, "Proyección isométrica (ejes a 30°, sin escala) · " + d.summary, "sub");
+    o += text(14, 18, "ISOMÉTRICO", "ttl"); if (W >= 560) o += text(14, 31, "Proyección isométrica (ejes a 30°, sin escala) · " + d.summary, "sub");
     return o + "</svg>";
   }
 
@@ -636,7 +643,7 @@
     ctx.lineJoin = "round"; ctx.lineWidth = 0.8; ctx.strokeStyle = "rgba(30,36,52,.55)";
     list.forEach((f) => { ctx.beginPath(); f.sp.forEach((q, i) => (i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]))); ctx.closePath(); ctx.fillStyle = f.col; ctx.fill(); ctx.stroke(); });
     ctx.fillStyle = "#5a6275"; ctx.font = "12px " + FONT; ctx.textAlign = "left";
-    ctx.fillText("L " + fmt(g.xMax, 2) + " m · B " + fmt(B, 2) + " m · H " + fmt(g.H, 2) + " m · rejilla " + step + " m", 12, 20);
+    ctx.fillText("L " + fmt(d.mode === "stair" ? g.xEnd : g.xMax, 2) + " m · B " + fmt(B, 2) + " m · H " + fmt(g.H, 2) + " m · rejilla " + step + " m", 12, 20);
   }
 
   // ------------------------------------------------------------------ interfaz
@@ -693,8 +700,8 @@
       : ["Nº de gradas n elegido para que N = H / n y T = L útil / n queden lo más centrados posible en sus rangos.", "La escalera de acceso divide cada grada en k escalones iguales (c = N/k, h = T/k) dentro de una franja central.", d.vis ? "Visibilidad: C = D·(N+R)/(D+T) − R con ojo a " + fmt(p.eyeH, 2) + " m sobre la grada, punto focal a " + fmt(p.Df, 1) + " m del frente y " + fmt(p.hf, 2) + " m de altura. Objetivo C ≥ 0.06–0.09 m." : "Visibilidad (valor C) no evaluada: actívela en Parámetros › Visibilidad.", "Losa inclinada de espesor t bajo gradas macizas; el fondo de losa no requiere encofrado si apoya en relleno compactado.", "Verificar normativa local de espectáculos públicos: anchos de evacuación, barandillas, aforo y accesibilidad."];
     const sec = svgSection(d, ws[0]), plan = svgPlan(d, ws[1]), iso = svgIso(d, ws[2]);
     return '<div class="ps-head"><div><h1>' + esc(p.title) + " · " + (d.mode === "stair" ? "Escalera" : "Graderío") + '</h1><div class="sub">' + esc(d.summary) + '</div></div><div class="meta">' + meta.map((m) => "<span>" + esc(m[0]) + "</span><b>" + esc(m[1]) + "</b>").join("") + "<span>Fecha</span><b>" + today() + "</b><span>Hoja</span><b>" + p.paper + " apaisada · escala gráfica</b></div></div>" +
-      '<div class="ps-grid"><div class="ps-box"><h2>Corte A-A</h2>' + sec + '</div><div class="ps-box"><h2>Planta</h2>' + plan + "</div></div>" +
-      '<div class="ps-page2"><div class="ps-box"><h2>Isométrico</h2>' + iso + '</div><div><div class="ps-box"><h2>' + (d.mode === "stair" ? "Tabla de escalones" : "Tabla de gradas") + "</h2>" + tableHTML(d) + '</div><div class="ps-box"><h2>Cómputos</h2>' + qtyHTML(d, "ps-qty") + '</div><div class="ps-box ps-notes"><h2>Criterios</h2><ul>' + notes.map((n) => "<li>" + esc(n) + "</li>").join("") + "</ul></div></div></div>";
+      '<div class="ps-grid"><div class="ps-box">' + sec + '</div><div class="ps-box">' + plan + "</div></div>" +
+      '<div class="ps-page2"><div class="ps-box">' + iso + '</div><div><div class="ps-box"><h2>' + (d.mode === "stair" ? "Tabla de escalones" : "Tabla de gradas") + "</h2>" + tableHTML(d) + '</div><div class="ps-box"><h2>Cómputos</h2>' + qtyHTML(d, "ps-qty") + '</div><div class="ps-box ps-notes"><h2>Criterios</h2><ul>' + notes.map((n) => "<li>" + esc(n) + "</li>").join("") + "</ul></div></div></div>";
   }
   function buildPrintSheet(d) {
     $("#printSheet").innerHTML = printSheetHTML(d);
@@ -761,7 +768,7 @@
   }
   async function reviewAI() {
     const btn = $("#btnAI"), panel = $("#aiPanel"), body = $("#aiBody");
-    panel.hidden = false; body.innerHTML = '<div class="busy"><span class="spinner"></span>Consultando al modelo rápido…</div>'; busy(btn, true);
+    panel.hidden = false; panel.scrollIntoView({ block: "nearest", behavior: "smooth" }); body.innerHTML = '<div class="busy"><span class="spinner"></span>Consultando al modelo rápido…</div>'; busy(btn, true);
     const d = current, p = d.p;
     const resumen = d.mode === "stair"
       ? { tipo: "escalera", desnivel_H_m: p.H, distancia_L_m: p.L, ancho_B_m: p.B, contrahuellas: d.n, contrahuella_m: +fmt(d.c, 4), huellas: d.treads, huella_m: +fmt(d.hReal, 4), blondel_2c_h_m: +fmt(d.bl, 4), tramos: d.flightsN, descanso_m: d.f > 1 ? d.Ld : null, inclinacion_grados: +fmt(deg(d.angle), 1), losa_garganta_m: p.t }
