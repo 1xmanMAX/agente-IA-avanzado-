@@ -80,22 +80,7 @@ def build_pdf(ctx, out: Path, md: str, *, title, subtitle, author, date_text, co
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
 
-    # Fuente con acentos/ñ/símbolos: DejaVu (si hay matplotlib) o la del sistema; si no, Helvetica.
-    base_font, bold_font = "Helvetica", "Helvetica-Bold"
-    from .drawing import font_path
-    try:
-        if "PXBase" not in pdfmetrics.getRegisteredFontNames():
-            reg, bld = font_path(False), font_path(True)
-            if reg and bld:
-                ita, bita = font_path(False, True) or reg, font_path(True, True) or bld
-                for name, f in (("PXBase", reg), ("PXBase-Bold", bld), ("PXBase-It", ita), ("PXBase-BoldIt", bita)):
-                    pdfmetrics.registerFont(TTFont(name, f))
-                from reportlab.pdfbase.pdfmetrics import registerFontFamily
-                registerFontFamily("PXBase", normal="PXBase", bold="PXBase-Bold", italic="PXBase-It", boldItalic="PXBase-BoldIt")
-        if "PXBase" in pdfmetrics.getRegisteredFontNames():
-            base_font, bold_font = "PXBase", "PXBase-Bold"
-    except Exception:  # noqa: BLE001
-        pass
+    base_font, bold_font = register_fonts()
 
     size = {"A4": A4, "letter": letter, "A3": A3}.get(page_size, A4)
     if landscape_mode:
@@ -208,6 +193,40 @@ def build_pdf(ctx, out: Path, md: str, *, title, subtitle, author, date_text, co
             lvl = min(4, len(m.group(1)))
             story.append(Paragraph(_inline(m.group(2)), H[lvl - 1]))
             i += 1; continue
+        mp = re.match(r"^:::photos(?:\s+(\d+)x(\d+))?", s)
+        if mp:
+            flush()
+            ncols = int(mp.group(1) or 2)
+            j = i + 1
+            items = []
+            while j < len(lines) and lines[j].strip() != ":::":
+                if lines[j].strip():
+                    path_, _, cap_ = lines[j].partition("|")
+                    items.append((path_.strip(), cap_.strip()))
+                j += 1
+            i = j + 1
+            cw = frame_w / ncols
+            ih = cw * 0.72
+            cells, row = [], []
+            for path_, cap_ in items:
+                try:
+                    img = _rl_image(ctx, path_, cw - 8, ih, RLImage)
+                    pcell = [img, Paragraph(_inline(cap_), caption)] if cap_ else [img]
+                except Exception as e:  # noqa: BLE001
+                    warnings.append(f"Foto {path_}: {e}")
+                    pcell = [Paragraph(_inline(f"[foto no disponible] {cap_}"), caption)]
+                row.append(pcell)
+                if len(row) == ncols:
+                    cells.append(row)
+                    row = []
+            if row:
+                cells.append(row + [""] * (ncols - len(row)))
+            if cells:
+                gt = Table(cells, colWidths=[cw] * ncols)
+                gt.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                                        ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 6)]))
+                story += [gt, Spacer(1, 6)]
+            continue
         if s.startswith("```"):
             flush()
             j = i + 1
@@ -286,15 +305,52 @@ def build_pdf(ctx, out: Path, md: str, *, title, subtitle, author, date_text, co
         doc.build(story)
 
 
+def register_fonts() -> tuple[str, str]:
+    """Registra en reportlab una fuente con acentos/ñ (DejaVu o la del sistema); si no, Helvetica."""
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    from .drawing import font_path
+    try:
+        if "PXBase" not in pdfmetrics.getRegisteredFontNames():
+            reg, bld = font_path(False), font_path(True)
+            if reg and bld:
+                ita, bita = font_path(False, True) or reg, font_path(True, True) or bld
+                for name, f in (("PXBase", reg), ("PXBase-Bold", bld), ("PXBase-It", ita), ("PXBase-BoldIt", bita)):
+                    pdfmetrics.registerFont(TTFont(name, f))
+                from reportlab.pdfbase.pdfmetrics import registerFontFamily
+                registerFontFamily("PXBase", normal="PXBase", bold="PXBase-Bold", italic="PXBase-It", boldItalic="PXBase-BoldIt")
+        if "PXBase" in pdfmetrics.getRegisteredFontNames():
+            return "PXBase", "PXBase-Bold"
+    except Exception:  # noqa: BLE001
+        pass
+    return "Helvetica", "Helvetica-Bold"
+
+
 def _rl_image(ctx, src, max_w, max_h, RLImage):
-    from PIL import Image
+    """Imagen para reportlab, reducida a ~170 ppp del tamaño impreso: PDFs ligeros aunque
+    lleven decenas de fotos de móvil a 12–48 MP."""
+    import hashlib
+
+    from PIL import Image, ImageOps
     p = ctx.resolve(src, must_exist=True)
     if p.suffix.lower() == ".svg":
         raise ToolError("SVG no soportado en create_pdf; usa la versión PNG.")
     with Image.open(p) as im:
-        w, h = im.size
-    k = min(max_w / w, max_h / h)
-    return RLImage(str(p), width=w * k, height=h * k)
+        w, h = ImageOps.exif_transpose(im).size if im.getexif().get(274, 1) != 1 else im.size
+        k = min(max_w / w, max_h / h)
+        target_px = max(max_w, max_h) / 72 * 170
+        use = p
+        rotated = im.getexif().get(274, 1) != 1  # reportlab ignora la orientación EXIF
+        if rotated or max(w, h) > target_px * 1.25 or p.suffix.lower() in (".heic", ".heif", ".webp"):
+            key = hashlib.sha1(f"{p}|{p.stat().st_mtime_ns}|{int(target_px)}".encode()).hexdigest()[:16]
+            use = ctx.ws / ".tmp" / "pdfimg" / f"{key}.jpg"
+            if not use.exists():
+                use.parent.mkdir(parents=True, exist_ok=True)
+                im.draft("RGB", (int(target_px), int(target_px)))
+                im2 = ImageOps.exif_transpose(im).convert("RGB")
+                im2.thumbnail((int(target_px), int(target_px)), Image.LANCZOS)
+                im2.save(use, "JPEG", quality=85)
+    return RLImage(str(use), width=w * k, height=h * k)
 
 
 # ============================================================ pdf_tools

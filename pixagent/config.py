@@ -20,6 +20,8 @@ class Settings:
     # Modelo de Claude y esfuerzo de razonamiento (low|medium|high|xhigh|max)
     model: str = "claude-opus-5-5"
     effort: str = "high"
+    # Modelo económico para la IA rápida de las mini apps (pies de foto, revisiones cortas...)
+    quick_model: str = "claude-haiku-5-5"
     max_tokens: int = 64000
     # Reintento automático en otro modelo si el principal rechaza la petición
     server_fallbacks: bool = True

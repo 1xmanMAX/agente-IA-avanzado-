@@ -1,0 +1,32 @@
+{
+  "id": "inspeccion-tecnica",
+  "name": "Informe técnico de inspección",
+  "description": "Inspección de una edificación o estructura: antecedentes, metodología, hallazgos por zona con fotos, diagnóstico y recomendaciones.",
+  "style": {"theme_color": "#1f4e79", "page_size": "A4", "cover": true, "toc": true},
+  "fields": [
+    {"key": "proyecto", "label": "Proyecto / edificación", "type": "text", "required": true},
+    {"key": "cliente", "label": "Cliente / solicitante", "type": "text"},
+    {"key": "ubicacion", "label": "Ubicación", "type": "text"},
+    {"key": "fecha", "label": "Fecha de inspección", "type": "date"},
+    {"key": "inspector", "label": "Profesional responsable", "type": "text"},
+    {"key": "registro", "label": "Colegiatura / registro", "type": "text"}
+  ],
+  "sections": [
+    {"id": "resumen", "title": "Resumen ejecutivo", "kind": "ai", "depends_on": ["*"], "words": 350,
+     "instructions": "Síntesis del objetivo, principales hallazgos (con su gravedad) y recomendaciones prioritarias. Basado solo en las demás secciones."},
+    {"id": "datos", "title": "Datos generales", "kind": "fields_table"},
+    {"id": "antecedentes", "title": "Antecedentes y objetivo", "kind": "ai", "words": 300,
+     "instructions": "Contexto de la inspección y objetivo, a partir de las notas del usuario. No inventes hechos: si falta información, usa [POR COMPLETAR: ...]."},
+    {"id": "metodologia", "title": "Metodología", "kind": "ai", "words": 300,
+     "instructions": "Metodología de inspección visual (recorrido, registro fotográfico, criterios de gravedad Leve/Moderado/Grave) y limitaciones."},
+    {"id": "hallazgos", "title": "Hallazgos por zona", "kind": "per_group", "photos": true, "words": 400,
+     "instructions": "Para esta zona: describe técnicamente lo observado en cada foto (citándola como Foto N), identifica patologías probables, su causa posible y su gravedad. Cierra con una tabla | Foto | Hallazgo | Gravedad |."},
+    {"id": "diagnostico", "title": "Diagnóstico", "kind": "ai", "depends_on": ["hallazgos"], "words": 450,
+     "instructions": "Diagnóstico integrado del estado de la edificación a partir de los hallazgos, agrupando causas comunes."},
+    {"id": "recomendaciones", "title": "Conclusiones y recomendaciones", "kind": "ai", "depends_on": ["hallazgos", "diagnostico"], "words": 450,
+     "instructions": "Conclusiones y recomendaciones priorizadas (inmediatas, corto y mediano plazo) en una tabla | Prioridad | Acción | Zona/Fotos |."},
+    {"id": "panel", "title": "Anexo: panel fotográfico", "kind": "photo_grid", "layout": "2x3"},
+    {"id": "firma", "title": "Firma", "kind": "static",
+     "content": "\n\n\n______________________________\n**{{inspector}}**\n{{registro}}\n{{fecha}}"}
+  ]
+}

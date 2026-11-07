@@ -24,7 +24,7 @@ from collections import deque
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import FastAPI, File, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 from starlette.middleware.gzip import GZipMiddleware
 
@@ -90,7 +90,7 @@ class EventHub:
 
 
 # ============================================================ aplicación
-def create_app(settings: Settings, llm_factory=None) -> FastAPI:
+def create_app(settings: Settings, llm_factory=None, report_writer_factory=None) -> FastAPI:
     from contextlib import asynccontextmanager
 
     ws_root = settings.ws
@@ -388,6 +388,211 @@ def create_app(settings: Settings, llm_factory=None) -> FastAPI:
         from ..tools.pixpin_tools import install_scripts as inst
         r = inst(get_agent(None).ctx)
         return {"ok": True, "text": r.text}
+
+    # ------------------------------------------------------------- mini apps
+    MINIAPPS = Path(__file__).resolve().parents[1] / "miniapps"
+
+    def app_dirs():
+        for builtin, root in ((True, MINIAPPS), (False, ws_root / "apps")):
+            if root.exists():
+                for d in sorted(root.iterdir()):
+                    if d.is_dir() and (d / "manifest.json").exists():
+                        yield builtin, d
+
+    @app.get("/api/apps")
+    async def list_apps():
+        out = []
+        for builtin, d in app_dirs():
+            try:
+                m = json.loads((d / "manifest.json").read_text("utf-8"))
+            except Exception:  # noqa: BLE001
+                continue
+            out.append({"slug": d.name, "name": m.get("name", d.name), "description": m.get("description", ""),
+                        "icon": m.get("icon", "🧩"), "category": m.get("category", "Mis apps" if not builtin else "General"),
+                        "kind": m.get("kind", "web"), "uses_ai": m.get("uses_ai", False), "builtin": builtin,
+                        "url": f"/apps/{d.name}/" if m.get("kind", "web") == "web" else None,
+                        "entry": m.get("entry", "index.html")})
+        return out
+
+    @app.get("/apps/{slug}/{rel:path}")
+    async def serve_app(slug: str, rel: str = ""):
+        for _b, d in app_dirs():
+            if d.name == slug:
+                p = (d / (rel or "index.html")).resolve()
+                if d.resolve() not in p.parents or not p.is_file():
+                    raise HTTPException(404)
+                return FileResponse(p, headers={"Cache-Control": "no-cache"})
+        raise HTTPException(404)
+
+    @app.get("/apps/{slug}")
+    async def app_root(slug: str):
+        return RedirectResponse(f"/apps/{slug}/")
+
+    @app.post("/api/files/save")
+    async def files_save(file: UploadFile = File(...), folder: str = Form("")):
+        sub = re.sub(r"[^\w\-/]+", "_", folder).strip("/") or "miniapps"
+        dest_dir = safe_path(f"outputs/{sub}")
+        p = await asyncio.to_thread(save_upload, file, dest_dir)
+        return {"ok": True, "path": p.relative_to(ws_root).as_posix()}
+
+    @app.get("/api/files/list")
+    async def files_list(folder: str = ""):
+        base = safe_path(folder or ".")
+        if not base.is_dir():
+            return {"files": []}
+        res = []
+        for p in sorted(base.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True)[:500]:
+            if p.is_file() and not p.name.startswith("."):
+                st = p.stat()
+                res.append({"path": p.relative_to(ws_root).as_posix(), "size": st.st_size,
+                            "mtime": st.st_mtime, "kind": guess_kind(p)})
+        return {"files": res}
+
+    @app.post("/api/photo-panel")
+    async def photo_panel_api(spec: dict):
+        from ..tools.panel import build_photo_panel
+        from ..tools.base import ToolError
+        try:
+            out, pages = await asyncio.to_thread(build_photo_panel, get_agent(None).ctx, spec)
+        except ToolError as e:
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=400)
+        return {"ok": True, "path": out.relative_to(ws_root).as_posix(), "pages": pages}
+
+    @app.post("/api/ai/quick")
+    async def ai_quick(body: dict):
+        from ..quick_ai import quick_ai
+        try:
+            return await asyncio.to_thread(quick_ai, settings, body)
+        except Exception as e:  # noqa: BLE001
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+    # ------------------------------------------------------------- informes estructurados
+    from ..reports import engine as RE
+    report_jobs: dict[str, "RE.ReportGenerator"] = {}
+
+    def project_or_404(rid: str):
+        p = RE.ReportProject(ws_root, rid)
+        if not p.data:
+            raise HTTPException(404, "Informe no encontrado")
+        return p
+
+    def project_payload(p):
+        st = p.status()
+        job = report_jobs.get(p.id)
+        return {**{k: v for k, v in p.data.items() if k != "units"}, **st,
+                "running": bool(job and getattr(job, "_thread", None) and job._thread.is_alive()),
+                "estimate": p.estimate()}
+
+    @app.get("/report")
+    @app.get("/reports")
+    async def reports_page():
+        f = STATIC / "reports.html"
+        if not f.exists():
+            raise HTTPException(404, "La interfaz de informes aún no está instalada")
+        return HTMLResponse(f.read_text("utf-8").replace("{{V}}", static_version), headers={"Cache-Control": "no-cache"})
+
+    @app.get("/api/report-templates")
+    async def rt_list():
+        return RE.Templates(ws_root).list()
+
+    @app.get("/api/report-templates/{tid}")
+    async def rt_get(tid: str):
+        try:
+            return RE.Templates(ws_root).get(tid)
+        except KeyError:
+            raise HTTPException(404)
+
+    @app.post("/api/report-templates")
+    async def rt_save(body: dict):
+        try:
+            return {"ok": True, "template": RE.Templates(ws_root).save(body)}
+        except ValueError as e:
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=400)
+
+    @app.delete("/api/report-templates/{tid}")
+    async def rt_delete(tid: str):
+        RE.Templates(ws_root).delete(tid)
+        return {"ok": True}
+
+    @app.get("/api/reports")
+    async def rp_list():
+        return await asyncio.to_thread(RE.list_projects, ws_root)
+
+    @app.post("/api/reports")
+    async def rp_create(body: dict):
+        try:
+            tpl = RE.Templates(ws_root).get(body.get("template_id", ""))
+        except KeyError:
+            return JSONResponse({"ok": False, "error": "Plantilla no encontrada"}, status_code=400)
+        p = RE.ReportProject.create(ws_root, tpl, body.get("title") or tpl["name"], body.get("fields"),
+                                    body.get("notes", ""), body.get("photos"), body.get("target_pages"),
+                                    body.get("model") or settings.model)
+        return {"ok": True, "report": project_payload(p)}
+
+    @app.get("/api/reports/{rid}")
+    async def rp_get(rid: str):
+        return project_payload(project_or_404(rid))
+
+    @app.put("/api/reports/{rid}")
+    async def rp_update(rid: str, body: dict):
+        p = project_or_404(rid)
+        p.update(**body)
+        return {"ok": True, "report": project_payload(p)}
+
+    @app.delete("/api/reports/{rid}")
+    async def rp_delete(rid: str):
+        p = project_or_404(rid)
+        shutil.rmtree(p.dir, ignore_errors=True)
+        return {"ok": True}
+
+    @app.get("/api/reports/{rid}/sections/{uid}")
+    async def rp_section(rid: str, uid: str):
+        p = project_or_404(rid)
+        f = p.section_file(uid)
+        return {"id": uid, "markdown": f.read_text("utf-8") if f.exists() else ""}
+
+    @app.put("/api/reports/{rid}/sections/{uid}")
+    async def rp_section_save(rid: str, uid: str, body: dict):
+        p = project_or_404(rid)
+        p.section_file(uid).write_text(body.get("markdown", ""), "utf-8")
+        p.set_unit(uid, status="done", edited=True, words=len(body.get("markdown", "").split()), error=None)
+        return {"ok": True}
+
+    @app.post("/api/reports/{rid}/generate")
+    async def rp_generate(rid: str, body: dict | None = None):
+        body = body or {}
+        p = project_or_404(rid)
+        job = report_jobs.get(rid)
+        if job and job._thread.is_alive():
+            return JSONResponse({"ok": False, "error": "Ya se está generando"}, status_code=409)
+        if body.get("unlock"):  # permitir regenerar partes editadas a mano
+            for uid in body.get("sections") or []:
+                p.set_unit(uid, edited=False)
+        kw = {"writer": report_writer_factory(settings, p)} if report_writer_factory else {}
+        gen = RE.ReportGenerator(settings, p, emit=hub.publish_threadsafe, **kw)
+        gen._thread = threading.Thread(target=gen.run, kwargs={"only": body.get("sections"), "force": bool(body.get("force"))},
+                                       daemon=True)
+        report_jobs[rid] = gen
+        gen._thread.start()
+        return {"ok": True}
+
+    @app.post("/api/reports/{rid}/cancel")
+    async def rp_cancel(rid: str):
+        job = report_jobs.get(rid)
+        if job:
+            job.cancelled = True
+        return {"ok": True}
+
+    @app.post("/api/reports/{rid}/build")
+    async def rp_build(rid: str):
+        p = project_or_404(rid)
+        try:
+            out = await asyncio.to_thread(RE.build_report_pdf, settings, p)
+        except Exception as e:  # noqa: BLE001
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+        from .thumbs import pdf_page_count
+        return {"ok": True, "path": out.relative_to(ws_root).as_posix(), "pages": pdf_page_count(out),
+                "warnings": p.data.get("outputs", {}).get("warnings", [])}
 
     # ------------------------------------------------------------- WebSocket
     @app.websocket("/ws")

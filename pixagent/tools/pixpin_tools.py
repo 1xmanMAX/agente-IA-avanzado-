@@ -118,11 +118,24 @@ para que las abras con un atajo de PixPin.
 """
 
 
+def _served_url(ctx: ToolContext, slug: str, entry: str) -> str | None:
+    """URL de la app en el servidor de PixAgent (para que funcione el SDK) si está en marcha."""
+    import urllib.request
+    if ctx.settings.require_token:
+        return None
+    url = f"http://127.0.0.1:{ctx.settings.port}/apps/{slug}/{entry if entry != 'index.html' else ''}"
+    try:
+        with urllib.request.urlopen(url, timeout=1.5) as r:
+            return url if r.status == 200 else None
+    except Exception:  # noqa: BLE001
+        return None
+
+
 @tool("create_miniapp",
       """Crea una MINI APP / mini funcionalidad integrada con PixPin:
-      - kind='web': app HTML/CSS/JS autocontenida (calculadoras, conversores, checklists, visores,
-        editores, dashboards...). Entry por defecto index.html. Puede usar librerías por CDN
-        (cdnjs/jsdelivr) pero mejor que funcione offline.
+      - kind='web': app HTML/CSS/JS autocontenida (calculadoras, diseñadores paramétricos, conversores,
+        checklists, visores, editores...). Entry por defecto index.html. Se abre en /apps/<slug>/ con el
+        SDK de PixAgent (window.PixAgent: save, pin, upload, ai, photoPanel) ya incluido.
       - kind='python': script con interfaz (tkinter) o utilidad que procesa el portapapeles o la bandeja
         inbox (p. ej. quitar fondo, OCR, redimensionar, generar PDF de capturas).
       Se guarda en apps/<name>/ con manifest.json y un script 'abrir_en_pixpin.js' para lanzarla desde
@@ -144,6 +157,8 @@ def create_miniapp(ctx: ToolContext, name: str, kind: str, files: dict, descript
     root.mkdir(parents=True, exist_ok=True)
     written = []
     for rel, content in files.items():
+        if kind == "web" and rel.endswith(".html") and "pixagent-sdk.js" not in content and "</head>" in content:
+            content = content.replace("</head>", '<script src="/static/pixagent-sdk.js"></script>\n</head>', 1)
         p = (root / rel).resolve()
         if root not in p.parents and p != root:
             raise ToolError(f"Ruta inválida en files: {rel}")
@@ -155,10 +170,11 @@ def create_miniapp(ctx: ToolContext, name: str, kind: str, files: dict, descript
     if not entry_path.exists():
         raise ToolError(f"No existe el entry {entry} entre los archivos.")
     manifest = {"name": name, "slug": slug, "kind": kind, "entry": entry, "description": description,
+                "icon": "🧩", "category": "Mis apps", "uses_ai": "PixAgent.ai" in "".join(files.values()),
                 "created": datetime.now().isoformat(timespec="seconds")}
     (root / "manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False), "utf-8")
     launcher = root / "abrir_en_pixpin.js"
-    launcher.write_text(PB.launcher_script_for_app(entry_path, kind), encoding="utf-8-sig")
+    launcher.write_text(PB.launcher_script_for_app(entry_path, kind, ctx.settings.port), encoding="utf-8-sig")
     written += [root / "manifest.json", launcher]
     msg = (f"Mini app '{name}' creada en {ctx.rel(root)} (entry {entry}).\n"
            f"Lanzador PixPin: {ctx.rel(launcher)} (asígnale un atajo en PixPin -> Script).")
@@ -167,7 +183,8 @@ def create_miniapp(ctx: ToolContext, name: str, kind: str, files: dict, descript
         try:
             from .browser import screenshot
             shot = root / "preview.png"
-            screenshot(entry_path.as_uri(), shot, 1100, 760, full_page=False)
+            url = _served_url(ctx, slug, entry) or entry_path.as_uri()
+            screenshot(url, shot, 1100, 760, full_page=False)
             images.append(shot)
             written.append(shot)
             msg += f"\nCaptura de verificación: {ctx.rel(shot)}"

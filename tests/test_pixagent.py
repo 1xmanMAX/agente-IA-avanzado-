@@ -322,3 +322,140 @@ def test_server_idle_does_not_load_heavy_modules():
             "print(heavy)")
     out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, cwd=str(__import__('pathlib').Path(__file__).parents[1]))
     assert out.stdout.strip() == "[]", out.stdout + out.stderr
+
+
+# ----------------------------------------------------------------- informes estructurados / extensos
+class FakeWriter:
+    """Redactor simulado: devuelve texto de la longitud pedida y registra las llamadas."""
+
+    def __init__(self):
+        import threading
+        self.calls = []
+        self.lock = threading.Lock()
+
+    def write(self, system, content, max_tokens):
+        prompt = content[-1]["text"]
+        with self.lock:
+            self.calls.append({"system": system, "n_images": sum(1 for b in content if b["type"] == "image"),
+                               "prompt": prompt})
+        if "índice" in system.lower():
+            import re as _re
+            per = int(_re.search(r"~(\d+) palabras", prompt).group(1)) // 40
+            chapters = [{"title": f"Capítulo {c}", "sections": [
+                {"title": f"Apartado {c}.{s}", "brief": "Cubre el tema.", "words": per, "photos": [1] if c == 1 and s == 1 else []}
+                for s in range(1, 5)]} for c in range(1, 11)]
+            return json.dumps({"chapters": chapters}), {"input": 100, "output": 50}
+        import re as _re
+        words = int(_re.search(r"~(\d+) palabras", prompt).group(1))
+        para = ("Texto técnico de prueba con ñ y acentos sobre la inspección realizada. " * 12).strip()
+        body = "\n\n".join([para] * max(1, words // 120)) + "\n\n| Foto | Hallazgo |\n|---|---|\n| 1 | Fisura |"
+        return body, {"input": 1000, "output": words * 2}
+
+
+def _photos(settings, n, groups=("Fachada", "Cocina")):
+    out = []
+    for i in range(n):
+        p = settings.ws / "uploads" / f"r{i}.jpg"
+        Image.new("RGB", (1600, 1200), (40 * i % 255, 120, 200)).save(p)
+        out.append({"path": f"uploads/r{i}.jpg", "caption": f"Vista {i + 1}", "group": groups[i % len(groups)]})
+    return out
+
+
+def test_report_template_pipeline(settings):
+    from pixagent.reports.engine import ReportGenerator, ReportProject, Templates, build_report_pdf
+    from pixagent.web.thumbs import pdf_page_count
+    T = Templates(settings.ws)
+    assert {"inspeccion-tecnica", "avance-obra", "informe-extenso"} <= {t["id"] for t in T.list()}
+    tpl = T.get("inspeccion-tecnica")
+    p = ReportProject.create(settings.ws, tpl, "Inspección Vivienda Pérez",
+                             {"proyecto": "Vivienda Pérez", "inspector": "Ing. Max", "fecha": "2026-11-07"},
+                             "Fisuras en fachada y humedad en cocina.", _photos(settings, 6))
+    units = p.units()
+    per_group = [u for u in units if u.kind == "per_group"]
+    assert [u.title for u in per_group] == ["Fachada", "Cocina"] and all(len(u.photos) == 3 for u in per_group)
+    est = p.estimate()
+    assert est["calls"] == 7 and est["usd"] > 0
+    w = FakeWriter()
+    events = []
+    res = ReportGenerator(settings, p, writer=w, emit=events.append).run()
+    assert res["errors"] == 0 and len(w.calls) == 7
+    # cada zona solo recibe SUS fotos; el resumen ('*') se escribe al final con contexto de las demás
+    assert sorted(c["n_images"] for c in w.calls if "Parte:" in c["prompt"]) == [3, 3]
+    assert "RESÚMENES DE OTRAS SECCIONES" in w.calls[-1]["prompt"] and "Resumen ejecutivo" in w.calls[-1]["prompt"]
+    # reanudable: una segunda ejecución no vuelve a llamar al modelo
+    ReportGenerator(settings, p, writer=w).run()
+    assert len(w.calls) == 7
+    out = build_report_pdf(settings, p)
+    assert out.exists() and pdf_page_count(out) >= 6
+    md = (p.dir / "informe.md").read_text("utf-8")
+    assert "# Hallazgos por zona" in md and "## Fachada" in md and ":::photos" in md and "Ing. Max" in md
+
+
+def test_long_report_100_pages(settings):
+    """Plantilla de estructura automática: índice + 40 apartados en paralelo → ~100 páginas."""
+    import time as _t
+    from pixagent.reports.engine import ReportGenerator, ReportProject, Templates, build_report_pdf
+    from pixagent.web.thumbs import pdf_page_count
+    tpl = Templates(settings.ws).get("informe-extenso")
+    p = ReportProject.create(settings.ws, tpl, "Memoria descriptiva extensa", {"autor": "Max"},
+                             "Proyecto de edificio de 5 pisos.", _photos(settings, 4), target_pages=100)
+    assert p.status()["needs_outline"]
+    w = FakeWriter()
+    t0 = _t.time()
+    res = ReportGenerator(settings, p, writer=w, workers=4).run()
+    assert res["errors"] == 0 and len(w.calls) == 41      # 1 índice + 40 apartados
+    out = build_report_pdf(settings, p)
+    pages = pdf_page_count(out)
+    assert pages >= 90, pages
+    assert out.stat().st_size < 15_000_000
+    assert _t.time() - t0 < 120
+
+
+def test_report_api_and_tool(settings):
+    from fastapi.testclient import TestClient
+    from pixagent.web.server import create_app
+    from pixagent.tools import REGISTRY, ToolContext
+    app = create_app(settings, llm_factory=lambda s: FakeLLM([]), report_writer_factory=lambda s, p: FakeWriter())
+    photos = _photos(settings, 2)
+    with TestClient(app) as c:
+        assert any(t["id"] == "avance-obra" for t in c.get("/api/report-templates").json())
+        r = c.post("/api/report-templates", json={"name": "Mi plantilla", "sections": [
+            {"id": "a", "title": "Intro", "kind": "ai", "instructions": "x", "words": 150},
+            {"id": "f", "title": "Fotos", "kind": "photo_grid"}]}).json()
+        assert r["ok"] and r["template"]["id"] == "mi-plantilla"
+        assert c.post("/api/report-templates", json={"name": "Mala", "sections": [{"kind": "nada"}]}).status_code == 400
+        rep = c.post("/api/reports", json={"template_id": "mi-plantilla", "title": "Prueba", "photos": photos}).json()["report"]
+        rid = rep["id"]
+        assert rep["estimate"]["calls"] == 1
+        assert c.post(f"/api/reports/{rid}/generate", json={}).json()["ok"]
+        import time as _t
+        for _ in range(50):
+            if c.get(f"/api/reports/{rid}").json()["units"][0]["status"] == "done":
+                break
+            _t.sleep(0.1)
+        assert c.put(f"/api/reports/{rid}/sections/a", json={"markdown": "Editado a mano."}).json()["ok"]
+        assert c.get(f"/api/reports/{rid}/sections/a").json()["markdown"] == "Editado a mano."
+        b = c.post(f"/api/reports/{rid}/build").json()
+        assert b["ok"] and b["pages"] >= 2
+        assert c.get("/api/reports").json()[0]["id"] == rid
+    ctx = ToolContext(settings=settings)
+    assert "inspeccion-tecnica" in REGISTRY["report_builder"].func(ctx, action="templates").text
+    r = REGISTRY["report_builder"].func(ctx, action="create", template_id="avance-obra", title="Avance 1", photos=photos)
+    assert "Estimación" in r.text
+
+
+def test_photo_panel_and_miniapp_api(settings):
+    from fastapi.testclient import TestClient
+    from pixagent.web.server import create_app
+    from pixagent.web.thumbs import pdf_page_count
+    photos = _photos(settings, 7)
+    app = create_app(settings, llm_factory=lambda s: FakeLLM([]))
+    with TestClient(app) as c:
+        r = c.post("/api/photo-panel", json={"title": "Panel", "fields": {"Proyecto": "X"}, "layout": "2x3",
+                                              "photos": [{"path": p["path"], "caption": p["caption"]} for p in photos]}).json()
+        assert r["ok"] and r["pages"] == 2 and pdf_page_count(settings.ws / r["path"]) == 2
+        s = c.post("/api/files/save", data={"folder": "graderio"}, files={"file": ("d.json", b"{}", "application/json")}).json()
+        assert s["path"] == "outputs/graderio/d.json"
+        assert c.get("/api/files/list?folder=outputs/graderio").json()["files"][0]["path"] == s["path"]
+        assert isinstance(c.get("/api/apps").json(), list)
+        assert c.get("/static/pixagent-sdk.js").status_code == 200

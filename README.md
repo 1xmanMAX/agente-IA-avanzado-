@@ -25,6 +25,51 @@ envías aquí, y el resultado vuelve a PixPin fijado en pantalla.
 4. **Verifica**: cada herramienta le devuelve una **imagen del resultado** (el plano renderizado, la captura de la mini app, las páginas del PDF) y corrige hasta que quede bien.
 5. **Entrega**: guarda los archivos ordenados y, si lo pides, los fija en PixPin.
 
+## Mini apps (sin gastar tokens)
+
+Son herramientas pequeñas que hacen el trabajo **en el navegador**, al instante y sin coste de IA.
+Llaman a la IA solo si se lo pides (por ejemplo, para redactar pies de foto), y para eso usan un
+modelo económico. Se abren desde la pestaña **Mini apps**, sueltas en `/apps/<nombre>/` o con un
+atajo de PixPin.
+
+| Mini app | Qué hace |
+|---|---|
+| **Escaleras y graderías** | A partir de la altura y la distancia calcula contrahuellas, huellas, tramos y descansos (con la regla de Blondel), o gradas con su escalera de acceso. Dibuja corte con cotas, planta, isométrico y un modelo 3D que se puede girar. Da volumen de concreto y encofrado, imprime a PDF y fija en PixPin |
+| **Panel fotográfico** | Sueltas tus fotos, eliges la disposición y obtienes el PDF del panel con cabecera, numeración y pies de foto. Los pies con IA son opcionales: una sola llamada barata para todas las fotos |
+| **Calculadora** | Científica con historial, conversor de unidades y cálculos de obra (losas, zapatas, concreto por resistencia, ladrillos por m², pendientes) |
+| **Detector de gestos** | Cámara + reconocimiento de gestos de la mano en el propio dispositivo |
+
+El agente puede crear mini apps nuevas a petición ("hazme una mini app para…"). Todas usan el
+[SDK de PixAgent](docs/MINIAPPS_SDK.md): guardar, subir, fijar en PixPin, IA rápida y panel
+fotográfico.
+
+## Creador de informes estructurados
+
+En `/reports` (pestaña **Informes**) defines **tus propias plantillas**: campos del proyecto,
+secciones con instrucciones y extensión, secciones por zona con sus fotos, tabla de datos, panel
+fotográfico, firma... Luego creas informes a partir de ellas. Incluye tres plantillas: inspección
+técnica, avance de obra e informe extenso con estructura automática.
+
+**Cómo hace informes de 100 páginas**: ningún modelo escribe 100 páginas de una vez. Se usa el
+patrón de los agentes de escritura larga (Claude Code con subagentes, LongWriter, STORM):
+
+1. Se crea un **índice** con un objetivo de palabras por apartado. Puede ser la plantilla o uno que
+   la IA propone y tú editas.
+2. **Cada apartado se redacta en una llamada separada**, varias en paralelo. Cada llamada recibe
+   solo lo que necesita: datos, notas, instrucciones, *sus* fotos y resúmenes de las secciones de
+   las que depende. Así la calidad se mantiene y el coste crece de forma lineal, no explosiva.
+3. **Cada parte se guarda en disco** al terminar. Puedes editarla a mano, regenerar solo una o
+   reanudar si se corta.
+4. Se **ensambla** el PDF (portada, índice, tablas, fotos, panel). Las partes sin IA (tabla de
+   datos, panel fotográfico, firma) no gastan tokens.
+
+Antes de generar se muestra una **estimación de llamadas, tokens y coste**. En las pruebas
+(con un redactor simulado), un informe de 40 apartados se ensambla en un PDF de ~100 páginas en
+segundos. El tiempo real depende del modelo, porque las partes se redactan en paralelo.
+
+El agente del chat también puede usarlo: "créame un informe de inspección con estas fotos usando
+mi plantilla".
+
 ## Integración con PixPin
 
 La integración usa la [API de scripts oficial de PixPin](https://pixpin.com/docs/configuration/script)
@@ -145,7 +190,8 @@ En la interfaz puedes arrastrar archivos, pegar capturas con Ctrl+V, hacer fotos
 | Clave | Por defecto | Notas |
 |---|---|---|
 | `workspace` | `~/PixAgent` | Carpeta de trabajo: `uploads/ inbox/ plans/ diagrams/ reports/ apps/ outputs/` |
-| `model` | `claude-opus-5-5` | Modelo de Claude |
+| `model` | `claude-opus-5-5` | Modelo de Claude (agente e informes) |
+| `quick_model` | `claude-haiku-5-5` | Modelo económico para la IA de las mini apps |
 | `effort` | `high` | `low`, `medium`, `high`, `xhigh` o `max` |
 | `permission_mode` | `auto` | `auto`: pide permiso solo para la shell. `ask`: también para Python y PixPin. `full`: sin preguntas ni límites de carpeta |
 | `enable_web` | `true` | Búsqueda y lectura web del lado del servidor |
@@ -172,6 +218,13 @@ pixagent/
     documents.py    create_pdf (Markdown → PDF profesional), pdf_tools
     browser.py      preview_page (captura de HTML), html_to_pdf (Playwright, o Edge/Chrome)
     pixpin_tools.py pixpin (pin/capture/run_script), create_miniapp
+    panel.py        photo_panel: panel fotográfico PDF determinista
+    reports_tool.py report_builder: informes por plantilla (para el agente)
+  reports/
+    engine.py       motor de informes: plantillas, unidades, redacción en paralelo, estado, ensamblado
+    templates/      plantillas integradas (JSON)
+  miniapps/         mini apps integradas (graderio, panel-fotografico, calculadora, detector-gestos)
+  quick_ai.py       IA rápida y económica para las mini apps
   web/
     server.py       FastAPI + WebSocket: eventos reanudables, token, gzip selectivo, compartir (Android)
     thumbs.py       miniaturas WebP en caché y páginas de PDF como imagen

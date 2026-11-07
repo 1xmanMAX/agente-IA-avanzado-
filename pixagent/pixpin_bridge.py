@@ -167,14 +167,16 @@ def generate_user_scripts(ws: Path, port: int, token: str = "", scheme: str = "h
     }
 
 
-def launcher_script_for_app(entry: Path, kind: str) -> str:
+def launcher_script_for_app(entry: Path, kind: str, port: int = 8765) -> str:
     """Script de PixPin que abre una mini app (para asignarle un atajo en PixPin)."""
     entry = entry.resolve()
     if kind == "python":
         cmd = f'"{python_launcher()}" "{entry}"'
     elif platform.system() == "Windows":
-        # Edge en modo app = ventana propia sin barra de direcciones (sensación de mini app)
-        cmd = f'cmd /c start "" msedge --app="{entry.as_uri()}" --window-size=1100,780'
+        # Edge en modo app = ventana propia sin barra de direcciones (sensación de mini app);
+        # se abre desde el servidor de PixAgent para que funcione el SDK (guardar, IA, PixPin)
+        url = f"http://127.0.0.1:{port}/apps/{entry.parent.name}/"
+        cmd = f'cmd /c start "" msedge --app="{url}" --window-size=1100,780'
     elif platform.system() == "Darwin":
         cmd = f'/usr/bin/open "{entry}"'
     else:

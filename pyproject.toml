@@ -28,3 +28,5 @@ include = ["pixagent*"]
 
 [tool.setuptools.package-data]
 "pixagent.web" = ["static/*"]
+"pixagent.reports" = ["templates/*.json"]
+"pixagent.miniapps" = ["**/*"]

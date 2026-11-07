@@ -1,0 +1,28 @@
+{
+  "id": "avance-obra",
+  "name": "Informe de avance de obra",
+  "description": "Informe periódico: datos de la obra, avance por partida con fotos, incidencias, seguridad y próximas actividades.",
+  "style": {"theme_color": "#0f766e", "page_size": "A4", "cover": true, "toc": true},
+  "fields": [
+    {"key": "obra", "label": "Obra", "type": "text", "required": true},
+    {"key": "contratista", "label": "Contratista", "type": "text"},
+    {"key": "supervisor", "label": "Supervisor / residente", "type": "text"},
+    {"key": "periodo", "label": "Periodo informado", "type": "text"},
+    {"key": "avance_programado", "label": "Avance programado (%)", "type": "number"},
+    {"key": "avance_real", "label": "Avance real (%)", "type": "number"}
+  ],
+  "sections": [
+    {"id": "resumen", "title": "Resumen del periodo", "kind": "ai", "depends_on": ["*"], "words": 300,
+     "instructions": "Resumen del avance (programado vs real), hitos y alertas principales."},
+    {"id": "datos", "title": "Datos de la obra", "kind": "fields_table"},
+    {"id": "avance", "title": "Avance por frente o partida", "kind": "per_group", "photos": true, "words": 300,
+     "instructions": "Para este frente/partida: trabajos ejecutados en el periodo (citando Foto N), estado y observaciones de calidad."},
+    {"id": "incidencias", "title": "Incidencias y riesgos", "kind": "ai", "depends_on": ["avance"], "words": 300,
+     "instructions": "Incidencias, retrasos y riesgos detectados con acción propuesta (tabla | Incidencia | Impacto | Acción |)."},
+    {"id": "seguridad", "title": "Seguridad y salud", "kind": "ai", "words": 200,
+     "instructions": "Observaciones de seguridad a partir de las notas y fotos disponibles; si no hay datos, indica [POR COMPLETAR]."},
+    {"id": "proximas", "title": "Actividades del próximo periodo", "kind": "ai", "depends_on": ["avance", "incidencias"], "words": 250,
+     "instructions": "Programación de actividades del siguiente periodo."},
+    {"id": "panel", "title": "Anexo fotográfico", "kind": "photo_grid", "layout": "2x3"}
+  ]
+}

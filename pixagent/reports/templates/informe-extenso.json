@@ -1,0 +1,16 @@
+{
+  "id": "informe-extenso",
+  "name": "Informe extenso (estructura automática)",
+  "description": "Para documentos largos (decenas o cientos de páginas): la IA propone el índice según tus notas y la extensión objetivo, y luego redacta cada apartado por separado.",
+  "style": {"theme_color": "#4338ca", "page_size": "A4", "cover": true, "toc": true},
+  "fields": [
+    {"key": "autor", "label": "Autor", "type": "text"},
+    {"key": "organizacion", "label": "Organización", "type": "text"},
+    {"key": "fecha", "label": "Fecha", "type": "date"}
+  ],
+  "sections": [
+    {"id": "cuerpo", "title": "", "kind": "auto_outline",
+     "instructions": "Estructura profesional y completa para el tema descrito en las notas, con capítulos y apartados lógicos."},
+    {"id": "panel", "title": "Anexo fotográfico", "kind": "photo_grid", "layout": "2x3"}
+  ]
+}
