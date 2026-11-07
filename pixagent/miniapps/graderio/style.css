@@ -70,7 +70,7 @@ svg { display: block; }
 
 /* ---- disposición ---- */
 .layout { display: grid; grid-template-columns: 340px minmax(0, 1fr); flex: 1; min-height: 0; }
-.params { background: var(--panel); border-right: 1px solid var(--border); padding-left: max(0px, env(safe-area-inset-left, 0px)); }
+.params { background: var(--panel); border-right: 1px solid var(--border); padding-left: max(0px, env(safe-area-inset-left, 0px)); min-width: 0; }
 .params-body { padding: 8px 16px 24px; }
 .params-toggle { display: none; }
 .group { padding: 14px 0 12px; border-bottom: 1px solid var(--border); }
@@ -134,8 +134,9 @@ details .fields { margin-top: 6px; }
 .tab.is-on { color: var(--accent-ink); border-bottom-color: var(--accent); }
 .view { display: none; }
 .view.is-on { display: block; }
-.sheet { background: #fff; border: 1px solid var(--border); border-radius: var(--r); padding: 8px; overflow: hidden; box-shadow: var(--shadow); color: #1f2433; }
+.sheet { background: #fff; border: 1px solid var(--border); border-radius: var(--r); padding: 8px; overflow: hidden; overflow-x: auto; box-shadow: var(--shadow); color: #1f2433; -webkit-overflow-scrolling: touch; }
 .sheet svg { width: 100%; height: auto; display: block; }
+@media (max-width: 620px) { .sheet svg { width: auto; max-width: none; } .grid4 .sheet svg { width: auto; } }
 .three-wrap { position: relative; padding: 0; background: #f7f8fb; }
 #c3d { width: 100%; height: min(70vh, 640px); min-height: 320px; display: block; touch-action: none; cursor: grab; border-radius: var(--r); }
 #c3d:active { cursor: grabbing; }
@@ -175,7 +176,7 @@ td.c-ok { color: var(--ok); } td.c-warn { color: var(--warn); } td.c-bad { color
 
 /* ---- móvil ---- */
 @media (max-width: 900px) {
-  .layout { grid-template-columns: 1fr; }
+  .layout { grid-template-columns: minmax(0, 1fr); }
   .params { border-right: 0; border-bottom: 1px solid var(--border); padding-left: 0; }
   .params-toggle { display: flex; align-items: center; gap: 8px; width: 100%; border: 0; background: transparent; color: var(--text); padding: 12px max(16px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px)); min-height: 46px; font-weight: 600; text-align: left; }
   .params-toggle .chev { margin-left: auto; color: var(--muted); transition: transform .15s; }

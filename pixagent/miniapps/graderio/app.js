@@ -255,8 +255,8 @@
     const areaRow = polyArea(g.rowPoly), areaStair = g.stairPoly ? polyArea(g.stairPoly) : 0;
     const volume = (k > 1 && p.Be < B) ? areaRow * (B - p.Be) + areaStair * p.Be : (k > 1 ? areaStair : areaRow) * B + (g.solera ? polyArea(g.solera) * B : 0);
     const soffit = Math.hypot(g.xTopSoff - g.xBot, g.zSoffBack) * B;
-    const risersArea = s.n * s.N * B + (g.Wtop ? 0 : 0);
-    const back = (g.H - g.zSoffBack + (g.Wtop ? 0 : 0)) * B + (g.Wtop ? t * B : 0);
+    const risersArea = s.n * s.N * B;
+    const back = (g.H - g.zSoffBack) * B + (g.Wtop ? g.Wtop * B : 0);
     const sides = 2 * areaRow;
     const form = soffit + risersArea + back + sides;
 
@@ -399,11 +399,11 @@
     return '<path class="lvl" d="M' + x.toFixed(1) + " " + y.toFixed(1) + "l-5 -8h10z\"/>" + (below ? text(x - 6, y + 17, label, "tx") : text(x + 8, y - 3, label, "tx"));
   }
   function scaleBar(x, y, s) {
-    const unit = s * 0.25 >= 14 ? 0.25 : 0.5, nseg = unit === 0.25 ? 4 : 2;
+    const Lb = [1, 2, 5, 10].filter((v) => v * s >= 64)[0] || 10, nseg = 4, unit = Lb / nseg;
     let out = "";
     for (let i = 0; i < nseg; i++) out += '<rect x="' + (x + i * unit * s).toFixed(1) + '" y="' + y + '" width="' + (unit * s).toFixed(1) + '" height="5" fill="' + (i % 2 ? "#fff" : "#1f2433") + '" stroke="#1f2433" stroke-width=".8"/>';
-    out += text(x, y + 16, "0", "sub") + text(x + 0.5 * s, y + 16, "0.5", "sub", "middle") + text(x + s, y + 16, "1 m", "sub", "middle");
-    out += text(x + s + 34, y + 5, "Cotas en metros", "sub");
+    out += text(x, y + 16, "0", "sub") + text(x + Lb / 2 * s, y + 16, fmt(Lb / 2, Lb === 1 ? 1 : 0), "sub", "middle") + text(x + Lb * s, y + 16, Lb + " m", "sub", "middle");
+    out += text(x + Lb * s + 34, y + 5, "Cotas en metros", "sub");
     return out;
   }
   // ajuste de escala: mundo (wx0..wx1, wz0..wz1) en un ancho W con márgenes; devuelve mapeo
@@ -419,8 +419,8 @@
   // ------------------------------------------------------------------ SVG: corte
   function svgSection(d, W) {
     const g = d.geom, isStair = d.mode === "stair";
-    const xMin = -0.6, xMax = g.xMax + 0.75, zMin = -0.22, zMax = g.H + (d.mode === "bleacher" && d.vis ? d.p.eyeH + 0.25 : 0.45);
-    const M = fitMap(W, xMin, xMax, zMin, zMax, 12, 12, 40, 92, 0.64);
+    const xMin = -0.48, xMax = g.xMax + 0.2, zMin = -0.22, zMax = g.H + (d.mode === "bleacher" && d.vis ? d.p.eyeH + 0.25 : 0.45);
+    const M = fitMap(W, xMin, xMax, zMin, zMax, 44, 58, 40, 92, W < 600 ? 1.15 : 0.64);
     const X = M.X, Y = M.Y, s = M.s;
     let o = svgOpen(M.W, M.H);
     const yG = Y(0);
@@ -429,7 +429,7 @@
     for (let x = X(xMin); x < X(xMax); x += 9) o += line(x, yG, x - 5, yG + 5, "thin");
     if (isStair) o += line(X(g.xEnd), Y(g.H), X(xMax), Y(g.H), "ref");
     // perfil
-    const P = (g.mode === undefined && isStair ? g.poly : (isStair ? g.poly : g.rowPoly)).map((q) => [X(q[0]), Y(q[1])]);
+    const P = (isStair ? g.poly : g.rowPoly).map((q) => [X(q[0]), Y(q[1])]);
     if (!isStair && g.solera) { const S = g.solera.map((q) => [X(q[0]), Y(q[1])]); o += pline(S, "geo") + pline(S, "hz"); }
     o += pline(P, "geo") + pline(P, "hz");
     if (!isStair && g.stairTop) {
@@ -438,7 +438,7 @@
     }
     if (!isStair && d.vis) g.rows.forEach((r) => { const ex = X((r.xf + r.xb) / 2), ey = Y(r.z + d.p.eyeH); o += '<circle class="eye" cx="' + ex.toFixed(1) + '" cy="' + ey.toFixed(1) + '" r="3"/>' + line(ex, ey, ex, Y(r.z), "ref"); });
     // cotas horizontales: fila A por tramos, fila B total
-    const rowA = Y(zMin) + 18, rowB = rowA + 24;
+    const rowA = Math.max(Y(zMin) + 18, yG + 40), rowB = rowA + 24;
     if (isStair) {
       g.flights.forEach((F, k) => {
         o += dimLine(X(F.xs), rowA, X(F.xe), rowA, X(F.xs), yG, X(F.xe), Y(F.ze), (F.nk - 1) + " × " + fmt(d.h, 3) + " = " + fmt(F.xe - F.xs, 2));
@@ -481,8 +481,8 @@
     const g = d.geom, B = d.p.B;
     let o;
     if (d.mode === "stair") {
-      const xMin = -0.5, xMax = g.xMax + 0.75, yMin = -0.2, yMax = B + 0.45;
-      const M = fitMap(W, xMin, xMax, yMin, yMax, 12, 12, 40, 78, 0.7);
+      const xMin = -0.3, xMax = g.xMax + 0.2, yMin = -0.2, yMax = B + 0.45;
+      const M = fitMap(W, xMin, xMax, yMin, yMax, 24, 58, 40, 78, W < 600 ? 1.0 : 0.7);
       const X = M.X, Y = M.Y;
       o = svgOpen(M.W, M.H);
       o += '<rect x="' + X(0).toFixed(1) + '" y="' + Y(B).toFixed(1) + '" width="' + (X(g.xMax) - X(0)).toFixed(1) + '" height="' + (Y(0) - Y(B)).toFixed(1) + '" class="geo" fill="#f4f6fa"/>';
@@ -498,6 +498,7 @@
       g.steps.forEach((st) => {
         o += line(X(st.x), Y(0), X(st.x), Y(B), "thin");
         if (st.h != null && M.s * d.h > 16) o += text(X(st.x + d.h / 2), Y(B) + 12, String(st.i), "num");
+        else if (st.note === "descanso") o += text(X(st.x) + 12, Y(B) + 12, String(st.i), "num");
       });
       o += text(X(g.xEnd), Y(B) + 12, String(d.n), "num", undefined, 'dx="' + (M.s * g.a / 2).toFixed(1) + '"');
       // línea de subida
@@ -519,8 +520,8 @@
       return o + "</svg>";
     }
     // graderío: frente B en horizontal, fondo hacia arriba (campo abajo)
-    const yMin = -0.5, yMax = B + 0.3 + 60 / 60, dMin = -0.25, dMax = g.xMax + 0.45;
-    const M = fitMap(W, yMin, yMax, dMin, dMax, 12, 12, 40, 104, 0.8);
+    const yMin = -0.3, yMax = B + 0.15, dMin = -0.25, dMax = g.xMax + 0.45;
+    const M = fitMap(W, yMin, yMax, dMin, dMax, 16, 84, 40, 104, W < 600 ? 1.1 : 0.8);
     const X = M.X, Yd = M.Y; // Yd(depth): x del mundo (fondo)
     o = svgOpen(M.W, M.H);
     o += '<rect x="' + X(0).toFixed(1) + '" y="' + Yd(g.xMax).toFixed(1) + '" width="' + (X(B) - X(0)).toFixed(1) + '" height="' + (Yd(0) - Yd(g.xMax)).toFixed(1) + '" class="geo" fill="#f4f6fa"/>';
@@ -570,7 +571,7 @@
     pts.forEach((q) => { x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]); y0 = Math.min(y0, q[1]); y1 = Math.max(y1, q[1]); });
     const mL = 40, mR = 40, mT = 44, mB = 30;
     let s = (W - mL - mR) / (x1 - x0); let Hs = (y1 - y0) * s + mT + mB;
-    if (Hs > W * 0.66) { s = (W * 0.66 - mT - mB) / (y1 - y0); Hs = W * 0.66; }
+    const maxA = W < 600 ? 1.0 : 0.66; if (Hs > W * maxA) { s = (W * maxA - mT - mB) / (y1 - y0); Hs = W * maxA; }
     const offX = mL + (W - mL - mR - (x1 - x0) * s) / 2;
     const P = (q) => [offX + (q[0] - x0) * s, mT + (q[1] - y0) * s];
     let o = svgOpen(W, Math.ceil(Hs));
@@ -654,10 +655,10 @@
     const p = readParams();
     const d = p.mode === "stair" ? designStair(p) : designBleacher(p);
     current = d; three.design = d;
-    const W = Math.max(300, ($(".views").clientWidth || 900) - 18);
+    const W = Math.max(560, ($(".views").clientWidth || 900) - 18);
     lastSVG.section = svgSection(d, W); lastSVG.plan = svgPlan(d, W); lastSVG.iso = svgIso(d, W);
     $("#vSection").innerHTML = lastSVG.section; $("#vPlan").innerHTML = lastSVG.plan; $("#vIso").innerHTML = lastSVG.iso;
-    const gw = Math.max(280, Math.floor(W / 2) - 8);
+    const gw = Math.max(400, Math.floor(W / 2) - 8);
     const twoCol = window.matchMedia("(min-width: 901px)").matches;
     $("#gSection").innerHTML = twoCol ? svgSection(d, gw) : lastSVG.section;
     $("#gPlan").innerHTML = twoCol ? svgPlan(d, gw) : lastSVG.plan;
