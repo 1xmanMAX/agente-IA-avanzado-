@@ -28,7 +28,7 @@
     if (!box.hasAttribute("tabindex")) box.setAttribute("tabindex", "0");
     box.setAttribute("aria-label", box.getAttribute("aria-label") || "Visor: rueda o pellizco para zoom, arrastrar para mover");
     content.style.transformOrigin = "0 0";
-    content.style.willChange = "transform";
+    var idle = 0;
     content.style.userSelect = "none";
     content.draggable = false;
 
@@ -41,6 +41,11 @@
       if (raf) return;
       raf = requestAnimationFrame(function () {
         raf = 0;
+        // will-change solo durante el gesto: al terminar, el navegador vuelve a rasterizar el SVG/texto
+        // a la escala real (si no, al ampliar se vería borroso)
+        content.style.willChange = "transform";
+        clearTimeout(idle);
+        idle = setTimeout(function () { content.style.willChange = "auto"; }, 180);
         content.style.transform = "translate(" + x + "px," + y + "px) scale(" + s + ")";
         if (label) label.textContent = Math.round(s * 100) + "%";
       });
@@ -162,7 +167,7 @@
     if (opts.controls !== false) {
       controls = document.createElement("div");
       controls.className = "pz-controls";
-      controls.innerHTML = '<button type="button" data-z="out" aria-label="Alejar" title="Alejar (−)">−</button>' +
+      controls.innerHTML = '<button type="button" data-z="out" aria-label="Alejar" title="Alejar (&#8722;)">&#8722;</button>' +
         '<button type="button" data-z="fit" class="pz-label" aria-label="Ajustar a la pantalla" title="Ajustar (0)">100%</button>' +
         '<button type="button" data-z="in" aria-label="Acercar" title="Acercar (+)">+</button>';
       label = controls.querySelector(".pz-label");
