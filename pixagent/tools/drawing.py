@@ -26,6 +26,31 @@ _BOLD_CANDIDATES = [
 ]
 
 
+def _mpl_font_dir() -> Path | None:
+    """Carpeta de fuentes DejaVu de matplotlib SIN importar matplotlib (ahorra ~40 MB y 1 s)."""
+    import importlib.util
+    spec = importlib.util.find_spec("matplotlib")
+    if spec and spec.origin:
+        d = Path(spec.origin).parent / "mpl-data" / "fonts" / "ttf"
+        if d.exists():
+            return d
+    return None
+
+
+@lru_cache(maxsize=4)
+def font_path(bold: bool = False, italic: bool = False) -> str | None:
+    """Ruta a una fuente TTF con acentos y ñ disponible en esta plataforma."""
+    d = _mpl_font_dir()
+    if d:
+        name = "DejaVuSans" + ("-Bold" if bold else "") + ("Oblique" if italic and bold else "-Oblique" if italic else "")
+        if (d / f"{name}.ttf").exists():
+            return str(d / f"{name}.ttf")
+    for cand in (_BOLD_CANDIDATES if bold else []) + _FONT_CANDIDATES:
+        if Path(cand).exists() and cand.endswith(".ttf"):
+            return cand
+    return None
+
+
 @lru_cache(maxsize=64)
 def load_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
     for cand in (_BOLD_CANDIDATES if bold else []) + _FONT_CANDIDATES:
@@ -34,12 +59,10 @@ def load_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
                 return ImageFont.truetype(cand, size)
             except OSError:
                 continue
-    try:
-        import matplotlib  # fuente DejaVu incluida con matplotlib
-        f = Path(matplotlib.get_data_path()) / "fonts/ttf" / ("DejaVuSans-Bold.ttf" if bold else "DejaVuSans.ttf")
-        return ImageFont.truetype(str(f), size)
-    except Exception:  # noqa: BLE001
-        return ImageFont.load_default(size=size)
+    fp = font_path(bold)
+    if fp:
+        return ImageFont.truetype(fp, size)
+    return ImageFont.load_default(size=size)
 
 
 PALETTE = ["#e6194b", "#1f77b4", "#2ca02c", "#ff7f0e", "#9467bd", "#17becf",

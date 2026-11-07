@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # macOS / Linux
 cd "$(dirname "$0")"
-[ -d .venv ] || { python3 -m venv .venv && . .venv/bin/activate && pip install -e .; }
+[ -d .venv ] || { python3 -m venv .venv && . .venv/bin/activate && pip install -e ".[full]"; }
 . .venv/bin/activate
 python -m pixagent serve

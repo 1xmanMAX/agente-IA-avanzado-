@@ -10,6 +10,12 @@ from typing import Any, Callable
 
 from PIL import Image
 
+try:  # fotos HEIC de iPhone/iPad (opcional: pip install pillow-heif)
+    from pillow_heif import register_heif_opener
+    register_heif_opener()
+except ImportError:
+    pass
+
 MAX_TEXT = 40_000          # caracteres máximos de texto devuelto al modelo por herramienta
 MAX_IMAGE_SIDE = 1568      # lado máximo de imagen enviada al modelo (px)
 
@@ -163,7 +169,7 @@ def document_block(path: Path) -> dict:
 
 def guess_kind(path: Path) -> str:
     ext = path.suffix.lower()
-    if ext in (".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".svg"):
+    if ext in (".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp", ".svg", ".heic", ".heif"):
         return "image"
     if ext == ".pdf":
         return "pdf"

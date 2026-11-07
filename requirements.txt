@@ -1,12 +1,14 @@
+# Núcleo (funciona también en equipos modestos y Android/Termux)
 anthropic>=2.6.0
-pillow>=10.0
+pillow>=10.1
 reportlab>=4.0
-pymupdf>=1.24
 pypdf>=4.0
-matplotlib>=3.8
-networkx>=3.0
 fastapi>=0.110
-uvicorn[standard]>=0.29
+uvicorn>=0.29
+websockets>=12
 python-multipart>=0.0.9
-# Opcional: capturas/HTML->PDF más fiables (si no, se usa Edge/Chrome instalado)
-# playwright>=1.45
+# Recomendado en PC/Mac (pip install -e ".[full]")
+pymupdf>=1.24
+matplotlib>=3.8
+pillow-heif>=0.16
+qrcode>=7.4

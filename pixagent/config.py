@@ -40,6 +40,14 @@ class Settings:
     # Servidor web
     host: str = "127.0.0.1"
     port: int = 8765
+    # Acceso desde otros dispositivos (móvil, tablet, otro PC): exige token si está activo.
+    require_token: bool = False
+    access_token: str = ""
+    # HTTPS opcional (necesario para instalar la PWA en Android/iOS fuera de localhost).
+    ssl_certfile: str = ""
+    ssl_keyfile: str = ""
+    # Las fotos se reducen EN EL DISPOSITIVO antes de subirlas (ahorra datos y memoria).
+    upload_max_px: int = 3200
 
     # ------------------------------------------------------------------
     @property
@@ -49,7 +57,7 @@ class Settings:
 
     def ensure_dirs(self) -> None:
         for sub in ("inbox", "uploads", "outputs", "apps", "plans", "reports",
-                    "diagrams", ".sessions", ".tmp", "pixpin_scripts"):
+                    "diagrams", ".sessions", ".tmp", ".thumbs", "pixpin_scripts"):
             (self.ws / sub).mkdir(parents=True, exist_ok=True)
 
     def save(self) -> None:
@@ -65,6 +73,8 @@ _ENV_MAP = {
     "PIXPIN_PATH": ("pixpin_path", str),
     "PIXAGENT_PORT": ("port", int),
     "PIXAGENT_HOST": ("host", str),
+    "PIXAGENT_TOKEN": ("access_token", str),
+    "PIXAGENT_REQUIRE_TOKEN": ("require_token", lambda v: v.lower() in ("1", "true", "yes", "si", "sí")),
     "PIXAGENT_ENABLE_WEB": ("enable_web", lambda v: v.lower() in ("1", "true", "yes", "si", "sí")),
     "PIXAGENT_FALLBACKS": ("server_fallbacks", lambda v: v.lower() in ("1", "true", "yes", "si", "sí")),
     "PIXAGENT_PROGRESS_UPDATES": ("progress_updates", lambda v: v.lower() in ("1", "true", "yes", "si", "sí")),
@@ -88,3 +98,12 @@ def load_settings(**overrides) -> Settings:
             setattr(s, k, v)
     s.ensure_dirs()
     return s
+
+
+def ensure_token(s: Settings) -> str:
+    """Genera y guarda un token de acceso la primera vez que se abre a la red."""
+    if not s.access_token:
+        import secrets
+        s.access_token = secrets.token_urlsafe(18)
+        s.save()
+    return s.access_token

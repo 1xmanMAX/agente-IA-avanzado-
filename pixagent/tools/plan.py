@@ -102,7 +102,10 @@ def _load_base(ctx: ToolContext, scene: dict) -> Image.Image:
     if base:
         p = ctx.resolve(base, must_exist=True)
         if p.suffix.lower() == ".pdf":
-            import pymupdf as fitz
+            try:
+                import pymupdf as fitz
+            except ImportError:
+                raise ToolError("Para usar un PDF como plano base instala pymupdf, o conviértelo antes a imagen.")
             doc = fitz.open(p)
             page = doc[max(0, int(scene.get("page", 1)) - 1)]
             pix = page.get_pixmap(dpi=150)

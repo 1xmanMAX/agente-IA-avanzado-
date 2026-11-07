@@ -91,7 +91,37 @@ PixPin no tiene API HTTP, pero sí un motor de scripts JavaScript que se invoca 
   las reglas de la API (`sanitize_fallback`).
 - Búsqueda y lectura web del lado del servidor, con manejo de `pause_turn`.
 
-## 6. Ampliar
+## 6. Multiplataforma y bajo consumo
+
+El objetivo era que funcionara en Windows, macOS, Android, iOS e iPadOS, también en teléfonos
+modestos, sin perder funciones. Se descartaron:
+
+- **Apps nativas por plataforma**: cinco bases de código. Además, iOS no permite ejecutar Python ni
+  procesos arbitrarios.
+- **Electron**: 150–300 MB de RAM por ventana.
+- **Flutter/React Native**: pesan más y necesitan las tiendas de apps.
+
+La solución es un **anfitrión único + PWA**:
+
+```
+ iPhone/iPad ─┐                         ┌─ Claude (nube)
+ Android ─────┼─ PWA (~70 KB) ◄─WS/HTTP─► anfitrión Python ─┼─ PixPin (scripts JS)
+ Mac/Windows ─┘   (sin cálculo pesado)   (PC, Mac, Termux,  └─ Python, PDF, imágenes
+                                          Docker/VPS)
+```
+
+Detalles en el README (sección *Optimización para dispositivos modestos*). Los puntos con más
+impacto medido:
+
+| Medida | Resultado |
+|---|---|
+| SDK de IA, PDF y matplotlib con import diferido | Anfitrión en reposo: ~90 MB → ~54 MB |
+| Miniaturas WebP + `draft()` del decodificador JPEG | Foto de 4000×3000 en la lista: KB en vez de MB, poca RAM al generarla |
+| Fragmentos de texto agrupados cada 60 ms | Un solo mensaje WebSocket por cada ráfaga de fragmentos (en el test, 10 → 1) |
+| Reducir fotos en el cliente | Lado máximo de 3200 px en JPEG; una foto de 48 MP pesa una fracción del original (estimado, no medido en un teléfono real) |
+| Primera carga de la interfaz | ~70 KB transferidos, ~10 MB de memoria JS (medido en emulación de iPhone 13, iPad y Moto G4) |
+
+## 7. Ampliar
 
 Añadir una herramienta es un decorador:
 

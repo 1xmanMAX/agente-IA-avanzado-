@@ -127,11 +127,11 @@ def python_launcher() -> str:
     return str(exe)
 
 
-def generate_user_scripts(ws: Path, port: int) -> dict[str, str]:
+def generate_user_scripts(ws: Path, port: int, token: str = "", scheme: str = "http") -> dict[str, str]:
     """Genera los scripts de integración PixPin -> agente con las rutas reales de esta máquina."""
     inbox = (ws / "inbox").resolve()
     py = python_launcher()
-    url = f"http://127.0.0.1:{port}"
+    url = f"{scheme}://127.0.0.1:{port}/" + (f"?token={token}" if token else "")
     open_cmd = {"Windows": f'cmd /c start "" "{url}"', "Darwin": f"/usr/bin/open {url}"}.get(
         platform.system(), f"xdg-open {url}")
 

@@ -2,16 +2,27 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PixAgent · IA avanzada para PixPin</title>
-<link rel="stylesheet" href="/static/style.css">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#4f46e5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PixAgent">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" href="/static/icon-192.png">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+<title>PixAgent</title>
+<link rel="stylesheet" href="/static/style.css?v={{V}}">
 </head>
-<body>
+<body data-pane="chat">
 <div id="app">
-  <!-- Barra lateral -->
-  <aside id="sidebar">
+  <!-- Menú / barra lateral -->
+  <aside id="sidebar" class="pane">
     <div class="brand">
-      <div class="logo">P</div>
+      <img class="logo" src="/static/icon-192.png" alt="" width="34" height="34">
       <div><b>PixAgent</b><small>IA avanzada para PixPin</small></div>
     </div>
     <button id="newSession" class="btn primary wide">+ Nueva sesión</button>
@@ -20,9 +31,11 @@
     <div class="section-title">PixPin</div>
     <div class="pixpin-box">
       <div id="pixpinStatus" class="muted small">Comprobando…</div>
-      <button class="btn wide" data-capture="last">Capturar última zona</button>
-      <button class="btn wide" data-capture="window">Capturar ventana activa</button>
-      <button class="btn wide" id="installScripts">Generar scripts para PixPin</button>
+      <div id="pixpinButtons">
+        <button class="btn wide" data-capture="last">Capturar última zona</button>
+        <button class="btn wide" data-capture="window">Capturar ventana activa</button>
+        <button class="btn wide" id="installScripts">Generar scripts para PixPin</button>
+      </div>
     </div>
     <div class="section-title">Ajustes</div>
     <div class="settings">
@@ -39,14 +52,18 @@
           <option value="full">Total (sin preguntas)</option>
         </select>
       </label>
+      <label class="check"><input type="checkbox" id="saveData"> Ahorro de datos (miniaturas pequeñas)</label>
+      <button class="btn wide hidden" id="installApp">📲 Instalar como app</button>
       <div id="wsInfo" class="muted small"></div>
+      <div id="usage" class="muted small"></div>
     </div>
   </aside>
 
   <!-- Chat -->
-  <main id="chat">
+  <main id="chat" class="pane">
     <header class="chat-head">
       <div id="sessionTitle">Nueva sesión</div>
+      <span id="conn" class="conn" title="Conexión"></span>
       <div class="chips">
         <button class="chip" data-tpl="plan">📐 Plano con fotos</button>
         <button class="chip" data-tpl="diagram">🔀 Diagrama</button>
@@ -59,8 +76,8 @@
     <div id="messages">
       <div class="welcome">
         <h2>¿Qué hacemos hoy?</h2>
-        <p>Arrastra fotos y planos, pega una captura (Ctrl+V) o envíala desde PixPin. Puedo ubicar fotos
-          en planos con flechas, crear diagramas, informes PDF, mini apps y ejecutar Python.</p>
+        <p>Toma o adjunta fotos y planos, pega una captura o envíala desde PixPin. Ubico fotos en planos
+          con flechas, creo diagramas, informes PDF y mini apps, y ejecuto Python.</p>
       </div>
     </div>
     <div id="statusLine" class="hidden"><span class="spinner"></span><span id="statusText">Pensando…</span>
@@ -68,28 +85,30 @@
     <form id="composer">
       <div id="pending"></div>
       <div class="composer-row">
-        <label class="btn icon" title="Adjuntar archivos">📎<input id="fileInput" type="file" multiple hidden></label>
-        <textarea id="input" rows="2" placeholder="Describe lo que necesitas… (Enter para enviar, Shift+Enter nueva línea)"></textarea>
-        <button class="btn primary" id="sendBtn" type="submit">Enviar</button>
+        <label class="btn icon" title="Adjuntar archivos">📎<input id="fileInput" type="file" multiple hidden
+               accept="image/*,application/pdf,.txt,.md,.csv,.json,.xlsx,.docx,.html,.py"></label>
+        <label class="btn icon only-touch" title="Cámara">📷<input id="camInput" type="file" accept="image/*" capture="environment" hidden></label>
+        <textarea id="input" rows="1" enterkeyhint="send" placeholder="Describe lo que necesitas…"></textarea>
+        <button class="btn primary" id="sendBtn" type="submit" aria-label="Enviar">➤</button>
       </div>
     </form>
     <div id="dropHint" class="hidden">Suelta aquí los archivos</div>
   </main>
 
-  <!-- Visor -->
-  <section id="viewer">
-    <div class="tabs">
+  <!-- Visor + biblioteca -->
+  <section id="viewer" class="pane">
+    <div class="tabs desktop-only">
       <button class="tab active" data-tab="view">Vista</button>
       <button class="tab" data-tab="library">Biblioteca</button>
     </div>
     <div id="tab-view" class="tabpane">
       <div class="viewer-actions hidden" id="viewerActions">
         <span id="viewerName" class="small"></span>
-        <div>
-          <button class="btn small" id="pinBtn">📌 Fijar en PixPin</button>
-          <button class="btn small" id="attachBtn">Adjuntar</button>
-          <a class="btn small" id="openBtn" target="_blank">Abrir</a>
-          <a class="btn small" id="dlBtn" download>Descargar</a>
+        <div class="va-btns">
+          <button class="btn small" id="pinBtn">📌 PixPin</button>
+          <button class="btn small hidden" id="shareBtn">📤 Compartir</button>
+          <button class="btn small" id="attachBtn">＋ Adjuntar</button>
+          <a class="btn small" id="openBtn" target="_blank" rel="noopener">Abrir</a>
         </div>
       </div>
       <div id="viewerBody" class="viewer-empty">Aquí verás planos, diagramas, PDFs y mini apps.</div>
@@ -100,7 +119,15 @@
   </section>
 </div>
 
-<div id="approval" class="modal hidden">
+<!-- Navegación inferior (móvil) -->
+<nav id="bottomNav">
+  <button data-pane="chat" class="active"><span>💬</span>Chat</button>
+  <button data-pane="viewer"><span>🖼️</span>Resultado<i id="viewBadge" class="hidden"></i></button>
+  <button data-pane="library"><span>🗂️</span>Biblioteca</button>
+  <button data-pane="sidebar"><span>☰</span>Menú</button>
+</nav>
+
+<div id="approval" class="modal hidden" role="dialog" aria-modal="true">
   <div class="modal-card">
     <h3>¿Permitir esta acción?</h3>
     <div id="approvalName" class="muted"></div>
@@ -111,7 +138,7 @@
     </div>
   </div>
 </div>
-<div id="toast" class="hidden"></div>
-<script src="/static/app.js"></script>
+<div id="toast" class="hidden" role="status"></div>
+<script src="/static/app.js?v={{V}}" defer></script>
 </body>
 </html>

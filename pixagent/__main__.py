@@ -1,6 +1,7 @@
 """Línea de comandos de PixAgent.
 
   python -m pixagent                 -> abre la interfaz web (por defecto)
+  python -m pixagent serve --lan     -> también para móviles/tablets de tu wifi (QR + token)
   python -m pixagent chat            -> chat en la terminal
   python -m pixagent run "tarea" -a plano.png foto1.jpg
   python -m pixagent send archivo... -> envía archivos a la bandeja del agente
@@ -90,6 +91,12 @@ def main(argv: list[str] | None = None) -> int:
     s_serve.add_argument("--port", type=int)
     s_serve.add_argument("--host")
     s_serve.add_argument("--no-browser", action="store_true")
+    s_serve.add_argument("--lan", action="store_true",
+                         help="Accesible desde móviles/tablets de la misma red (pide token, muestra QR)")
+    s_serve.add_argument("--remote", action="store_true",
+                         help="Exige token aunque escuche en localhost (para túneles: Tailscale, Cloudflare)")
+    s_serve.add_argument("--cert", help="Certificado HTTPS (PEM)")
+    s_serve.add_argument("--key", help="Clave privada HTTPS (PEM)")
     s_chat = sub.add_parser("chat", help="Chat en la terminal")
     s_chat.add_argument("--session")
     s_run = sub.add_parser("run", help="Ejecuta una tarea y termina")
@@ -110,7 +117,10 @@ def main(argv: list[str] | None = None) -> int:
         from .web.server import serve
         if a.cmd == "serve":
             settings.port = a.port or settings.port
-            settings.host = a.host or settings.host
+            settings.host = a.host or ("0.0.0.0" if a.lan else settings.host)
+            settings.require_token = settings.require_token or a.lan or a.remote
+            settings.ssl_certfile = a.cert or settings.ssl_certfile
+            settings.ssl_keyfile = a.key or settings.ssl_keyfile
         serve(settings, open_browser=not getattr(a, "no_browser", False))
         return 0
 

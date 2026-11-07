@@ -19,8 +19,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
 
-import anthropic
-
 from .tools import REGISTRY, ToolContext, ToolError, ToolResult
 from .tools.base import document_block, guess_kind, image_block, truncate, validate_input
 
@@ -149,6 +147,7 @@ class Agent:
 
     # ------------------------------------------------------------------ bucle principal
     def run(self, text: str, attachments: list[Path] | None = None) -> str:
+        import anthropic  # carga diferida: ~60 MB que no se gastan hasta el primer mensaje
         self._cancel = False
         if not self.title:
             self.title = (text or "Nueva sesión").strip().splitlines()[0][:60]
@@ -217,6 +216,7 @@ class Agent:
                  "content": "Interrumpido antes de ejecutar la herramienta."} for b in pending]})
 
     def _call_model(self, tools):
+        import anthropic
         # reintento simple ante sobrecarga
         for attempt in range(3):
             try:

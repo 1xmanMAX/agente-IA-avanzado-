@@ -225,3 +225,100 @@ def test_web_server_end_to_end(settings):
         sessions = c.get("/api/sessions").json()
         assert sessions and c.get(f"/api/sessions/{sessions[0]['id']}").json()["transcript"]
         assert c.get("/api/library").status_code == 200
+
+
+# ----------------------------------------------------------------- multiplataforma / rendimiento
+def test_token_auth_and_pairing(settings):
+    from fastapi.testclient import TestClient
+    from starlette.websockets import WebSocketDisconnect
+    from pixagent.web.server import create_app
+    settings.require_token = True
+    settings.access_token = "secreto123"
+    app = create_app(settings, llm_factory=lambda s: FakeLLM([]))
+    with TestClient(app) as c:
+        assert c.get("/").status_code == 401
+        assert c.get("/api/status").status_code == 401
+        assert c.get("/manifest.webmanifest").status_code == 200  # el icono/manifest no exponen nada
+        with pytest.raises(WebSocketDisconnect):
+            with c.websocket_connect("/ws") as ws:
+                ws.receive_json()
+        r = c.get("/?token=malo", follow_redirects=False)
+        assert r.status_code == 401
+        r = c.get("/?token=secreto123", follow_redirects=False)
+        assert r.status_code == 303 and "token" not in r.headers["location"]
+        assert c.cookies.get("pixagent_token") == "secreto123"
+        assert c.get("/api/status").status_code == 200
+        assert c.get("/api/status", headers={"Authorization": "Bearer secreto123"}).status_code == 200
+        with c.websocket_connect("/ws") as ws:
+            ws.send_json({"type": "ping"})
+            assert ws.receive_json()["type"] == "pong"
+
+
+def test_thumbnails_and_pdf_pages(settings):
+    from fastapi.testclient import TestClient
+    from pixagent.web.server import create_app
+    big = settings.ws / "uploads" / "grande.jpg"
+    Image.new("RGB", (4000, 3000), "#3a7").save(big, quality=95)
+    from pixagent.tools import REGISTRY, ToolContext
+    REGISTRY["create_pdf"].func(ToolContext(settings=settings), output="reports/t.pdf", markdown="# Hola\n\\pagebreak\n# Dos")
+    app = create_app(settings, llm_factory=lambda s: FakeLLM([]))
+    with TestClient(app) as c:
+        r = c.get("/thumb/uploads/grande.jpg?w=300")
+        assert r.status_code == 200 and r.headers["content-type"] == "image/webp"
+        assert len(r.content) < 20_000 and "immutable" in r.headers["cache-control"]
+        assert Image.open(__import__("io").BytesIO(r.content)).width == 320  # tamaño redondeado
+        assert c.get("/api/pdfinfo/reports/t.pdf").json()["pages"] == 2
+        r = c.get("/thumb/reports/t.pdf?w=480&page=1")
+        assert r.status_code == 200 and r.headers["content-type"] == "image/webp"
+        # gzip para JSON/JS, nunca para imágenes
+        assert c.get("/static/app.js", headers={"Accept-Encoding": "gzip"}).headers.get("content-encoding") == "gzip"
+        assert "content-encoding" not in c.get("/thumb/uploads/grande.jpg?w=300", headers={"Accept-Encoding": "gzip"}).headers
+
+
+def test_share_target_and_pwa(settings):
+    from fastapi.testclient import TestClient
+    from pixagent.web.server import create_app
+    app = create_app(settings, llm_factory=lambda s: FakeLLM([]))
+    with TestClient(app) as c:
+        m = c.get("/manifest.webmanifest").json()
+        assert m["share_target"]["action"] == "/share-target" and m["display"] == "standalone"
+        assert "pixagent-" in c.get("/sw.js").text
+        html = c.get("/").text
+        assert "{{V}}" not in html and "apple-touch-icon" in html
+        r = c.post("/share-target", data={"text": "nota"}, follow_redirects=False,
+                   files=[("files", ("galeria.jpg", open(settings.ws / "uploads" / "foto1.jpg", "rb"), "image/jpeg"))])
+        assert r.status_code == 303
+        assert (settings.ws / "inbox" / "galeria.jpg").exists()
+        assert any(p.name.startswith("compartido_") for p in (settings.ws / "inbox").iterdir())
+
+
+def test_event_hub_coalesces_and_replays():
+    import asyncio
+    from pixagent.web.server import EventHub
+
+    async def main():
+        hub = EventHub()
+        hub.loop = asyncio.get_running_loop()
+        q = asyncio.Queue()
+        hub.queues["c"] = q
+        for ch in "Hola mundo":
+            hub.publish({"type": "text_delta", "session": "s", "text": ch})
+        hub.publish({"type": "tool_start", "session": "s", "id": "1", "name": "x"})
+        got = [q.get_nowait() for _ in range(q.qsize())]
+        assert [e["type"] for e in got] == ["text_delta", "tool_start"]  # 10 fragmentos -> 1 mensaje
+        assert got[0]["text"] == "Hola mundo" and got[1]["seq"] == got[0]["seq"] + 1
+        assert [e["seq"] for e in hub.since(got[0]["seq"])] == [got[1]["seq"]]
+        hub.publish({"type": "text_delta", "session": "s", "text": "x"})
+        await asyncio.sleep(0.1)  # el temporizador vacía el búfer
+        assert q.get_nowait()["text"] == "x"
+    asyncio.run(main())
+
+
+def test_server_idle_does_not_load_heavy_modules():
+    import subprocess
+    import sys
+    code = ("import sys; from pixagent.web.server import create_app; "
+            "heavy=[m for m in ('anthropic','matplotlib','pymupdf','reportlab','playwright') if m in sys.modules]; "
+            "print(heavy)")
+    out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, cwd=str(__import__('pathlib').Path(__file__).parents[1]))
+    assert out.stdout.strip() == "[]", out.stdout + out.stderr

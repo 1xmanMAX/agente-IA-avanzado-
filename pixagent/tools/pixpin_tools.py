@@ -85,7 +85,9 @@ def install_scripts(ctx: ToolContext) -> ToolResult:
     d = ctx.ws / "pixpin_scripts"
     d.mkdir(exist_ok=True)
     files = []
-    for name, code in PB.generate_user_scripts(ctx.ws, ctx.settings.port).items():
+    st = ctx.settings
+    token = st.access_token if st.require_token else ""
+    for name, code in PB.generate_user_scripts(ctx.ws, st.port, token, "https" if st.ssl_certfile else "http").items():
         f = d / name
         f.write_text(code, encoding="utf-8-sig")
         files.append(f)

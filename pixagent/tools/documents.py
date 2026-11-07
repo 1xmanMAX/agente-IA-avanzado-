@@ -80,20 +80,20 @@ def build_pdf(ctx, out: Path, md: str, *, title, subtitle, author, date_text, co
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
 
-    # Fuente con soporte de acentos/ñ/símbolos (DejaVu, incluida con matplotlib)
+    # Fuente con acentos/ñ/símbolos: DejaVu (si hay matplotlib) o la del sistema; si no, Helvetica.
     base_font, bold_font = "Helvetica", "Helvetica-Bold"
+    from .drawing import font_path
     try:
-        import matplotlib
-        fd = Path(matplotlib.get_data_path()) / "fonts" / "ttf"
-        if "DejaVu" not in pdfmetrics.getRegisteredFontNames():
-            pdfmetrics.registerFont(TTFont("DejaVu", str(fd / "DejaVuSans.ttf")))
-            pdfmetrics.registerFont(TTFont("DejaVu-Bold", str(fd / "DejaVuSans-Bold.ttf")))
-            pdfmetrics.registerFont(TTFont("DejaVu-Oblique", str(fd / "DejaVuSans-Oblique.ttf")))
-            pdfmetrics.registerFont(TTFont("DejaVu-BoldOblique", str(fd / "DejaVuSans-BoldOblique.ttf")))
-            from reportlab.pdfbase.pdfmetrics import registerFontFamily
-            registerFontFamily("DejaVu", normal="DejaVu", bold="DejaVu-Bold",
-                               italic="DejaVu-Oblique", boldItalic="DejaVu-BoldOblique")
-        base_font, bold_font = "DejaVu", "DejaVu-Bold"
+        if "PXBase" not in pdfmetrics.getRegisteredFontNames():
+            reg, bld = font_path(False), font_path(True)
+            if reg and bld:
+                ita, bita = font_path(False, True) or reg, font_path(True, True) or bld
+                for name, f in (("PXBase", reg), ("PXBase-Bold", bld), ("PXBase-It", ita), ("PXBase-BoldIt", bita)):
+                    pdfmetrics.registerFont(TTFont(name, f))
+                from reportlab.pdfbase.pdfmetrics import registerFontFamily
+                registerFontFamily("PXBase", normal="PXBase", bold="PXBase-Bold", italic="PXBase-It", boldItalic="PXBase-BoldIt")
+        if "PXBase" in pdfmetrics.getRegisteredFontNames():
+            base_font, bold_font = "PXBase", "PXBase-Bold"
     except Exception:  # noqa: BLE001
         pass
 
@@ -312,7 +312,10 @@ def _rl_image(ctx, src, max_w, max_h, RLImage):
        "required": ["action"]})
 def pdf_tools(ctx: ToolContext, action: str, path: str | None = None, paths: list | None = None,
               pages: str | None = None, output: str | None = None, dpi: int = 110) -> ToolResult:
-    import pymupdf as fitz
+    try:
+        import pymupdf as fitz
+    except ImportError:  # equipos sin pymupdf (p. ej. Android/Termux): versión reducida con pypdf
+        return _pdf_tools_lite(ctx, action, path, paths, pages, output)
 
     if action == "merge":
         if not paths or not output:
@@ -368,6 +371,50 @@ def pdf_tools(ctx: ToolContext, action: str, path: str | None = None, paths: lis
         res.save(out)
         return ToolResult(f"Extraídas {len(sel)} páginas en {ctx.rel(out)}", files=[out])
     raise ToolError(f"Acción desconocida: {action}")
+
+
+def _pdf_tools_lite(ctx, action, path, paths, pages, output) -> ToolResult:
+    from pypdf import PdfReader, PdfWriter
+    if action == "merge":
+        if not paths or not output:
+            raise ToolError("merge necesita paths y output.")
+        w = PdfWriter()
+        for p in paths:
+            for pg in PdfReader(str(ctx.resolve(p, must_exist=True))).pages:
+                w.add_page(pg)
+        out = ctx.resolve(output)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        with out.open("wb") as fh:
+            w.write(fh)
+        return ToolResult(f"Unido en {ctx.rel(out)}", files=[out])
+    if action == "images_to_pdf":
+        from PIL import Image
+        ims = [Image.open(ctx.resolve(p, must_exist=True)).convert("RGB") for p in paths or []]
+        if not ims or not output:
+            raise ToolError("images_to_pdf necesita paths y output.")
+        out = ctx.resolve(output)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        ims[0].save(out, "PDF", save_all=True, append_images=ims[1:], resolution=150)
+        return ToolResult(f"PDF {ctx.rel(out)} con {len(ims)} páginas", files=[out])
+    if not path:
+        raise ToolError("Falta 'path'.")
+    p = ctx.resolve(path, must_exist=True)
+    r = PdfReader(str(p))
+    sel = _parse_pages(pages, len(r.pages))
+    if action == "info":
+        return ToolResult(f"{ctx.rel(p)}: {len(r.pages)} páginas; metadatos {dict(r.metadata or {})}")
+    if action == "read_text":
+        return ToolResult(truncate("\n\n".join(f"--- Página {i + 1} ---\n{r.pages[i].extract_text() or ''}" for i in sel)))
+    if action == "split":
+        w = PdfWriter()
+        for i in sel:
+            w.add_page(r.pages[i])
+        out = ctx.resolve(output)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        with out.open("wb") as fh:
+            w.write(fh)
+        return ToolResult(f"Extraídas {len(sel)} páginas en {ctx.rel(out)}", files=[out])
+    raise ToolError("to_images necesita pymupdf (pip install pymupdf). Sin él, usa read_text para revisar el contenido.")
 
 
 def _parse_pages(spec: str | None, n: int) -> list[int]:

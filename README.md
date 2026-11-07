@@ -38,6 +38,59 @@ La integración usa la [API de scripts oficial de PixPin](https://pixpin.com/doc
 
 Detalles en [pixpin_scripts/README.md](pixpin_scripts/README.md).
 
+## Plataformas
+
+PixAgent usa una arquitectura de **anfitrión + clientes ligeros**:
+
+- **Anfitrión**: un único proceso de Python hace el trabajo pesado (planos, PDFs, Python). Puede
+  ser tu PC con Windows, tu Mac, un servidor casero o en la nube (Docker) o un teléfono Android con
+  Termux.
+- **Clientes**: los demás dispositivos usan una **app web instalable (PWA)** de unos 70 KB, sin
+  frameworks. No hace falta instalar nada desde la tienda y no consume la batería ni la memoria de
+  una app nativa. El modelo de IA corre en la nube, así que el teléfono solo muestra resultados.
+
+| Plataforma | Cómo se usa | PixPin |
+|---|---|---|
+| **Windows** | Anfitrión: `instalar.bat` + `iniciar.bat`. Se abre como ventana de app (Edge en modo app, sin Electron) | ✅ Integración completa |
+| **macOS** | Anfitrión: `./iniciar.sh` | ✅ Integración completa (PixPin para Mac) |
+| **iPhone / iPad** | Cliente: abre la URL o escanea el QR del anfitrión y elige Safari → Compartir → *Añadir a pantalla de inicio* | Desde el móvil: fijar resultados y pedir capturas en el PC anfitrión |
+| **Android** | Cliente: abre la URL o el QR → *Instalar app*. Aparece en el menú *Compartir* de la galería para enviar fotos directamente | Igual que iOS |
+| **Android sin PC** | Anfitrión en el propio teléfono con [Termux](https://termux.dev): `./iniciar_termux.sh` | No (PixPin no existe en Android) |
+| **Linux / NAS / VPS** | Anfitrión con `docker build -t pixagent . && docker run -p 8765:8765 -e ANTHROPIC_API_KEY=… -v pixagent:/data pixagent` | No |
+
+### Usarlo desde el móvil o la tablet
+
+```bash
+python -m pixagent serve --lan      # misma wifi: muestra una URL con token y un código QR
+```
+
+Escanea el QR: el móvil queda emparejado (una cookie guarda el token) y puedes instalar la app.
+Para **instalar la PWA** en Android/iOS fuera de casa se necesita HTTPS. Lo más sencillo es
+[Tailscale](https://tailscale.com): `tailscale serve 8765` en el anfitrión, y arrancas PixAgent con
+`--remote` para que siga exigiendo el token. Si ya tienes certificados, usa `--cert` y `--key`.
+
+### Optimización para dispositivos modestos
+
+- **Fotos reducidas en el propio dispositivo** antes de subirlas (máx. 3200 px; HEIC del iPhone →
+  JPEG). Una foto de 48 MP se sube como una fracción de su tamaño, y la memoria del canvas se libera al terminar.
+- **Miniaturas WebP en caché** del tamaño exacto de la pantalla. El original solo se descarga al
+  ampliar. Hay un modo **Ahorro de datos** (y se respeta el *Ahorro de datos* del sistema).
+- **PDF en iOS/iPadOS** mostrado como páginas en imagen de carga diferida (Safari solo muestra la
+  primera página en un iframe).
+- **Conexión que se recupera sola**: eventos numerados con búfer en el anfitrión. Si iOS o Android
+  suspenden la app o cambias de wifi a datos, al volver se recupera lo que faltaba.
+- **Menos trabajo en el móvil**: el texto del modelo llega agrupado cada 60 ms y se repinta como
+  máximo una vez por fotograma. Los historiales largos se recortan en el DOM, se usa
+  `content-visibility` y las tarjetas de herramientas cargan su contenido al abrirse.
+- **Red**: gzip solo para texto (no para imágenes), recursos estáticos inmutables en caché y
+  service worker para que la app abra al instante. Primera carga: unos 70 KB.
+- **Anfitrión ligero**: ~54 MB en reposo. El SDK de IA, el motor de PDF y matplotlib se cargan solo
+  cuando se usan, máximo 8 sesiones en memoria, y las dependencias pesadas son opcionales
+  (`.[full]`). Sin ellas, las funciones que las necesitan avisan en lugar de fallar.
+- **Interfaz adaptable**: tres columnas en escritorio, columna única con barra inferior en móvil,
+  zonas táctiles de 42 px o más, márgenes seguros del notch, sin zoom involuntario en iOS, modo
+  oscuro automático y cámara directa desde el compositor.
+
 ## Instalación
 
 Requisitos: Python 3.10+ y una clave de API de Anthropic.
@@ -47,7 +100,7 @@ Requisitos: Python 3.10+ y una clave de API de Anthropic.
 ```bat
 instalar.bat
 setx ANTHROPIC_API_KEY "tu_clave"
-iniciar.bat
+iniciar.bat            (o: iniciar.bat --lan  para usarlo también desde el móvil)
 ```
 
 **macOS / Linux**
@@ -57,7 +110,14 @@ export ANTHROPIC_API_KEY="tu_clave"
 ./iniciar.sh
 ```
 
-Después:
+**Android (Termux)**
+
+```bash
+export ANTHROPIC_API_KEY="tu_clave"
+./iniciar_termux.sh
+```
+
+Después, en el PC con PixPin:
 
 ```bash
 python -m pixagent install-pixpin      # genera los scripts para PixPin con tus rutas
@@ -69,13 +129,15 @@ python -m pixagent config pixpin_path="C:/Program Files/PixPin/PixPin.exe"   # s
 | Comando | Para qué |
 |---|---|
 | `python -m pixagent` | Interfaz web (chat, visor de planos/PDF/apps, biblioteca, botones de PixPin) |
+| `python -m pixagent serve --lan` | Además, accesible desde móviles y tablets de tu red (QR + token) |
 | `python -m pixagent chat` | Chat en la terminal (`/adjuntar ruta…` para adjuntar) |
 | `python -m pixagent run "tarea" -a plano.png foto1.jpg` | Ejecuta una tarea y termina |
 | `python -m pixagent send archivo.png` | Envía archivos a la bandeja del agente |
 | `python -m pixagent send-clipboard` | Envía la imagen o el texto del portapapeles |
 | `python -m pixagent config clave=valor` | Cambia la configuración (`~/.pixagent/config.json`) |
 
-En la interfaz puedes arrastrar archivos, pegar capturas con Ctrl+V y usar los botones de plantilla
+En la interfaz puedes arrastrar archivos, pegar capturas con Ctrl+V, hacer fotos con la cámara
+(móvil y tablet), compartir resultados con la hoja nativa del sistema y usar los botones de plantilla
 (Plano con fotos, Diagrama, Informe PDF, Mini app, Python).
 
 ### Configuración principal
@@ -90,6 +152,8 @@ En la interfaz puedes arrastrar archivos, pegar capturas con Ctrl+V y usar los b
 | `server_fallbacks` | `true` | Si el modelo rechaza una petición, se reintenta en el modelo de respaldo |
 | `progress_updates` | `true` | Muestra notas de progreso entre herramientas |
 | `allowed_dirs` | `[]` | Carpetas extra a las que puede acceder (separadas por `;`) |
+| `require_token` / `access_token` | `false` / auto | Se activan solos con `--lan` y `--remote` |
+| `upload_max_px` | `3200` | Lado máximo de las fotos que se suben desde los dispositivos |
 
 ## Arquitectura
 
@@ -108,7 +172,10 @@ pixagent/
     documents.py    create_pdf (Markdown → PDF profesional), pdf_tools
     browser.py      preview_page (captura de HTML), html_to_pdf (Playwright, o Edge/Chrome)
     pixpin_tools.py pixpin (pin/capture/run_script), create_miniapp
-  web/              FastAPI + WebSocket + interfaz (HTML/CSS/JS sin dependencias)
+  web/
+    server.py       FastAPI + WebSocket: eventos reanudables, token, gzip selectivo, compartir (Android)
+    thumbs.py       miniaturas WebP en caché y páginas de PDF como imagen
+    static/         PWA sin dependencias: index.html, app.js, style.css, manifest, service worker
 ```
 
 Más detalle sobre las decisiones de diseño en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).
