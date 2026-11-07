@@ -22,6 +22,10 @@ class Settings:
     effort: str = "high"
     # Modelo económico para la IA rápida de las mini apps (pies de foto, revisiones cortas...)
     quick_model: str = "claude-haiku-5-5"
+    # IA local (Ollama, llama.cpp, LM Studio…): motores extra [{name, url, kind: ollama|openai}] y
+    # modelo preferido por tarea {"vision": "qwen3.5:4b", "ocr": "glm-ocr:q8_0", "text": "qwen3.5:2b"}
+    local_engines: list = field(default_factory=list)
+    local_models: dict = field(default_factory=dict)
     max_tokens: int = 64000
     # Reintento automático en otro modelo si el principal rechaza la petición
     server_fallbacks: bool = True

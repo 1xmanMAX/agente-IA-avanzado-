@@ -43,6 +43,16 @@ El agente puede crear mini apps nuevas a petición ("hazme una mini app para…"
 [SDK de PixAgent](docs/MINIAPPS_SDK.md): guardar, subir, fijar en PixPin, IA rápida y panel
 fotográfico.
 
+## IA local (modelos pequeños, gratis y privados)
+
+PixAgent se conecta a **Ollama, llama.cpp, LM Studio** o cualquier servidor compatible con OpenAI y
+usa modelos pequeños (Qwen3.5, Qwen3-VL, Gemma 4, MiniCPM-V, GLM-OCR…) como herramientas para
+trabajo masivo: describir fotos, OCR, narrar vídeos fotograma a fotograma (desde un archivo, una URL
+o en directo con la cámara o la pantalla) y transcribir audio. Claude delega en ellos con la
+herramienta `local_ai` y las mini apps los usan con `PixAgent.local`. Incluye las mini apps
+**IA local** (instalar y elegir modelos), **Analizador de vídeo** y **OCR rápido**. Guía completa,
+modelos recomendados por equipo y resultados de las pruebas: [docs/IA_LOCAL.md](docs/IA_LOCAL.md).
+
 ## Creador de informes estructurados
 
 En `/reports` (pestaña **Informes**) defines **tus propias plantillas**: campos del proyecto,
@@ -225,6 +235,7 @@ pixagent/
     templates/      plantillas integradas (JSON)
   miniapps/         mini apps integradas (graderio, panel-fotografico, calculadora, detector-gestos)
   quick_ai.py       IA rápida y económica para las mini apps
+  local/            IA local: motores (Ollama/llama.cpp/LM Studio/OpenAI), catálogo, tareas y vídeo
   web/
     server.py       FastAPI + WebSocket: eventos reanudables, token, gzip selectivo, compartir (Android)
     thumbs.py       miniaturas WebP en caché y páginas de PDF como imagen

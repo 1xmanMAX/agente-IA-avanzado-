@@ -525,3 +525,69 @@ def test_report_evidence_check_and_cells(settings, ctx):
     assert "Foto 7" in w and "Foto 2, Foto 3" in w and "POR COMPLETAR" in w
     r = REGISTRY["view_image"].func(ctx, path="uploads/plano.png", cells=True)
     assert "Columnas x: A=0–100" in r.text and r.images
+
+
+# ----------------------------------------------------------------- IA local (servidor compatible OpenAI simulado)
+@pytest.fixture()
+def fake_openai_server():
+    import threading
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    calls = []
+
+    class H(BaseHTTPRequestHandler):
+        def log_message(self, *a):
+            pass
+
+        def _send(self, obj):
+            b = json.dumps(obj).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(b)))
+            self.end_headers()
+            self.wfile.write(b)
+
+        def do_GET(self):
+            self._send({"data": [{"id": "qwen3.5-4b-q4"}]})
+
+        def do_POST(self):
+            body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+            calls.append(body)
+            content = body["messages"][-1]["content"]
+            n_img = sum(1 for c in content if isinstance(c, dict) and c.get("type") == "image_url") if isinstance(content, list) else 0
+            text = '{"ok": true}' if body.get("response_format") else f"<think>x</think>Descripción con {n_img} imagen(es)."
+            self._send({"choices": [{"message": {"content": text}}], "usage": {"prompt_tokens": 10, "completion_tokens": 5}})
+
+    srv = ThreadingHTTPServer(("127.0.0.1", 0), H)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    yield f"http://127.0.0.1:{srv.server_address[1]}", calls
+    srv.shutdown()
+
+
+def test_local_ai_engine_tasks_and_video(settings, fake_openai_server):
+    import subprocess
+    from pixagent.local import catalog
+    from pixagent.local.service import LocalAI, ffmpeg_exe
+    url, calls = fake_openai_server
+    settings.local_engines = [{"name": "Prueba", "url": url, "kind": "openai"}]
+    svc = LocalAI(settings)
+    st = svc.status(refresh=True)
+    assert any(e["name"] == "Prueba" and e["online"] for e in st["engines"])
+    assert st["assigned"]["vision"] == ("Prueba", "qwen3.5-4b-q4")
+    r = svc.run("caption", images=[settings.ws / "uploads" / "foto1.jpg"])
+    assert r["text"] == "Descripción con 1 imagen(es)."          # <think> eliminado
+    assert calls[-1]["messages"][-1]["content"][1]["image_url"]["url"].startswith("data:image/jpeg;base64,")
+    assert svc.run("ask", "x", [settings.ws / "uploads" / "foto1.jpg"], json_mode=True)["data"] == {"ok": True}
+    assert catalog.score("glm-ocr:q8_0", "ocr") > catalog.score("qwen3.5:4b", "ocr")
+    assert catalog.score("glm-ocr:q8_0", "vision") == 0
+    if not ffmpeg_exe():
+        pytest.skip("sin ffmpeg")
+    vid = settings.ws / "uploads" / "v.mp4"
+    subprocess.run([ffmpeg_exe(), "-loglevel", "error", "-y", "-f", "lavfi", "-i", "color=c=red:s=320x240:d=3",
+                    "-f", "lavfi", "-i", "color=c=blue:s=320x240:d=3", "-filter_complex", "[0:v][1:v]concat=n=2:v=1",
+                    str(vid)], check=True)
+    job = svc.start_video({"source": "uploads/v.mp4", "every": 1, "max_frames": 6, "summary": False}, lambda e: None)
+    job.thread.join(60)
+    assert job.status == "done" and len(job.items) == 6
+    described = [it for it in job.items if not it.get("same")]
+    assert len(described) == 2          # rojo y azul; los fotogramas idénticos no llaman al modelo
+    assert (settings.ws / "outputs" / "video" / job.id / "analisis.md").exists()

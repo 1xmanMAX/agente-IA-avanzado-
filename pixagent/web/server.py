@@ -604,6 +604,112 @@ def create_app(settings: Settings, llm_factory=None, report_writer_factory=None)
         return {"ok": True, "path": out.relative_to(ws_root).as_posix(), "pages": pdf_page_count(out),
                 "warnings": p.data.get("outputs", {}).get("warnings", [])}
 
+    # ------------------------------------------------------------- IA local (modelos pequeños)
+    from ..local.service import LocalAI
+    local = LocalAI(settings)
+    app.state.local = local
+
+    def refs_to_paths(refs):
+        out = []
+        for r in refs or []:
+            p = safe_path(r)
+            if not p.exists():
+                raise HTTPException(400, f"No existe: {r}")
+            out.append(p)
+        return out
+
+    @app.get("/api/local/status")
+    async def local_status(refresh: bool = False):
+        return await asyncio.to_thread(local.status, refresh)
+
+    @app.post("/api/local/settings")
+    async def local_settings(body: dict):
+        if "models" in body:
+            settings.local_models = {k: v for k, v in (body["models"] or {}).items() if v}
+        if "engines" in body:
+            settings.local_engines = body["engines"] or []
+        settings.save()
+        return {"ok": True, "status": await asyncio.to_thread(local.status, True)}
+
+    @app.post("/api/local/pull")
+    async def local_pull(body: dict):
+        model = body.get("model", "")
+        eng = next((e for e in local.engines(True) if e.online and e.kind == "ollama"), None)
+        if not eng:
+            return JSONResponse({"ok": False, "error": "Para descargar modelos desde aquí necesitas Ollama en marcha."},
+                                status_code=400)
+
+        def work():
+            try:
+                eng.pull(model, lambda p: hub.publish_threadsafe({"type": "local_pull", "model": model, **p}))
+                hub.publish_threadsafe({"type": "local_pull", "model": model, "status": "success", "pct": 100})
+                local.engines(True)
+            except Exception as e:  # noqa: BLE001
+                hub.publish_threadsafe({"type": "local_pull", "model": model, "status": "error", "error": str(e)[:300]})
+        threading.Thread(target=work, daemon=True).start()
+        return {"ok": True}
+
+    @app.post("/api/local/run")
+    async def local_run(body: dict):
+        """Tareas: ask | caption | ocr | text. images: rutas del workspace; image_b64: un fotograma en
+        directo (cámara/pantalla) sin guardarlo como archivo del usuario."""
+        import base64
+        images = refs_to_paths(body.get("images"))
+        if body.get("image_b64"):
+            raw = body["image_b64"].split(",", 1)[-1]
+            tmp = ws_root / ".tmp" / "live"
+            tmp.mkdir(parents=True, exist_ok=True)
+            f = tmp / f"live_{uuid.uuid4().hex[:8]}.jpg"
+            f.write_bytes(base64.b64decode(raw))
+            images.append(f)
+        try:
+            return await asyncio.to_thread(local.run, body.get("task", "ask"), body.get("prompt", ""), images,
+                                           body.get("model"), bool(body.get("json")), body.get("max_tokens"),
+                                           body.get("system", ""))
+        except Exception as e:  # noqa: BLE001
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=400)
+        finally:
+            if body.get("image_b64"):
+                for f in images[-1:]:
+                    f.unlink(missing_ok=True)
+
+    @app.post("/api/local/batch")
+    async def local_batch(body: dict):
+        images = refs_to_paths(body.get("images"))
+        res = await asyncio.to_thread(local.batch, body.get("task", "caption"), images, body.get("prompt", ""),
+                                      body.get("model"))
+        for r in res:
+            r["path"] = Path(r["path"]).relative_to(ws_root).as_posix()
+        return {"ok": True, "results": res}
+
+    @app.post("/api/local/video")
+    async def local_video(body: dict):
+        if not body.get("source"):
+            return JSONResponse({"ok": False, "error": "Falta 'source' (ruta del vídeo o URL)"}, status_code=400)
+        try:
+            local.pick("vision", body.get("model"))
+        except Exception as e:  # noqa: BLE001
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=400)
+        job = local.start_video(body, hub.publish_threadsafe)
+        return {"ok": True, "job": job.id}
+
+    @app.get("/api/local/jobs/{jid}")
+    async def local_job(jid: str, after: int = 0):
+        job = local.jobs.get(jid)
+        if not job:
+            raise HTTPException(404)
+        d = job.public(after)
+        if job.out_dir:
+            d["out_dir"] = Path(job.out_dir).relative_to(ws_root).as_posix()
+        return d
+
+    @app.post("/api/local/jobs/{jid}/cancel")
+    async def local_cancel(jid: str):
+        job = local.jobs.get(jid)
+        if job:
+            job.cancel = True
+        return {"ok": True}
+
     # ------------------------------------------------------------- WebSocket
     @app.websocket("/ws")
     async def ws(sock: WebSocket):

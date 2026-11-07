@@ -78,6 +78,49 @@
       else location.href = "/?compose=" + encodeURIComponent(text);
     },
 
+    /** IA LOCAL (gratis, en el equipo anfitrión: Ollama / llama.cpp / LM Studio). Modelos pequeños
+        rápidos para trabajo masivo: describir, leer texto (OCR), preguntar sobre imágenes, vídeo. */
+    local: {
+      /** Estado: motores, modelos instalados, modelo asignado por tarea, catálogo recomendado */
+      status: (refresh) => j("/api/local/status" + (refresh ? "?refresh=1" : "")),
+      /** task: "ask" | "caption" | "ocr" | "text". opts: {prompt, images:[ruta|File|Blob|dataURL], model, json} */
+      async run(task, opts) {
+        opts = opts || {};
+        const images = await Promise.all((opts.images || []).map(toRef));
+        return post("/api/local/run", { task, prompt: opts.prompt || "", images, model: opts.model,
+          json: !!opts.json, max_tokens: opts.maxTokens });
+      },
+      ask: (prompt, images, opts) => PixAgent.local.run("ask", Object.assign({ prompt, images }, opts)).then((r) => r.text),
+      caption: (image, opts) => PixAgent.local.run("caption", Object.assign({ images: [image] }, opts)).then((r) => r.text),
+      ocr: (image, opts) => PixAgent.local.run("ocr", Object.assign({ images: [image] }, opts)).then((r) => r.text),
+      /** Fotograma en directo (canvas/vídeo/dataURL) sin guardarlo: ideal para cámara o pantalla */
+      async frame(source, prompt, opts) {
+        let url = source;
+        if (source && source.getContext) url = source.toDataURL("image/jpeg", 0.8);
+        else if (source && source.videoWidth) {
+          const c = document.createElement("canvas"); const k = Math.min(1, 640 / source.videoWidth);
+          c.width = Math.round(source.videoWidth * k); c.height = Math.round(source.videoHeight * k);
+          c.getContext("2d").drawImage(source, 0, 0, c.width, c.height); url = c.toDataURL("image/jpeg", 0.8);
+        }
+        return post("/api/local/run", Object.assign({ task: "ask", prompt: prompt || "", image_b64: url }, opts || {}));
+      },
+      /** Vídeo fotograma a fotograma. spec: {source: ruta|URL, every: s, scene: 0.3|null, max_frames,
+          prompt, transcribe, summary, model}. onUpdate(job) recibe los resultados en cuanto salen. */
+      async video(spec, onUpdate) {
+        const { job } = await post("/api/local/video", spec);
+        let after = 0, items = [];
+        for (;;) {
+          const d = await j("/api/local/jobs/" + job + "?after=" + after);
+          items = items.concat(d.items); after = items.length; d.items = items;
+          if (onUpdate) onUpdate(d);
+          if (d.status !== "running") return d;
+          await new Promise((r) => setTimeout(r, 1200));
+        }
+      },
+      cancel: (jobId) => post("/api/local/jobs/" + jobId + "/cancel", {}),
+      pull: (model) => post("/api/local/pull", { model }),
+    },
+
     /** Muestra un aviso en la interfaz anfitriona (o alert si va suelta) */
     toast(msg) {
       if (PixAgent.embedded) window.parent.postMessage({ type: "pixagent:toast", text: msg }, location.origin);
