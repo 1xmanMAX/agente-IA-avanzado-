@@ -315,8 +315,9 @@ class ReportProject:
 
 def _norm_photo(x) -> dict:
     if isinstance(x, str):
-        return {"path": x, "caption": "", "group": "", "notes": ""}
-    return {"path": x["path"], "caption": x.get("caption", ""), "group": x.get("group", ""), "notes": x.get("notes", "")}
+        return {"path": x, "caption": "", "group": "", "notes": "", "status": ""}
+    return {"path": x["path"], "caption": x.get("caption", ""), "group": x.get("group", ""),
+            "notes": x.get("notes", ""), "status": x.get("status", "")}
 
 
 # ============================================================ generación
@@ -340,6 +341,7 @@ class ReportGenerator:
                            for f in self.p.template.get("fields", []))
         photos = "\n".join(f"- Foto {i + 1}: {ph.get('caption') or '(sin pie)'}"
                            + (f" [zona: {ph['group']}]" if ph.get("group") else "")
+                           + (f" [estado: {ph['status']}]" if ph.get("status") else "")
                            + (f" — nota: {ph['notes']}" if ph.get("notes") else "")
                            for i, ph in enumerate(d["photos"]))
         return (f"INFORME: {d['title']}\nTIPO: {self.p.template.get('name')}\n\nDATOS DEL PROYECTO:\n{fields or '-'}\n\n"
@@ -523,11 +525,38 @@ def build_report_pdf(settings, p: ReportProject) -> Path:
               logo=d.get("logo"), cover_image=d["photos"][0]["path"] if d["photos"] and style.get("cover_photo", True) else None,
               header_text=d["title"], theme=style.get("theme_color", "#1f4e79"),
               page_size=style.get("page_size", "A4"), landscape_mode=False, warnings=warnings)
+    warnings += check_evidence(p)
     with p.lock:
         p.data["outputs"] = {"pdf": out.relative_to(settings.ws).as_posix(),
                              "md": (p.dir / "informe.md").relative_to(settings.ws).as_posix(),
                              "built": time.time(), "warnings": warnings}
         p.save()
+    return out
+
+
+def check_evidence(p: ReportProject) -> list[str]:
+    """Comprobación de evidencias (sin IA): fotos citadas que no existen, fotos nunca citadas en el
+    texto redactado y marcadores [POR COMPLETAR] pendientes."""
+    n = len(p.data["photos"])
+    cited: set[int] = set()
+    pending = 0
+    bad = set()
+    for u in p.units():
+        f = p.section_file(u.id)
+        if u.uses_ai and f.exists():
+            txt = f.read_text("utf-8")
+            for m in re.finditer(r"[Ff]otos?\s+(?:n\.?º?\s*)?(\d+)", txt):
+                k = int(m.group(1))
+                (cited.add(k) if 1 <= k <= n else bad.add(k))
+            pending += txt.count("[POR COMPLETAR")
+    out = []
+    if bad:
+        out.append("Se citan fotos que no existen: " + ", ".join(f"Foto {k}" for k in sorted(bad)))
+    unused = [k for k in range(1, n + 1) if k not in cited]
+    if n and unused and len(unused) < n:
+        out.append("Fotos no comentadas en el texto: " + ", ".join(f"Foto {k}" for k in unused[:30]))
+    if pending:
+        out.append(f"Quedan {pending} marcadores [POR COMPLETAR] por revisar")
     return out
 
 

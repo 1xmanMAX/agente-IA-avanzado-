@@ -26,7 +26,8 @@ Tipos de elemento (campo "type"):
 - photo: {src, anchor:[x,y] punto del plano donde se tomó/ubica, position:[x,y] esquina sup-izq de la
   miniatura o se omite para colocación automática en el margen, size: lado mayor px (def 260),
   caption, number (auto), color, view_angle: grados (0=derecha, 90=abajo) dibuja cono de visión,
-  fov: apertura del cono (def 60), arrow: true/false}
+  fov: apertura del cono (def 60), arrow: true/false, approximate: true si la ubicación es dudosa
+  (marco discontinuo y "≈" en la leyenda)}
 - arrow: {from:[x,y], to:[x,y], color, width, label, curve (p.ej. 0.25), dashed, both}
 - marker: {at:[x,y], text o number, color, radius}
 - text: {at:[x,y], text, size, color, bg, bold, anchor:'mm'|'lt'}
@@ -80,6 +81,8 @@ def compose_plan(ctx: ToolContext, output: str, **scene) -> ToolResult:
         scene = saved
     out = ctx.resolve(output)
     out.parent.mkdir(parents=True, exist_ok=True)
+    for f in (out, out.with_suffix(".scene.json"), out.with_suffix(".pdf")):
+        ctx.checkpoint(f)
     img, report = render_scene(ctx, scene)
     img.convert("RGB").save(out, quality=95)
     files = [out]
@@ -207,7 +210,7 @@ def _legend_lines(photos, extra):
     lines = []
     for e in photos:
         cap = e.get("caption") or Path(str(e.get("src", ""))).stem
-        lines.append((e.get("color"), f"{e['number']}. {cap}", True))
+        lines.append((e.get("color"), f"{e['number']}. {cap}" + (" (≈ ubicación aproximada)" if e.get("approximate") else ""), True))
     for it in extra or []:
         lines.append((it.get("color", "#333"), it.get("text", ""), False))
     return lines
@@ -324,7 +327,11 @@ def _draw_photo(ctx, canvas, draw, e, box, ox, oy, k, font_sz):
     # miniatura con marco
     thumb = _thumb(ctx, e)
     draw.rectangle([x0 + 4, y0 + 4, x1 + 4, y1 + 4], fill=(0, 0, 0, 50))  # sombra
-    draw.rectangle([x0, y0, x1, y1], fill="white", outline=col, width=4)
+    if e.get("approximate"):
+        draw.rectangle([x0, y0, x1, y1], fill="white")
+        D.dashed_line(draw, [(x0, y0), (x1, y0), (x1, y1), (x0, y1), (x0, y0)], col, 4, dash=14)
+    else:
+        draw.rectangle([x0, y0, x1, y1], fill="white", outline=col, width=4)
     canvas.paste(thumb, (int(x0 + 6), int(y0 + 6)))
     draw = ImageDraw.Draw(canvas, "RGBA")
     D.numbered_marker(draw, (x0 + 4, y0 + 4), e["number"], fill=col, radius=max(14, font_sz * 0.8))

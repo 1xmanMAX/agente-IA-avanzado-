@@ -17,16 +17,21 @@ from .drawing import load_font
       """Mira una imagen (foto, plano, captura, gráfico). Opciones:
       - grid=true superpone una cuadrícula con coordenadas en píxeles del archivo ORIGINAL
         (úsala antes de colocar elementos sobre un plano con compose_plan).
+      - cells=true superpone celdas grandes etiquetadas (A1, B2…), estilo Set-of-Mark: primero
+        identifica la CELDA donde está algo y luego haz zoom con region=celda + grid=true para la
+        coordenada exacta (dos niveles: más preciso que leer coordenadas en el plano entero).
       - region=[x, y, ancho, alto] hace zoom a una zona (coordenadas originales) para ver detalles.
       Devuelve también el tamaño original de la imagen.""",
       {"properties": {
           "path": {"type": "string"},
           "grid": {"type": "boolean"},
+          "cells": {"type": "boolean", "description": "Celdas etiquetadas A1, B2… (localización gruesa)."},
+          "cell_cols": {"type": "integer", "description": "Nº de columnas de celdas (def 8)."},
           "grid_step": {"type": "integer", "description": "Separación de la cuadrícula en px originales (auto si se omite)."},
           "region": {"type": "array", "items": {"type": "number"}, "minItems": 4, "maxItems": 4}},
        "required": ["path"]})
 def view_image(ctx: ToolContext, path: str, grid: bool = False, grid_step: int | None = None,
-               region: list | None = None) -> ToolResult:
+               region: list | None = None, cells: bool = False, cell_cols: int = 8) -> ToolResult:
     p = ctx.resolve(path, must_exist=True)
     try:
         im = Image.open(p)
@@ -50,11 +55,40 @@ def view_image(ctx: ToolContext, path: str, grid: bool = False, grid_step: int |
         disp = im.convert("RGB").resize((max(1, int(im.size[0] * scale)), max(1, int(im.size[1] * scale))))
         disp = _grid_overlay_scaled(disp, step, scale, offset)
         info += f"; cuadrícula cada {step}px (las etiquetas son coordenadas ORIGINALES)"
+    elif cells:
+        scale = min(1.0, 1568 / max(im.size))
+        disp = im.convert("RGB").resize((max(1, int(im.size[0] * scale)), max(1, int(im.size[1] * scale))))
+        disp, legend = _cells_overlay(disp, scale, offset, max(2, min(16, cell_cols)))
+        info += "; celdas etiquetadas (coordenadas ORIGINALES):\n" + legend
     else:
         disp = im
     out = ctx.ws / ".tmp" / f"view_{uuid.uuid4().hex[:8]}.png"
     disp.convert("RGB").save(out)
     return ToolResult(info, images=[out])
+
+
+def _cells_overlay(disp: Image.Image, scale: float, offset, cols: int):
+    """Celdas grandes con etiqueta en el centro; devuelve la imagen y la tabla de límites."""
+    draw = ImageDraw.Draw(disp, "RGBA")
+    w, h = disp.size
+    rows = max(2, round(cols * h / w))
+    cw, ch = w / cols, h / rows
+    font = load_font(max(12, int(min(cw, ch) / 7)), bold=True)
+    ox, oy = offset
+    letters = "ABCDEFGHIJKLMNOP"
+    for c in range(cols + 1):
+        draw.line([(c * cw, 0), (c * cw, h)], fill=(255, 0, 80, 150), width=2)
+    for r in range(rows + 1):
+        draw.line([(0, r * ch), (w, r * ch)], fill=(255, 0, 80, 150), width=2)
+    for c in range(cols):
+        for r in range(rows):
+            # etiqueta pequeña en la esquina: no tapa el contenido del plano
+            draw.text((c * cw + 4, r * ch + 3), f"{letters[c]}{r + 1}", font=font, anchor="la",
+                      fill=(220, 0, 70, 230), stroke_width=2, stroke_fill=(255, 255, 255, 200))
+    k = 1 / scale
+    colspec = ", ".join(f"{letters[c]}={int(ox + c * cw * k)}–{int(ox + (c + 1) * cw * k)}" for c in range(cols))
+    rowspec = ", ".join(f"{r + 1}={int(oy + r * ch * k)}–{int(oy + (r + 1) * ch * k)}" for r in range(rows))
+    return disp, f"Columnas x: {colspec}\nFilas y: {rowspec}"
 
 
 def _auto_step(side: int) -> int:
@@ -139,6 +173,7 @@ def image_tools(ctx: ToolContext, action: str, path: str | None = None, paths: l
         return ToolResult(f"{ctx.rel(p)}: {im.size[0]}x{im.size[1]} modo={im.mode} formato={Image.open(p).format} exif={exif}")
     out = ctx.resolve(output) if output else p
     out.parent.mkdir(parents=True, exist_ok=True)
+    ctx.checkpoint(out)
     if action == "resize":
         if not width and not height:
             raise ToolError("resize necesita width y/o height.")

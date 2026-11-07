@@ -42,6 +42,7 @@ def write_file(ctx: ToolContext, path: str, content: str) -> ToolResult:
     p = ctx.resolve(path)
     p.parent.mkdir(parents=True, exist_ok=True)
     existed = p.exists()
+    ctx.checkpoint(p)
     p.write_text(content, "utf-8")
     return ToolResult(f"{'Sobrescrito' if existed else 'Creado'}: {ctx.rel(p)} ({len(content)} caracteres)",
                       files=[p])
@@ -62,12 +63,37 @@ def edit_file(ctx: ToolContext, path: str, old_string: str, new_string: str,
     text = p.read_text("utf-8")
     count = text.count(old_string)
     if count == 0:
-        raise ToolError("old_string no se encontró. Vuelve a leer el archivo y copia el texto exacto.")
+        # Tolerancia a espacios finales y saltos de línea Windows (patrón Aider)
+        norm = lambda t: "\n".join(l.rstrip() for l in t.replace("\r\n", "\n").split("\n"))  # noqa: E731
+        ntext, nold = norm(text), norm(old_string)
+        if nold and ntext.count(nold) == 1:
+            ctx.checkpoint(p)
+            p.write_text(ntext.replace(nold, norm(new_string), 1), "utf-8")
+            return ToolResult(f"Editado {ctx.rel(p)} (coincidencia ignorando espacios finales)", files=[p])
+        raise ToolError("old_string no se encontró." + _closest(text, old_string))
     if count > 1 and not replace_all:
-        raise ToolError(f"old_string aparece {count} veces; añade más contexto o usa replace_all.")
+        raise ToolError(f"old_string aparece {count} veces; añade más líneas de contexto o usa replace_all.")
+    ctx.checkpoint(p)
     text = text.replace(old_string, new_string) if replace_all else text.replace(old_string, new_string, 1)
     p.write_text(text, "utf-8")
     return ToolResult(f"Editado {ctx.rel(p)} ({count if replace_all else 1} reemplazo/s)", files=[p])
+
+
+def _closest(text: str, old: str) -> str:
+    """Muestra las líneas más parecidas para que el modelo corrija el texto a reemplazar."""
+    import difflib
+    first = next((l for l in old.splitlines() if l.strip()), "").strip()
+    lines = text.splitlines()
+    if not first:
+        return ""
+    cands = difflib.get_close_matches(first, [l.strip() for l in lines], n=3, cutoff=0.5)
+    if not cands:
+        return " Vuelve a leer el archivo y copia el texto exacto."
+    out = []
+    for c in cands:
+        i = next(k for k, l in enumerate(lines) if l.strip() == c)
+        out.append(f"  línea {i + 1}: {lines[i][:200]}")
+    return " Líneas más parecidas:\n" + "\n".join(out) + "\nCopia el texto exacto (lee el archivo alrededor de esas líneas)."
 
 
 @tool("list_files",

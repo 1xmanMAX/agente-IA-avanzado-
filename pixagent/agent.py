@@ -69,6 +69,9 @@ class Agent:
             from .llm import ClaudeLLM
             llm = ClaudeLLM(settings)
         self.llm = llm
+        mem = self.s.ws / "PIXAGENT.md"
+        if hasattr(llm, "memory") and mem.exists():
+            llm.memory = mem.read_text("utf-8")[:12000]  # memoria corta y estable (se cachea)
         self.messages: list[dict] = []
         self.transcript: list[dict] = []  # registro legible para la UI
         self.title = ""
@@ -140,6 +143,9 @@ class Agent:
             else:
                 notes.append(f"- {rel} ({kind})")
         header = f"[Contexto: fecha {datetime.now():%Y-%m-%d %H:%M}; workspace {self.s.ws}]"
+        if getattr(self, "_pending_note", None):
+            header += "\n" + self._pending_note
+            self._pending_note = None
         if notes:
             header += "\n[Archivos adjuntos (rutas para usar en las herramientas):\n" + "\n".join(notes) + "]"
         blocks.append({"type": "text", "text": header + "\n\n" + (text or "(sin texto)")})
@@ -149,6 +155,9 @@ class Agent:
     def run(self, text: str, attachments: list[Path] | None = None) -> str:
         import anthropic  # carga diferida: ~60 MB que no se gastan hasta el primer mensaje
         self._cancel = False
+        self.ctx.state["turn"] = int(self.ctx.state.get("turn", 0)) + 1
+        self._calls: dict[str, int] = {}
+        self._task_usd = 0.0
         if not self.title:
             self.title = (text or "Nueva sesión").strip().splitlines()[0][:60]
         self._emit({"type": "user", "text": text,
@@ -166,6 +175,10 @@ class Agent:
                 content = sanitize_fallback(list(resp.content))
                 self.messages.append({"role": "assistant", "content": content})
                 self._track_usage(resp)
+                if self.s.max_usd_per_task and self._task_usd > self.s.max_usd_per_task:
+                    self._emit({"type": "error", "text": f"Se alcanzó el tope de coste por tarea "
+                                f"({self.s.max_usd_per_task} USD). Sube 'max_usd_per_task' o divide la tarea."})
+                    break
                 text_now = "".join(_attr(b, "text", "") for b in content if _btype(b) == "text")
                 if text_now.strip():
                     final_text = text_now
@@ -204,6 +217,38 @@ class Agent:
             self._emit({"type": "done", "text": final_text, "usage": self.usage})
         return final_text
 
+    def undo_last_turn(self) -> list[str]:
+        """Deshace los cambios de archivos del último turno con cambios (restaura copias, borra creados)."""
+        import shutil
+        base = self.s.ws / ".checkpoints" / self.session_id
+        if not base.exists():
+            return []
+        turns = sorted((int(d.name) for d in base.iterdir() if d.is_dir() and d.name.isdigit()), reverse=True)
+        for t in turns:
+            d = base / str(t)
+            man = d / "manifest.json"
+            if not man.exists():
+                continue
+            data = json.loads(man.read_text("utf-8"))
+            restored = []
+            for rel, backup in data.items():
+                target = (self.s.ws / rel)
+                if backup is None:
+                    if target.exists():
+                        target.unlink()
+                    restored.append(f"borrado {rel}")
+                else:
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(d / backup, target)
+                    restored.append(f"restaurado {rel}")
+            shutil.rmtree(d, ignore_errors=True)
+            note = "[Nota del sistema: el usuario deshizo los cambios de archivos del turno anterior: " + "; ".join(restored[:30]) + "]"
+            self.transcript.append({"type": "status", "text": "Cambios deshechos: " + ", ".join(restored[:10])})
+            self._pending_note = note
+            self.save()
+            return restored
+        return []
+
     def _repair_tail(self) -> None:
         """Si el último turno del asistente pidió herramientas sin resultados (error/cancelación),
         añadimos resultados de error para que la conversación siga siendo válida."""
@@ -221,6 +266,16 @@ class Agent:
         for attempt in range(3):
             try:
                 return self.llm.turn(self.messages, tools, self._emit)
+            except anthropic.BadRequestError as e:
+                # Si la cuenta/modelo no admite una función beta opcional, se desactiva y se reintenta
+                msg = str(getattr(e, "message", e)).lower()
+                if getattr(self.llm, "context_editing", False) and "context_management" in msg:
+                    self.llm.context_editing = False
+                    continue
+                if getattr(self.llm, "progress_updates", False) and ("display" in msg or "thinking-display" in msg):
+                    self.llm.progress_updates = False
+                    continue
+                raise
             except anthropic.InternalServerError:
                 if attempt == 2:
                     raise
@@ -233,6 +288,14 @@ class Agent:
             self.usage["input"] += getattr(u, "input_tokens", 0) or 0
             self.usage["output"] += getattr(u, "output_tokens", 0) or 0
             self.usage["cache_read"] += getattr(u, "cache_read_input_tokens", 0) or 0
+            from .reports.engine import PRICES
+            pin, pout = PRICES.get(self.s.model, PRICES["claude-opus-5-5"])
+            cached = getattr(u, "cache_read_input_tokens", 0) or 0
+            written = getattr(u, "cache_creation_input_tokens", 0) or 0
+            usd = ((getattr(u, "input_tokens", 0) or 0) * pin + cached * pin * 0.1 + written * pin * 1.25
+                   + (getattr(u, "output_tokens", 0) or 0) * pout) / 1e6
+            self._task_usd = getattr(self, "_task_usd", 0.0) + usd
+            self.usage["usd"] = round(self.usage.get("usd", 0.0) + usd, 4)
 
     # ------------------------------------------------------------------ ejecución de herramientas
     def _run_tool(self, block, truncated: bool = False) -> dict:
@@ -243,6 +306,13 @@ class Agent:
         try:
             if tool is None:
                 raise ToolError(f"Herramienta desconocida: {name}")
+            key = name + json.dumps(inp, sort_keys=True, ensure_ascii=False)[:4000]
+            calls = getattr(self, "_calls", {})
+            calls[key] = calls.get(key, 0) + 1
+            self._calls = calls
+            if calls[key] >= 3:
+                raise ToolError("Ya hiciste esta misma llamada 2 veces en esta tarea con el mismo resultado. "
+                                "Cambia de estrategia (otros parámetros u otra herramienta) o pregunta al usuario.")
             err = validate_input(tool, inp)
             if err or truncated:
                 raise ToolError((err or "") + (" La respuesta se cortó por longitud; divide el trabajo en partes más pequeñas." if truncated else ""))

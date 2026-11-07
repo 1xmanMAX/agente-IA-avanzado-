@@ -317,6 +317,16 @@ def create_app(settings: Settings, llm_factory=None, report_writer_factory=None)
         agents.pop(sid, None)
         return {"ok": True}
 
+    @app.post("/api/sessions/{sid}/undo")
+    async def undo(sid: str):
+        if sid in running and running[sid].is_alive():
+            return JSONResponse({"ok": False, "error": "Espera a que el agente termine"}, status_code=409)
+        a = get_agent(sid)
+        restored = await asyncio.to_thread(a.undo_last_turn)
+        if not restored:
+            return {"ok": False, "error": "No hay cambios que deshacer"}
+        return {"ok": True, "restored": restored}
+
     @app.post("/api/upload")
     async def upload(files: list[UploadFile] = File(...)):
         day = ws_root / "uploads" / datetime.now().strftime("%Y-%m-%d")

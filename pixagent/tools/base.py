@@ -64,6 +64,33 @@ class ToolContext:
             raise ToolError(f"No existe: {self.rel(p)}")
         return p
 
+    # ---- puntos de control (deshacer) -----------------------------------
+    def checkpoint(self, p: Path) -> None:
+        """Guarda el estado previo de un archivo antes de modificarlo, por turno del usuario.
+        'Deshacer' restaura los archivos de ese turno (y borra los que el turno creó)."""
+        import json as _json
+        import shutil as _shutil
+        turn = self.state.get("turn", 0)
+        d = self.ws / ".checkpoints" / self.session_id / str(turn)
+        man = d / "manifest.json"
+        try:
+            data = _json.loads(man.read_text("utf-8")) if man.exists() else {}
+            rel = self.rel(p)
+            if rel in data:
+                return  # ya guardado en este turno: conservar el estado ORIGINAL
+            d.mkdir(parents=True, exist_ok=True)
+            if p.exists() and p.is_file():
+                if p.stat().st_size > 50_000_000:
+                    return
+                backup = d / f"{len(data):04d}_{p.name}"
+                _shutil.copy2(p, backup)
+                data[rel] = backup.name
+            else:
+                data[rel] = None  # archivo nuevo: deshacer = borrarlo
+            man.write_text(_json.dumps(data, ensure_ascii=False), "utf-8")
+        except OSError:
+            pass
+
     def rel(self, p: Path) -> str:
         try:
             return p.resolve().relative_to(self.ws).as_posix()

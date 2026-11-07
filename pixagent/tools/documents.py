@@ -36,6 +36,7 @@ def create_pdf(ctx: ToolContext, output: str, markdown: str, title: str = "", su
                theme_color: str = "#1f4e79", page_size: str = "A4", landscape: bool = False) -> ToolResult:
     out = ctx.resolve(output)
     out.parent.mkdir(parents=True, exist_ok=True)
+    ctx.checkpoint(out)
     warnings: list[str] = []
     build_pdf(ctx, out, markdown, title=title, subtitle=subtitle, author=author, date_text=date,
               cover=bool(title) if cover is None else cover, toc=toc, logo=logo, cover_image=cover_image,

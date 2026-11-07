@@ -10,6 +10,7 @@ from pathlib import Path
 
 from .base import ToolContext, ToolError, ToolResult, guess_kind, tool, truncate
 
+SHELL_LIMIT = 12_000
 _SNAPSHOT_SKIP = {".sessions", ".tmp", "node_modules", ".git", "__pycache__"}
 
 
@@ -51,8 +52,15 @@ def _run(ctx: ToolContext, cmd, timeout: int, shell: bool, cwd: Path) -> ToolRes
     if new_files:
         parts.append("Archivos creados/modificados:\n" + "\n".join(ctx.rel(p) for p in new_files[:50]))
     images = [p for p in new_files if guess_kind(p) == "image" and p.suffix.lower() != ".svg"][:4]
-    return ToolResult(truncate("\n\n".join(parts)), images=images, files=new_files[:50],
-                      is_error=proc.returncode != 0)
+    text = "\n\n".join(parts)
+    if len(text) > SHELL_LIMIT:
+        # Salida larga: se guarda completa y al modelo le llegan cabeza y cola (patrón Codex/Gemini CLI)
+        full = ctx.ws / ".tmp" / f"salida_{uuid.uuid4().hex[:6]}.txt"
+        full.write_text(text, "utf-8")
+        lines = text.count("\n") + 1
+        text = (truncate(text, SHELL_LIMIT) + f"\n\n[Salida completa ({lines} líneas) en {ctx.rel(full)}: "
+                "léela por partes con read_file(path, offset, limit) si la necesitas.]")
+    return ToolResult(text, images=images, files=new_files[:50], is_error=proc.returncode != 0)
 
 
 @tool("run_python",

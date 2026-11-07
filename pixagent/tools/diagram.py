@@ -42,6 +42,8 @@ def render_diagram(ctx: ToolContext, output: str, title: str = "", direction: st
     out = ctx.resolve(output)
     stem = out.with_suffix("") if out.suffix else out
     stem.parent.mkdir(parents=True, exist_ok=True)
+    for ext in (".png", ".svg", ".pdf", ".html", ".diagram.json"):
+        ctx.checkpoint(stem.with_suffix(ext))
     if mermaid:
         page = stem.with_suffix(".html")
         page.write_text(MERMAID_HTML.replace("{{TITLE}}", html.escape(title or "Diagrama"))

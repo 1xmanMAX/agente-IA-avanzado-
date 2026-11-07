@@ -39,6 +39,10 @@ class Settings:
     allowed_dirs: list[str] = field(default_factory=list)
     # Límite de turnos de herramienta por mensaje del usuario
     max_steps: int = 60
+    # Tope de gasto estimado por petición (USD); 0 = sin tope
+    max_usd_per_task: float = 5.0
+    # Limpieza en servidor de resultados de herramientas antiguos (ahorra tokens en sesiones largas)
+    context_editing: bool = True
     # Servidor web
     host: str = "127.0.0.1"
     port: int = 8765

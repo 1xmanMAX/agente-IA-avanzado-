@@ -459,3 +459,69 @@ def test_photo_panel_and_miniapp_api(settings):
         assert c.get("/api/files/list?folder=outputs/graderio").json()["files"][0]["path"] == s["path"]
         assert isinstance(c.get("/api/apps").json(), list)
         assert c.get("/static/pixagent-sdk.js").status_code == 200
+
+
+# ----------------------------------------------------------------- mejoras del harness
+def test_undo_loop_detection_and_memory(settings):
+    from pixagent.agent import Agent
+    from pixagent.tools import REGISTRY
+    (settings.ws / "outputs" / "nota.txt").write_text("original", "utf-8")
+    llm = FakeLLM([
+        ([tu("1", "edit_file", {"path": "outputs/nota.txt", "old_string": "original", "new_string": "cambiado"}),
+          tu("2", "write_file", {"path": "outputs/nuevo.txt", "content": "x"})], "tool_use"),
+        ([txt("hecho")], "end_turn"),
+        ([tu("a", "list_files", {"pattern": "*.zz"}), tu("b", "list_files", {"pattern": "*.zz"}),
+          tu("c", "list_files", {"pattern": "*.zz"})], "tool_use"),
+        ([txt("ok")], "end_turn"),
+    ])
+    a = Agent(settings, llm=llm)
+    a.run("edita")
+    assert (settings.ws / "outputs" / "nota.txt").read_text("utf-8") == "cambiado"
+    restored = a.undo_last_turn()
+    assert len(restored) == 2
+    assert (settings.ws / "outputs" / "nota.txt").read_text("utf-8") == "original"
+    assert not (settings.ws / "outputs" / "nuevo.txt").exists()
+    a.run("lista")  # el próximo mensaje informa al modelo del deshacer
+    assert "deshizo" in a.messages[-4]["content"][-1]["text"]
+    third = a.messages[-2]["content"][2]
+    assert third.get("is_error") and "misma llamada" in third["content"][0]["text"]
+    # memoria del proyecto
+    from pixagent.tools import ToolContext
+    ctx = ToolContext(settings=settings)
+    REGISTRY["remember"].func(ctx, note="Los informes llevan el logo de Constructora Max", section="Empresa")
+    assert "Constructora Max" in (settings.ws / "PIXAGENT.md").read_text("utf-8")
+    from pixagent.llm import ClaudeLLM
+    llm2 = ClaudeLLM(settings, client=object())
+    Agent(settings, llm=llm2)
+    p = llm2._params([], [])
+    assert "Constructora Max" in p["system"][1]["text"]
+    assert p["context_management"]["edits"][0]["type"] == "clear_tool_uses_20250919"
+    assert "context-management-2025-06-27" in p["betas"]
+
+
+def test_edit_file_tolerant_and_closest_hint(ctx):
+    from pixagent.tools import REGISTRY, ToolError
+    REGISTRY["write_file"].func(ctx, path="outputs/c.py", content="def f():   \r\n    return 1\r\n")
+    r = REGISTRY["edit_file"].func(ctx, path="outputs/c.py", old_string="def f():\n    return 1", new_string="def f():\n    return 2")
+    assert "ignorando" in r.text and "return 2" in (ctx.ws / "outputs" / "c.py").read_text("utf-8")
+    with pytest.raises(ToolError) as e:
+        REGISTRY["edit_file"].func(ctx, path="outputs/c.py", old_string="def g():\n  pass", new_string="")
+    assert "línea 1" in str(e.value)
+
+
+def test_long_shell_output_saved_to_file(ctx):
+    from pixagent.tools import REGISTRY
+    r = REGISTRY["run_python"].func(ctx, code="for i in range(5000): print('línea', i)")
+    assert "Salida completa" in r.text and len(r.text) < 14000
+
+
+def test_report_evidence_check_and_cells(settings, ctx):
+    from pixagent.reports.engine import ReportProject, Templates, check_evidence
+    from pixagent.tools import REGISTRY
+    tpl = {"id": "t", "name": "T", "sections": [{"id": "a", "title": "A", "kind": "ai", "words": 100}]}
+    p = ReportProject.create(settings.ws, tpl, "X", photos=_photos(settings, 3))
+    p.section_file("a").write_text("Se ve en la Foto 1 y la Foto 7. [POR COMPLETAR: fecha]", "utf-8")
+    w = " | ".join(check_evidence(p))
+    assert "Foto 7" in w and "Foto 2, Foto 3" in w and "POR COMPLETAR" in w
+    r = REGISTRY["view_image"].func(ctx, path="uploads/plano.png", cells=True)
+    assert "Columnas x: A=0–100" in r.text and r.images
