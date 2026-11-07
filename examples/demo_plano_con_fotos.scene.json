@@ -1,0 +1,113 @@
+{
+  "base": "uploads/plano.png",
+  "scale": {
+    "px_per_meter": 100
+  },
+  "pdf": true,
+  "title_block": {
+    "title": "Reporte fotográfico",
+    "author": "Max",
+    "scale_text": "1:100"
+  },
+  "elements": [
+    {
+      "type": "photo",
+      "src": "uploads/foto1.jpg",
+      "anchor": [
+        300,
+        220
+      ],
+      "caption": "Sala vista norte",
+      "view_angle": -90,
+      "number": 1,
+      "color": "#e6194b"
+    },
+    {
+      "type": "photo",
+      "src": "uploads/foto2.jpg",
+      "anchor": [
+        300,
+        600
+      ],
+      "caption": "Cocina",
+      "number": 2,
+      "color": "#e6194b"
+    },
+    {
+      "type": "photo",
+      "src": "uploads/foto3.jpg",
+      "anchor": [
+        900,
+        300
+      ],
+      "caption": "Dormitorio",
+      "view_angle": 0,
+      "number": 3,
+      "color": "#e6194b"
+    },
+    {
+      "type": "room",
+      "points": [
+        [
+          50,
+          50
+        ],
+        [
+          600,
+          50
+        ],
+        [
+          600,
+          400
+        ],
+        [
+          50,
+          400
+        ]
+      ],
+      "name": "Sala"
+    },
+    {
+      "type": "dimension",
+      "from": [
+        50,
+        750
+      ],
+      "to": [
+        1150,
+        750
+      ],
+      "offset": 40
+    },
+    {
+      "type": "arrow",
+      "from": [
+        700,
+        700
+      ],
+      "to": [
+        900,
+        600
+      ],
+      "label": "Fisura",
+      "color": "#ff7f0e"
+    },
+    {
+      "type": "door",
+      "at": [
+        600,
+        500
+      ],
+      "width": 80,
+      "angle": 90
+    },
+    {
+      "type": "callout",
+      "at": [
+        1000,
+        700
+      ],
+      "text": "Humedad en muro"
+    }
+  ]
+}

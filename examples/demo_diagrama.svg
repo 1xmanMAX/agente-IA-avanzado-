@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 650 831" width="650" height="831" font-family="Segoe UI, Arial, sans-serif">
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker></defs>
+<rect width="100%" height="100%" fill="white"/>
+<text x="325" y="38" text-anchor="middle" font-size="26" font-weight="bold">Proceso</text>
+<line x1="325.0" y1="214.0" x2="325.0" y2="304.0" stroke="#555" stroke-width="2" marker-end="url(#ah)"/>
+<line x1="291.1" y1="404.0" x2="210.2" y2="507.4" stroke="#555" stroke-width="2" marker-end="url(#ah)"/>
+<text x="251" y="456" text-anchor="middle" font-size="14" fill="#333" paint-order="stroke" stroke="white" stroke-width="5">sí</text>
+<line x1="358.9" y1="404.0" x2="442.1" y2="510.4" stroke="#555" stroke-width="2" marker-end="url(#ah)"/>
+<text x="401" y="457" text-anchor="middle" font-size="14" fill="#333" paint-order="stroke" stroke="white" stroke-width="5">no</text>
+<line x1="442.1" y1="510.4" x2="358.9" y2="404.0" stroke="#555" stroke-width="2" stroke-dasharray="8 6" marker-end="url(#ah)"/>
+<line x1="213.1" y1="597.4" x2="289.4" y2="687.4" stroke="#555" stroke-width="2" marker-end="url(#ah)"/>
+<ellipse cx="325.0" cy="172.0" rx="115.0" ry="42.0" fill="#1f77b4" fill-opacity="0.16" stroke="#1f77b4" stroke-width="3"/>
+<text x="325.0" y="178.0" text-anchor="middle" font-size="17">Inicio</text>
+<polygon points="325.0,304.0 468.8,360.7 325.0,417.4 181.2,360.7" fill="#1f77b4" fill-opacity="0.16" stroke="#1f77b4" stroke-width="3"/>
+<text x="325.0" y="366.7" text-anchor="middle" font-size="17">¿Aprobado?</text>
+<rect x="60.0" y="507.4" width="230.0" height="90.0" rx="18" fill="#1f77b4" fill-opacity="0.16" stroke="#1f77b4" stroke-width="3"/>
+<text x="175.0" y="547.4" text-anchor="middle" font-size="17">Ejecutar</text>
+<text x="175.0" y="569.4" text-anchor="middle" font-size="17">obra</text>
+<rect x="360.0" y="510.4" width="230.0" height="84.0" rx="0" fill="#1f77b4" fill-opacity="0.16" stroke="#1f77b4" stroke-width="3"/>
+<text x="475.0" y="558.4" text-anchor="middle" font-size="17">Revisar</text>
+<rect x="210.0" y="687.4" width="230.0" height="84.0" rx="18" fill="#1f77b4" fill-opacity="0.16" stroke="#1f77b4" stroke-width="3"/>
+<text x="325.0" y="735.4" text-anchor="middle" font-size="17">BD</text>
+</svg>

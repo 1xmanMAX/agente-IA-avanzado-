@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PixAgent · IA avanzada para PixPin</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div id="app">
+  <!-- Barra lateral -->
+  <aside id="sidebar">
+    <div class="brand">
+      <div class="logo">P</div>
+      <div><b>PixAgent</b><small>IA avanzada para PixPin</small></div>
+    </div>
+    <button id="newSession" class="btn primary wide">+ Nueva sesión</button>
+    <div class="section-title">Sesiones</div>
+    <ul id="sessions"></ul>
+    <div class="section-title">PixPin</div>
+    <div class="pixpin-box">
+      <div id="pixpinStatus" class="muted small">Comprobando…</div>
+      <button class="btn wide" data-capture="last">Capturar última zona</button>
+      <button class="btn wide" data-capture="window">Capturar ventana activa</button>
+      <button class="btn wide" id="installScripts">Generar scripts para PixPin</button>
+    </div>
+    <div class="section-title">Ajustes</div>
+    <div class="settings">
+      <label>Esfuerzo
+        <select id="effort">
+          <option value="low">Bajo (rápido)</option><option value="medium">Medio</option>
+          <option value="high">Alto</option><option value="xhigh">Muy alto</option><option value="max">Máximo</option>
+        </select>
+      </label>
+      <label>Permisos
+        <select id="perm">
+          <option value="auto">Automático (pregunta solo shell)</option>
+          <option value="ask">Preguntar (shell, Python, PixPin)</option>
+          <option value="full">Total (sin preguntas)</option>
+        </select>
+      </label>
+      <div id="wsInfo" class="muted small"></div>
+    </div>
+  </aside>
+
+  <!-- Chat -->
+  <main id="chat">
+    <header class="chat-head">
+      <div id="sessionTitle">Nueva sesión</div>
+      <div class="chips">
+        <button class="chip" data-tpl="plan">📐 Plano con fotos</button>
+        <button class="chip" data-tpl="diagram">🔀 Diagrama</button>
+        <button class="chip" data-tpl="report">📄 Informe PDF</button>
+        <button class="chip" data-tpl="app">🧩 Mini app</button>
+        <button class="chip" data-tpl="python">🐍 Python</button>
+      </div>
+    </header>
+    <div id="todos" class="hidden"></div>
+    <div id="messages">
+      <div class="welcome">
+        <h2>¿Qué hacemos hoy?</h2>
+        <p>Arrastra fotos y planos, pega una captura (Ctrl+V) o envíala desde PixPin. Puedo ubicar fotos
+          en planos con flechas, crear diagramas, informes PDF, mini apps y ejecutar Python.</p>
+      </div>
+    </div>
+    <div id="statusLine" class="hidden"><span class="spinner"></span><span id="statusText">Pensando…</span>
+      <button id="cancelBtn" class="btn small">Detener</button></div>
+    <form id="composer">
+      <div id="pending"></div>
+      <div class="composer-row">
+        <label class="btn icon" title="Adjuntar archivos">📎<input id="fileInput" type="file" multiple hidden></label>
+        <textarea id="input" rows="2" placeholder="Describe lo que necesitas… (Enter para enviar, Shift+Enter nueva línea)"></textarea>
+        <button class="btn primary" id="sendBtn" type="submit">Enviar</button>
+      </div>
+    </form>
+    <div id="dropHint" class="hidden">Suelta aquí los archivos</div>
+  </main>
+
+  <!-- Visor -->
+  <section id="viewer">
+    <div class="tabs">
+      <button class="tab active" data-tab="view">Vista</button>
+      <button class="tab" data-tab="library">Biblioteca</button>
+    </div>
+    <div id="tab-view" class="tabpane">
+      <div class="viewer-actions hidden" id="viewerActions">
+        <span id="viewerName" class="small"></span>
+        <div>
+          <button class="btn small" id="pinBtn">📌 Fijar en PixPin</button>
+          <button class="btn small" id="attachBtn">Adjuntar</button>
+          <a class="btn small" id="openBtn" target="_blank">Abrir</a>
+          <a class="btn small" id="dlBtn" download>Descargar</a>
+        </div>
+      </div>
+      <div id="viewerBody" class="viewer-empty">Aquí verás planos, diagramas, PDFs y mini apps.</div>
+    </div>
+    <div id="tab-library" class="tabpane hidden">
+      <div id="library"></div>
+    </div>
+  </section>
+</div>
+
+<div id="approval" class="modal hidden">
+  <div class="modal-card">
+    <h3>¿Permitir esta acción?</h3>
+    <div id="approvalName" class="muted"></div>
+    <pre id="approvalBody"></pre>
+    <div class="modal-actions">
+      <button class="btn" id="denyBtn">Rechazar</button>
+      <button class="btn primary" id="allowBtn">Permitir</button>
+    </div>
+  </div>
+</div>
+<div id="toast" class="hidden"></div>
+<script src="/static/app.js"></script>
+</body>
+</html>
