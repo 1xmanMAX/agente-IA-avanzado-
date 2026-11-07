@@ -284,7 +284,19 @@
   };
   document.addEventListener("keydown", function (e) { if (e.key === " " && running && !/INPUT|BUTTON/.test(e.target.tagName)) { e.preventDefault(); $("#btnSnap").click(); } });
 
+  /* el escenario nunca supera la altura disponible en escritorio */
+  function fitStage() {
+    var wrap = stage.parentNode;
+    if (window.matchMedia("(max-width: 900px)").matches) { stage.style.maxWidth = ""; return; }
+    var ratio = (canvas.width && canvas.height) ? canvas.width / canvas.height : 4 / 3;
+    var h = wrap.clientHeight - 36;
+    stage.style.maxWidth = h > 0 ? Math.round(h * ratio) + "px" : "";
+  }
+  window.addEventListener("resize", fitStage);
+  video.addEventListener("loadedmetadata", function () { setTimeout(fitStage, 0); });
+
   if (!window.PixAgent) window.PixAgent = { embedded: false, fileUrl: function (p) { return "/files/" + p; }, save: function () { return Promise.reject(new Error("SDK no cargado")); }, pin: function () { return Promise.reject(new Error("SDK no cargado")); }, toast: function () { } };
   renderCaps();
   showIdle();
+  fitStage();
 })();
