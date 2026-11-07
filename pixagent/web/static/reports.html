@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f4f5f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d0e13" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
+<link rel="icon" type="image/png" href="/static/icon-192.png">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+<title>Informes · PixAgent</title>
+<script>try{var t=localStorage.getItem("theme");if(t==="dark"||t==="light")document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
+<link rel="stylesheet" href="/static/theme.css?v={{V}}">
+<link rel="stylesheet" href="/static/reports.css?v={{V}}">
+</head>
+<body data-screen="home" data-etab="photos">
+
+<!-- Iconos (trazo 1.75, 24 px) -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 12.5a8 8 0 0 1-8 8H6l-3 3V12.5a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8z"/></symbol>
+  <symbol id="i-apps" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></symbol>
+  <symbol id="i-report" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3.5l9.5 16.5h-19z"/><path d="M12 10v4.5M12 17.5v.5"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.75"/><path d="M20.5 16l-4.5-4.5L7 20"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M15 3l6 6-3.5 1-3 3L15 18l-9-9 4.5.5 3-3z"/><path d="M9.5 14.5L3 21"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 13v6a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-6"/></symbol>
+  <symbol id="i-external" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9"/><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2.5"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 17l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.5-4M4 13a8 8 0 0 0 14.5 4"/><path d="M20 4v7h-7M4 20v-7h7"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></symbol>
+  <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M8 11l4 4 4-4"/><path d="M5 17v2a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4l11-11-4-4L4 16z"/><path d="M13 7l4 4"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 5l12 7-12 7z"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></symbol>
+  <symbol id="i-table" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 10h17M3.5 14.5h17M10 10v9.5"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-text" viewBox="0 0 24 24"><path d="M5 6h14M5 11h14M5 16h9"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z"/><path d="M4 19a2.5 2.5 0 0 1 2.5-2.5H20"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></symbol>
+  <symbol id="i-grip" viewBox="0 0 24 24"><path d="M9 6h.01M9 12h.01M9 18h.01M15 6h.01M15 12h.01M15 18h.01"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8M4 12h2M10 12h10"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/><circle cx="8" cy="12" r="2"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 3L4 14h7l-1 7 9-11h-7z"/></symbol>
+  <symbol id="i-pdf" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M8.5 17v-5h1.6a1.5 1.5 0 0 1 0 3H8.5M13 17v-5h1.2a2.5 2.5 0 0 1 0 5z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="12" rx="2"/><path d="M8 20h8M12 16.5V20"/></symbol>
+  <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3.5 12.5v-8a1 1 0 0 1 1-1h8l8 8-9 9z"/><path d="M7.5 7.5h.01"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8v.5"/></symbol>
+  <symbol id="i-coins" viewBox="0 0 24 24"><ellipse cx="12" cy="6.5" rx="7" ry="3"/><path d="M5 6.5v11c0 1.7 3.1 3 7 3s7-1.3 7-3v-11"/><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/></symbol>
+</svg>
+
+<div id="app">
+  <!-- ================= Barra lateral ================= -->
+  <aside id="sidebar">
+    <a class="side-head" href="/" title="Volver al agente">
+      <img class="logo" src="/static/icon-192.png" alt="" width="36" height="36">
+      <div class="grow">
+        <b>PixAgent</b>
+        <small class="faint">IA avanzada · PixPin</small>
+      </div>
+      <span id="conn" class="conn" title="Conexión"><i></i></span>
+    </a>
+
+    <button id="newReportBtn" class="btn btn-primary btn-block" type="button">
+      <svg class="icon"><use href="#i-plus"/></svg>Nuevo informe
+    </button>
+
+    <nav class="side-nav" aria-label="Secciones">
+      <a class="nav-item" href="/"><svg class="icon"><use href="#i-chat"/></svg>Agente</a>
+      <a class="nav-item" href="/?view=apps"><svg class="icon"><use href="#i-apps"/></svg>Mini apps</a>
+      <a class="nav-item on" href="#/"><svg class="icon"><use href="#i-report"/></svg>Informes</a>
+    </nav>
+
+    <div class="side-section">
+      <div class="side-title">Informes</div>
+      <nav class="side-sub" aria-label="Informes">
+        <a class="sub-item" href="#/" data-sub="home"><svg class="icon icon-sm"><use href="#i-list"/></svg>Todos los informes<span id="reportsCount" class="nav-count hidden"></span></a>
+        <a class="sub-item" href="#/plantillas" data-sub="templates"><svg class="icon icon-sm"><use href="#i-layers"/></svg>Plantillas</a>
+      </nav>
+      <div class="side-title mt-3">Recientes</div>
+      <ul id="recentList" class="recent"></ul>
+    </div>
+
+    <div class="side-foot">
+      <div class="field">Tema
+        <div class="segmented" id="themeSeg">
+          <button type="button" data-theme="system" class="on" title="Sistema"><svg class="icon icon-sm"><use href="#i-monitor"/></svg></button>
+          <button type="button" data-theme="light" title="Claro"><svg class="icon icon-sm"><use href="#i-sun"/></svg></button>
+          <button type="button" data-theme="dark" title="Oscuro"><svg class="icon icon-sm"><use href="#i-moon"/></svg></button>
+        </div>
+      </div>
+      <div id="wsInfo" class="xs faint truncate"></div>
+    </div>
+  </aside>
+
+  <!-- ================= Contenido ================= -->
+  <main id="main">
+
+    <!-- ---------- Inicio: lista de informes + plantillas ---------- -->
+    <section id="screen-home" class="screen scroll-y">
+      <div class="page">
+        <header class="page-head">
+          <div class="grow">
+            <h1>Informes</h1>
+            <p class="muted">Informes técnicos con estructura fija: tú defines la plantilla, añades las fotos y las notas, y la IA redacta cada parte por separado.</p>
+          </div>
+          <button class="btn btn-primary" type="button" data-go="#/nuevo"><svg class="icon"><use href="#i-plus"/></svg>Nuevo informe</button>
+        </header>
+
+        <div id="reportsGrid" class="cards"></div>
+
+        <header class="page-head sub" id="templatesHead">
+          <div class="grow">
+            <h2>Plantillas</h2>
+            <p class="muted small">Las integradas no se pueden modificar: duplícalas para personalizarlas.</p>
+          </div>
+          <button class="btn" type="button" data-go="#/plantilla/nueva"><svg class="icon"><use href="#i-plus"/></svg>Nueva plantilla</button>
+        </header>
+        <div id="templatesGrid" class="cards tcards"></div>
+      </div>
+    </section>
+
+    <!-- ---------- Asistente: nuevo informe ---------- -->
+    <section id="screen-new" class="screen scroll-y">
+      <div class="page narrow">
+        <header class="page-head">
+          <button class="btn btn-ghost btn-icon" type="button" data-go="#/" title="Volver"><svg class="icon"><use href="#i-back"/></svg></button>
+          <div class="grow">
+            <h1>Nuevo informe</h1>
+            <p class="muted">Elige la estructura y cuenta lo observado. Las fotos se añaden en el siguiente paso.</p>
+          </div>
+        </header>
+        <ol class="steps" aria-label="Pasos">
+          <li class="on" data-step="1"><span>1</span>Plantilla</li>
+          <li data-step="2"><span>2</span>Datos y notas</li>
+          <li data-step="3"><span>3</span>Fotos y redacción</li>
+        </ol>
+        <div id="wizStep1" class="wiz-step">
+          <div id="wizTemplates" class="cards tcards pick"></div>
+        </div>
+        <form id="wizStep2" class="wiz-step hidden" autocomplete="off">
+          <div class="card card-pad wiz-chosen">
+            <span class="tpl-ico"><svg class="icon"><use href="#i-layers"/></svg></span>
+            <div class="grow">
+              <div class="xs faint">Plantilla</div>
+              <b id="wizTplName"></b>
+            </div>
+            <button class="btn btn-sm btn-ghost" type="button" id="wizChange">Cambiar</button>
+          </div>
+          <label class="field">Título del informe
+            <input class="input" id="wizTitle" required placeholder="Ej.: Inspección de la nave 3 · marzo 2026">
+          </label>
+          <div id="wizFields" class="form-grid"></div>
+          <label class="field">Notas y contexto
+            <textarea class="textarea notes" id="wizNotes" rows="7" placeholder="Describe lo observado: qué se inspeccionó, en qué estado está, medidas, fechas, incidencias, lo que quieres que destaque el informe… Cuanto más concreto, mejor redactará la IA (no inventa datos)."></textarea>
+          </label>
+          <div id="wizPagesWrap" class="card card-pad stack gap-2 hidden">
+            <div class="row">
+              <div class="grow">
+                <b>Extensión objetivo</b>
+                <div class="small muted">La IA propondrá un índice ajustado a esta extensión y redactará cada apartado por separado.</div>
+              </div>
+              <div class="row gap-1 pages-ctl">
+                <input class="input tabular" id="wizPages" type="number" min="5" max="200" step="1" value="20" inputmode="numeric">
+                <span class="small muted">págs.</span>
+              </div>
+            </div>
+            <input type="range" id="wizPagesRange" min="5" max="200" step="5" value="20" aria-label="Páginas objetivo">
+          </div>
+          <div class="field">Calidad de redacción
+            <div class="segmented seg-block" id="wizModel">
+              <button type="button" data-model="claude-opus-5-5" class="on"><svg class="icon icon-sm"><use href="#i-sparkle"/></svg>Máxima</button>
+              <button type="button" data-model="claude-sonnet-5-5"><svg class="icon icon-sm"><use href="#i-zap"/></svg>Económica</button>
+            </div>
+            <span id="wizModelHint" class="xs faint"></span>
+          </div>
+          <div class="wiz-actions">
+            <button class="btn btn-ghost" type="button" id="wizBack">Atrás</button>
+            <button class="btn btn-primary btn-lg" type="submit" id="wizCreate"><svg class="icon"><use href="#i-check"/></svg>Crear informe</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ---------- Editor del informe ---------- -->
+    <section id="screen-editor" class="screen editor">
+      <header class="ed-head">
+        <button class="btn btn-ghost btn-icon" type="button" data-go="#/" title="Volver a informes"><svg class="icon"><use href="#i-back"/></svg></button>
+        <div class="grow ed-title">
+          <div id="edTitle" class="truncate">Informe</div>
+          <div id="edMeta" class="xs faint truncate"></div>
+        </div>
+        <span id="edRunning" class="chip chip-accent hidden"><span class="spinner"></span><span class="no-touch">Redactando…</span></span>
+        <button class="btn btn-ghost btn-sm" type="button" id="edData" title="Datos del informe"><svg class="icon"><use href="#i-sliders"/></svg><span class="no-touch">Datos</span></button>
+        <button class="btn btn-primary btn-sm" type="button" id="edBuild"><svg class="icon"><use href="#i-pdf"/></svg><span>Construir PDF</span></button>
+      </header>
+
+      <div class="ed-tabs">
+        <div class="segmented seg-block" role="tablist">
+          <button class="on" data-etab="photos" role="tab"><svg class="icon icon-sm"><use href="#i-image"/></svg>Fotos<span id="tabPhotosN" class="tab-n"></span></button>
+          <button data-etab="structure" role="tab"><svg class="icon icon-sm"><use href="#i-list"/></svg>Estructura<span id="tabStructN" class="tab-n"></span></button>
+          <button data-etab="preview" role="tab"><svg class="icon icon-sm"><use href="#i-eye"/></svg>Vista previa</button>
+        </div>
+      </div>
+
+      <div class="ed-body">
+        <!-- Estructura + generación -->
+        <aside id="structPane" class="ed-pane scroll-y" data-pane="structure">
+          <div class="gen card">
+            <div class="gen-head">
+              <div class="grow">
+                <b>Redacción con IA</b>
+                <div id="genSub" class="xs muted">Estimación antes de generar</div>
+              </div>
+              <span id="genModel" class="badge"></span>
+            </div>
+            <div id="estimate" class="est"></div>
+            <div id="genProgress" class="gen-progress hidden">
+              <div class="row small"><span id="genLabel" class="grow truncate">Redactando…</span><span id="genCount" class="tabular faint"></span></div>
+              <span class="progress"><i id="genBar"></i></span>
+            </div>
+            <div id="genMsg" class="gen-msg hidden"></div>
+            <div class="gen-actions">
+              <button class="btn btn-primary grow" type="button" id="genAll"><svg class="icon"><use href="#i-sparkle"/></svg><span>Generar todo</span></button>
+              <button class="btn btn-danger hidden" type="button" id="genCancel"><svg class="icon"><use href="#i-stop"/></svg>Cancelar</button>
+            </div>
+          </div>
+          <div id="outlineCard" class="card card-pad outline-card hidden"></div>
+          <div class="pane-title row"><span class="grow">Estructura</span><span id="structSummary" class="xs faint tabular"></span></div>
+          <div id="tree" class="tree"></div>
+        </aside>
+
+        <!-- Fotos -->
+        <div id="photosPane" class="ed-pane scroll-y" data-pane="photos">
+          <div class="photos-top">
+            <div class="grow">
+              <div class="pane-title">Fotos<span id="photosN" class="faint"></span></div>
+              <div class="small muted">Pon un pie a cada foto y agrúpalas por zona: la plantilla redacta un apartado por zona.</div>
+            </div>
+            <div class="row wrap gap-1">
+              <label class="btn btn-sm only-touch"><svg class="icon"><use href="#i-camera"/></svg>Cámara<input id="camInput" type="file" accept="image/*" capture="environment" hidden></label>
+              <label class="btn btn-sm btn-soft"><svg class="icon"><use href="#i-plus"/></svg>Añadir fotos<input id="fileInput" type="file" multiple accept="image/*" hidden></label>
+            </div>
+          </div>
+          <div id="bulkBar" class="bulk hidden">
+            <span id="bulkN" class="small"></span>
+            <input class="input" id="bulkGroup" list="groupsList" placeholder="Zona para las seleccionadas…">
+            <button class="btn btn-sm btn-primary" type="button" id="bulkApply">Asignar</button>
+            <button class="btn btn-sm btn-ghost" type="button" id="bulkClear">Deseleccionar</button>
+            <button class="btn btn-sm btn-danger" type="button" id="bulkRemove"><svg class="icon"><use href="#i-trash"/></svg>Quitar</button>
+          </div>
+          <div id="uploadBar" class="upload-bar hidden"><span class="spinner"></span><span id="uploadLbl" class="grow truncate">Subiendo…</span><span id="uploadPct" class="tabular small"></span><span class="progress grow"><i id="uploadProg"></i></span></div>
+          <div id="photoGrid" class="photo-grid"></div>
+          <datalist id="groupsList"></datalist>
+          <div id="dropHint" class="hidden"><div class="drop-card"><svg class="icon icon-lg"><use href="#i-drop"/></svg><b>Suelta aquí las fotos</b></div></div>
+        </div>
+
+        <!-- Vista previa del PDF -->
+        <div id="previewPane" class="ed-pane" data-pane="preview">
+          <div id="previewBody" class="preview-body"></div>
+        </div>
+
+        <!-- Editor de sección (se superpone al panel principal) -->
+        <div id="sectionPane" class="ed-pane sec hidden" data-pane="section">
+          <div class="sec-head">
+            <button class="btn btn-ghost btn-icon" type="button" id="secBack" title="Cerrar sección"><svg class="icon"><use href="#i-back"/></svg></button>
+            <div class="grow sec-title">
+              <div id="secChapter" class="xs faint truncate"></div>
+              <b id="secTitle" class="truncate"></b>
+            </div>
+            <span id="secStatus"></span>
+          </div>
+          <div id="secError" class="alert alert-danger hidden"></div>
+          <div class="sec-tools">
+            <div class="segmented" id="secMode"><button class="on" data-mode="edit" type="button">Editar</button><button data-mode="preview" type="button">Vista previa</button></div>
+            <span id="secWords" class="xs faint tabular grow"></span>
+            <button class="btn btn-sm" type="button" id="secRegen"><svg class="icon"><use href="#i-sparkle"/></svg><span>Regenerar con IA</span></button>
+            <button class="btn btn-sm btn-primary" type="button" id="secSave" disabled><svg class="icon"><use href="#i-check"/></svg>Guardar</button>
+          </div>
+          <div class="sec-body" data-mode="edit">
+            <textarea id="secText" class="sec-text" spellcheck="true" placeholder="Escribe aquí el contenido en Markdown… o pulsa «Regenerar con IA»."></textarea>
+            <div id="secPreview" class="prose sec-preview scroll-y"></div>
+          </div>
+          <div id="secAuto" class="sec-auto hidden"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- Editor de plantillas ---------- -->
+    <section id="screen-template" class="screen scroll-y">
+      <form id="tplForm" class="page narrow" autocomplete="off">
+        <header class="page-head">
+          <button class="btn btn-ghost btn-icon" type="button" data-go="#/plantillas" title="Volver"><svg class="icon"><use href="#i-back"/></svg></button>
+          <div class="grow">
+            <h1 id="tplHeading">Nueva plantilla</h1>
+            <p class="muted" id="tplIntro">Define los campos que se piden al crear el informe y las secciones que lo componen, en orden.</p>
+          </div>
+          <button class="btn btn-primary" type="submit" id="tplSave"><svg class="icon"><use href="#i-check"/></svg>Guardar</button>
+        </header>
+        <div id="tplError" class="alert alert-danger hidden"></div>
+
+        <div class="card card-pad stack gap-3">
+          <div class="form-grid">
+            <label class="field span2">Nombre
+              <input class="input" id="tplName" required placeholder="Ej.: Informe de patologías">
+            </label>
+            <label class="field span2">Descripción
+              <input class="input" id="tplDesc" placeholder="Para qué sirve esta plantilla (se muestra al elegirla)">
+            </label>
+            <label class="field">Color del PDF
+              <span class="row color-row"><input type="color" id="tplColor" value="#1f4e79" aria-label="Color"><input class="input mono" id="tplColorHex" value="#1f4e79" maxlength="7"></span>
+            </label>
+            <label class="field">Tamaño de página
+              <span class="select"><select id="tplPage"><option value="A4">A4</option><option value="Letter">Carta (Letter)</option></select></span>
+            </label>
+            <div class="row wrap gap-3 span2">
+              <label class="switch"><input type="checkbox" id="tplCover" checked><i></i>Portada</label>
+              <label class="switch"><input type="checkbox" id="tplCoverPhoto" checked><i></i>Foto en portada</label>
+              <label class="switch"><input type="checkbox" id="tplToc" checked><i></i>Índice</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="block-head">
+          <div class="grow"><h3>Campos del informe</h3><div class="small muted">Datos que se piden al crear el informe. En el texto fijo puedes insertarlos como <code>{{clave}}</code>.</div></div>
+          <button class="btn btn-sm" type="button" id="tplAddField"><svg class="icon"><use href="#i-plus"/></svg>Campo</button>
+        </div>
+        <div id="tplFields" class="stack gap-2"></div>
+
+        <div class="block-head">
+          <div class="grow"><h3>Secciones</h3><div class="small muted">En el orden en que aparecerán en el PDF. Cada tipo se comporta de forma distinta.</div></div>
+          <button class="btn btn-sm btn-primary" type="button" id="tplAddSection"><svg class="icon"><use href="#i-plus"/></svg>Sección</button>
+        </div>
+        <div id="tplSections" class="stack gap-2"></div>
+        <div class="wiz-actions">
+          <button class="btn btn-ghost" type="button" data-go="#/plantillas">Cancelar</button>
+          <button class="btn btn-primary btn-lg" type="submit"><svg class="icon"><use href="#i-check"/></svg>Guardar plantilla</button>
+        </div>
+      </form>
+    </section>
+  </main>
+</div>
+
+<!-- Navegación inferior (móvil) -->
+<nav id="bottomNav" aria-label="Navegación">
+  <a href="/"><svg class="icon"><use href="#i-chat"/></svg><span>Agente</span></a>
+  <a href="/?view=apps"><svg class="icon"><use href="#i-apps"/></svg><span>Mini apps</span></a>
+  <a href="#/" class="on"><svg class="icon"><use href="#i-report"/></svg><span>Informes</span></a>
+  <button type="button" id="navTheme"><svg class="icon"><use href="#i-moon"/></svg><span>Tema</span></button>
+</nav>
+
+<!-- Confirmación -->
+<div id="confirm" class="modal hidden" role="dialog" aria-modal="true">
+  <div class="modal-card modal-sm">
+    <div class="modal-head"><span class="modal-icon danger"><svg class="icon"><use href="#i-trash"/></svg></span><h3 id="confirmTitle"></h3></div>
+    <div class="modal-body"><p id="confirmText" class="muted"></p></div>
+    <div class="modal-actions">
+      <button class="btn" id="confirmNo" type="button">Cancelar</button>
+      <button class="btn btn-danger" id="confirmYes" type="button">Borrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Datos del informe -->
+<div id="dataModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="dataTitle">
+  <form class="modal-card" id="dataForm" autocomplete="off">
+    <div class="modal-head"><span class="modal-icon"><svg class="icon"><use href="#i-sliders"/></svg></span><h3 id="dataTitle">Datos del informe</h3>
+      <button class="btn btn-ghost btn-icon" type="button" data-close="#dataModal" aria-label="Cerrar"><svg class="icon"><use href="#i-x"/></svg></button></div>
+    <div class="modal-body stack gap-3">
+      <label class="field">Título<input class="input" id="dTitle" required></label>
+      <div id="dFields" class="form-grid"></div>
+      <label class="field">Notas y contexto<textarea class="textarea notes" id="dNotes" rows="6"></textarea></label>
+      <label class="field hidden" id="dPagesWrap">Extensión objetivo (páginas)<input class="input tabular" id="dPages" type="number" min="5" max="200" inputmode="numeric"></label>
+      <div class="field">Calidad de redacción
+        <div class="segmented seg-block" id="dModel">
+          <button type="button" data-model="claude-opus-5-5"><svg class="icon icon-sm"><use href="#i-sparkle"/></svg>Máxima</button>
+          <button type="button" data-model="claude-sonnet-5-5"><svg class="icon icon-sm"><use href="#i-zap"/></svg>Económica</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-danger" type="button" id="dDelete"><svg class="icon"><use href="#i-trash"/></svg>Borrar informe</button>
+      <span class="grow"></span>
+      <button class="btn" type="button" data-close="#dataModal">Cancelar</button>
+      <button class="btn btn-primary" type="submit"><svg class="icon"><use href="#i-check"/></svg>Guardar</button>
+    </div>
+  </form>
+</div>
+
+<!-- Editor del índice (auto_outline) -->
+<div id="outlineModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="outlineTitle">
+  <div class="modal-card modal-lg">
+    <div class="modal-head"><span class="modal-icon"><svg class="icon"><use href="#i-book"/></svg></span>
+      <div class="grow"><h3 id="outlineTitle">Índice del informe</h3><div id="outlineSum" class="xs muted tabular"></div></div>
+      <button class="btn btn-ghost btn-icon" type="button" data-close="#outlineModal" aria-label="Cerrar"><svg class="icon"><use href="#i-x"/></svg></button></div>
+    <div class="modal-body" id="outlineBody"></div>
+    <div class="modal-actions">
+      <button class="btn" type="button" id="outlineAddCh"><svg class="icon"><use href="#i-plus"/></svg>Capítulo</button>
+      <span class="grow"></span>
+      <button class="btn" type="button" data-close="#outlineModal">Cancelar</button>
+      <button class="btn btn-primary" type="button" id="outlineSave"><svg class="icon"><use href="#i-check"/></svg>Guardar índice</button>
+    </div>
+  </div>
+</div>
+
+<!-- Elegir tipo de sección (editor de plantillas) -->
+<div id="kindModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="kindTitle">
+  <div class="modal-card">
+    <div class="modal-head"><span class="modal-icon"><svg class="icon"><use href="#i-plus"/></svg></span><h3 id="kindTitle">¿Qué tipo de sección?</h3>
+      <button class="btn btn-ghost btn-icon" type="button" data-close="#kindModal" aria-label="Cerrar"><svg class="icon"><use href="#i-x"/></svg></button></div>
+    <div class="modal-body"><div id="kindList" class="kind-list"></div></div>
+  </div>
+</div>
+
+<div id="toasts" class="toast-stack" role="status" aria-live="polite"></div>
+<script src="/static/reports.js?v={{V}}" defer></script>
+</body>
+</html>
