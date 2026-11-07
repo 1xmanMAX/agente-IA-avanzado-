@@ -14,6 +14,7 @@
     <symbol id="i-stairs" viewBox="0 0 24 24"><path d="M3 19h4v-4h4v-4h4V7h4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="i-bleacher" viewBox="0 0 24 24"><path d="M3 20h18M3 20v-4h5v-4h5V8h5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="13.5" r="1" fill="currentColor"/><circle cx="11" cy="9.5" r="1" fill="currentColor"/><circle cx="16" cy="5.5" r="1" fill="currentColor"/></symbol>
     <symbol id="i-print" viewBox="0 0 24 24"><path d="M7 9V4h10v5M7 18H4v-7h16v7h-3M7 15h10v5H7z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-pdf" viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7zM14 3v5h5M9.5 17v-5h1.6a1.5 1.5 0 0 1 0 3H9.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5zM8 4v5h7V4M8 20v-6h8v6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21v-6M8 15h8l-1.5-4V5h1V3h-7v2h1v6z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="i-ai" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></symbol>
@@ -28,6 +29,7 @@
     <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 4l9 16H3zM12 10v4M12 17.5v.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="i-x" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
     <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8M4 12h16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><circle cx="15.5" cy="7" r="2" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="9.5" cy="17" r="2" fill="none" stroke="currentColor" stroke-width="1.75"/></symbol>
+    <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/></symbol>
   </defs>
 </svg>
 
@@ -45,96 +47,136 @@
       <button class="seg-btn" data-mode="bleacher" role="tab" aria-selected="false"><svg width="18" height="18"><use href="#i-bleacher"/></svg><span>Graderío</span></button>
     </div>
     <div class="actions">
-      <button class="btn" id="btnPrint" title="Hoja de plano A3/A4 apaisada"><svg width="18" height="18"><use href="#i-print"/></svg><span>PDF / Imprimir</span></button>
-      <button class="btn needs-sdk" id="btnSave"><svg width="18" height="18"><use href="#i-save"/></svg><span>Guardar en PixAgent</span></button>
-      <button class="btn needs-sdk" id="btnPin"><svg width="18" height="18"><use href="#i-pin"/></svg><span>Fijar en PixPin</span></button>
-      <button class="btn accent needs-sdk" id="btnAI"><svg width="18" height="18"><use href="#i-ai"/></svg><span>Revisar con IA</span></button>
+      <button class="btn accent" id="btnPrint" title="Hoja de plano A3/A4 apaisada (imprimir o guardar como PDF)"><svg width="18" height="18"><use href="#i-pdf"/></svg><span>Exportar PDF</span></button>
+      <details class="menu" id="moreMenu">
+        <summary class="btn icon-only" aria-label="Más acciones" title="Más acciones"><svg width="18" height="18"><use href="#i-dots"/></svg></summary>
+        <div class="menu-list">
+          <button class="menu-item needs-sdk" id="btnSave"><svg width="18" height="18"><use href="#i-save"/></svg><span>Guardar en PixAgent</span><small>SVG, PNG, HTML y JSON</small></button>
+          <button class="menu-item needs-sdk" id="btnPin"><svg width="18" height="18"><use href="#i-pin"/></svg><span>Fijar en PixPin</span><small>La vista actual como imagen</small></button>
+          <button class="menu-item needs-sdk" id="btnAI"><svg width="18" height="18"><use href="#i-ai"/></svg><span>Revisar con IA</span><small>Observaciones de seguridad y normativa</small></button>
+          <div class="menu-item static no-sdk" hidden>Guardar, fijar y revisar con IA requieren abrir la app desde PixAgent.</div>
+        </div>
+      </details>
     </div>
   </header>
 
   <div class="layout">
     <aside class="params" id="params">
       <button class="params-toggle" id="paramsToggle" aria-expanded="true">
-        <svg width="18" height="18"><use href="#i-sliders"/></svg><span>Parámetros</span>
+        <svg width="18" height="18"><use href="#i-sliders"/></svg><span>Datos</span>
         <span class="params-summary" id="paramsSummary"></span>
         <svg class="chev" width="18" height="18"><use href="#i-chevron"/></svg>
       </button>
       <div class="params-body" id="paramsBody">
 
-        <section class="group">
-          <h2>Geometría general</h2>
+        <section class="group essentials">
           <div class="fields">
-            <label class="field"><span>Desnivel H</span><div class="inp"><input type="number" id="H" step="0.01" min="0.1" value="3.00"><em>m</em></div></label>
-            <label class="field"><span id="lblL">Distancia horizontal L</span><div class="inp"><input type="number" id="L" step="0.01" min="0.1" value="4.20"><em>m</em></div></label>
-            <label class="field"><span id="lblB">Ancho B</span><div class="inp"><input type="number" id="B" step="0.05" min="0.3" value="1.20"><em>m</em></div></label>
-            <label class="field"><span>Espesor de losa (garganta)</span><div class="inp"><input type="number" id="t" step="0.01" min="0.05" value="0.15"><em>m</em></div></label>
+            <label class="field big"><span>Desnivel H</span><div class="inp"><input type="number" id="H" step="0.01" min="0.1" value="3.00"><em>m</em></div></label>
+            <label class="field big"><span id="lblL">Distancia horizontal L</span><div class="inp"><input type="number" id="L" step="0.01" min="0.1" value="4.20"><em>m</em></div></label>
+            <label class="field big"><span id="lblB">Ancho B</span><div class="inp"><input type="number" id="B" step="0.05" min="0.3" value="1.20"><em>m</em></div></label>
           </div>
-          <p class="hint" id="hintGeneral">H es el desnivel a salvar; L la distancia horizontal disponible entre el arranque y la llegada. Las medidas se usan en metros.</p>
+          <p class="hint" id="hintGeneral">H es el desnivel a salvar y L la distancia horizontal disponible. Medidas en metros.</p>
         </section>
 
-        <section class="group mode-stair">
-          <h2>Escalones</h2>
-          <div class="fields">
-            <div class="field range"><span>Contrahuella c</span><div class="pair"><div class="inp"><input type="number" id="cmin" step="0.005" value="0.15"><em>mín</em></div><div class="inp"><input type="number" id="cmax" step="0.005" value="0.18"><em>máx</em></div></div></div>
-            <div class="field range"><span>Huella h</span><div class="pair"><div class="inp"><input type="number" id="hmin" step="0.005" value="0.25"><em>mín</em></div><div class="inp"><input type="number" id="hmax" step="0.005" value="0.30"><em>máx</em></div></div></div>
-            <label class="field"><span>Máx. contrahuellas por tramo</span><div class="inp"><input type="number" id="nmax" step="1" min="2" value="18"><em>ud</em></div></label>
-            <label class="field"><span>Longitud de descanso</span><div class="inp"><input type="number" id="Ld" step="0.05" min="0.3" value="" placeholder="auto"><em>m</em></div></label>
-          </div>
-          <p class="hint">Regla de Blondel: 2c + h entre 0.60 y 0.64 m (paso cómodo). Si el nº de contrahuellas supera el máximo por tramo se intercala un descanso; por defecto mide max(B, 1.00 m). Las huellas son n − 1 por tramo: la última contrahuella llega al nivel superior o al descanso.</p>
-        </section>
+        <h2 class="adv-title">Ajustes avanzados</h2>
 
-        <section class="group mode-bleacher" hidden>
-          <h2>Gradas</h2>
-          <div class="fields">
-            <div class="field range"><span>Peralte por grada N</span><div class="pair"><div class="inp"><input type="number" id="Nmin" step="0.01" value="0.40"><em>mín</em></div><div class="inp"><input type="number" id="Nmax" step="0.01" value="0.45"><em>máx</em></div></div></div>
-            <div class="field range"><span>Profundidad de grada T</span><div class="pair"><div class="inp"><input type="number" id="Tmin" step="0.01" value="0.70"><em>mín</em></div><div class="inp"><input type="number" id="Tmax" step="0.01" value="0.90"><em>máx</em></div></div></div>
+        <details class="adv" id="advSteps">
+          <summary><span class="adv-head"><b id="advStepsTitle">Escalones</b><span class="sum" id="sumSteps"></span></span><svg class="chev" width="16" height="16"><use href="#i-chevron"/></svg></summary>
+          <div class="adv-body">
+            <div class="mode-stair">
+              <div class="fields">
+                <div class="field range"><span>Contrahuella c</span><div class="pair"><div class="inp"><input type="number" id="cmin" step="0.005" value="0.15"><em>mín</em></div><div class="inp"><input type="number" id="cmax" step="0.005" value="0.18"><em>máx</em></div></div></div>
+                <div class="field range"><span>Huella h</span><div class="pair"><div class="inp"><input type="number" id="hmin" step="0.005" value="0.25"><em>mín</em></div><div class="inp"><input type="number" id="hmax" step="0.005" value="0.30"><em>máx</em></div></div></div>
+                <label class="field"><span>Máx. contrahuellas por tramo</span><div class="inp"><input type="number" id="nmax" step="1" min="2" value="18"><em>ud</em></div></label>
+                <label class="field"><span>Longitud de descanso</span><div class="inp"><input type="number" id="Ld" step="0.05" min="0.3" value="" placeholder="auto"><em>m</em></div></label>
+              </div>
+              <p class="hint">Regla de Blondel: 2c + h entre 0.60 y 0.64 m. Si el nº de contrahuellas supera el máximo por tramo se intercala un descanso (por defecto max(B, 1.00 m)). Las huellas son n − 1 por tramo.</p>
+            </div>
+            <div class="mode-bleacher" hidden>
+              <div class="fields">
+                <div class="field range"><span>Peralte por grada N</span><div class="pair"><div class="inp"><input type="number" id="Nmin" step="0.01" value="0.40"><em>mín</em></div><div class="inp"><input type="number" id="Nmax" step="0.01" value="0.45"><em>máx</em></div></div></div>
+                <div class="field range"><span>Profundidad de grada T</span><div class="pair"><div class="inp"><input type="number" id="Tmin" step="0.01" value="0.70"><em>mín</em></div><div class="inp"><input type="number" id="Tmax" step="0.01" value="0.90"><em>máx</em></div></div></div>
+              </div>
+              <p class="hint">Cada grada es un escalón de peralte N y profundidad T (asiento). El nº de gradas se elige para que N y T queden centrados en sus rangos.</p>
+            </div>
+            <div class="fields" style="margin-top:10px">
+              <label class="field"><span id="lblT">Espesor de losa (garganta)</span><div class="inp"><input type="number" id="t" step="0.01" min="0.05" value="0.15"><em>m</em></div></label>
+            </div>
           </div>
-          <label class="switch"><input type="checkbox" id="accessStair" checked><span class="sw"></span><span>Escalera de acceso intercalada</span></label>
-          <div class="fields sub" id="accessFields">
-            <label class="field"><span>Ancho de la escalera</span><div class="inp"><input type="number" id="Be" step="0.05" min="0.6" value="1.20"><em>m</em></div></label>
-            <label class="field"><span>Escalones por grada</span><div class="inp"><select id="stepsPerRow"><option value="2" selected>2</option><option value="3">3</option></select></div></label>
-          </div>
-          <label class="switch"><input type="checkbox" id="aisle"><span class="sw"></span><span>Pasillo de circulación</span></label>
-          <div class="fields sub" id="aisleFields" hidden>
-            <label class="field"><span>Ancho del pasillo</span><div class="inp"><input type="number" id="Wp" step="0.05" min="0.6" value="1.20"><em>m</em></div></label>
-            <label class="field"><span>Posición</span><div class="inp"><select id="aislePos"><option value="top" selected>Superior (detrás de la última grada)</option><option value="bottom">Inferior (al pie, a nivel de suelo)</option></select></div></label>
-          </div>
-          <p class="hint">Cada grada es un escalón de peralte N y profundidad T (asiento). La escalera de acceso divide cada grada en escalones iguales de c = N/k y h = T/k dentro de una franja central. El pasillo descuenta su ancho de L.</p>
-        </section>
+        </details>
 
-        <section class="group mode-bleacher" hidden>
-          <details id="visDetails">
-            <summary><h2>Visibilidad (valor C)</h2><svg class="chev" width="16" height="16"><use href="#i-chevron"/></svg></summary>
-            <div class="fields">
+        <details class="adv mode-bleacher" id="advAccess" hidden>
+          <summary><span class="adv-head"><b>Escalera de acceso</b><span class="sum" id="sumAccess"></span></span><svg class="chev" width="16" height="16"><use href="#i-chevron"/></svg></summary>
+          <div class="adv-body">
+            <label class="switch"><input type="checkbox" id="accessStair" checked><span class="sw"></span><span>Escalera de acceso intercalada</span></label>
+            <div class="fields sub" id="accessFields">
+              <label class="field"><span>Ancho de la escalera</span><div class="inp"><input type="number" id="Be" step="0.05" min="0.6" value="1.20"><em>m</em></div></label>
+              <label class="field"><span>Escalones por grada</span><div class="inp"><select id="stepsPerRow"><option value="2" selected>2</option><option value="3">3</option></select></div></label>
+            </div>
+            <p class="hint">Divide cada grada en escalones iguales de c = N/k y h = T/k dentro de una franja central.</p>
+          </div>
+        </details>
+
+        <details class="adv mode-bleacher" id="advAisle" hidden>
+          <summary><span class="adv-head"><b>Pasillo</b><span class="sum" id="sumAisle"></span></span><svg class="chev" width="16" height="16"><use href="#i-chevron"/></svg></summary>
+          <div class="adv-body">
+            <label class="switch"><input type="checkbox" id="aisle"><span class="sw"></span><span>Pasillo de circulación</span></label>
+            <div class="fields sub" id="aisleFields" hidden>
+              <label class="field"><span>Ancho del pasillo</span><div class="inp"><input type="number" id="Wp" step="0.05" min="0.6" value="1.20"><em>m</em></div></label>
+              <label class="field"><span>Posición</span><div class="inp"><select id="aislePos"><option value="top" selected>Superior (detrás de la última grada)</option><option value="bottom">Inferior (al pie, a nivel de suelo)</option></select></div></label>
+            </div>
+            <p class="hint">El pasillo descuenta su ancho de L.</p>
+          </div>
+        </details>
+
+        <details class="adv mode-bleacher" id="advVis" hidden>
+          <summary><span class="adv-head"><b>Visibilidad (valor C)</b><span class="sum" id="sumVis"></span></span><svg class="chev" width="16" height="16"><use href="#i-chevron"/></svg></summary>
+          <div class="adv-body">
+            <label class="switch"><input type="checkbox" id="visOn"><span class="sw"></span><span>Evaluar la visibilidad de cada fila</span></label>
+            <div class="fields sub" id="visFields" hidden>
               <label class="field"><span>Distancia al punto focal desde la 1.ª fila</span><div class="inp"><input type="number" id="Df" step="0.1" min="0" value="6.0"><em>m</em></div></label>
               <label class="field"><span>Altura del punto focal</span><div class="inp"><input type="number" id="hf" step="0.05" value="0.00"><em>m</em></div></label>
               <label class="field"><span>Altura del ojo sentado</span><div class="inp"><input type="number" id="eyeH" step="0.01" value="1.15"><em>m</em></div></label>
             </div>
-            <p class="hint">C = D·(N + R)/(D + T) − R, con D la distancia horizontal del ojo del espectador de delante al punto focal, R la altura de ese ojo sobre el punto focal, N el peralte y T la profundidad. Supuestos: ojo a 1.15 m sobre la grada (sentado), en el centro de la fila. Objetivo C ≥ 0.06 m (mínimo) y ≥ 0.09 m (bueno). Con peralte constante C decrece hacia atrás; en recintos grandes se usan peraltes crecientes.</p>
-          </details>
-        </section>
-
-        <section class="group">
-          <h2>Plano</h2>
-          <div class="fields">
-            <label class="field"><span>Título del proyecto</span><div class="inp"><input type="text" id="title" value="Proyecto" maxlength="60"></div></label>
-            <label class="field"><span>Hoja de impresión (apaisada)</span><div class="inp"><select id="paper"><option value="A3">A3</option><option value="A4">A4</option></select></div></label>
+            <p class="hint">C = D·(N + R)/(D + T) − R. Objetivo C ≥ 0.06 m (mínimo) y ≥ 0.09 m (bueno). Con peralte constante C decrece hacia atrás.</p>
           </div>
-        </section>
+        </details>
+
+        <details class="adv" id="advPlan">
+          <summary><span class="adv-head"><b>Datos del plano</b><span class="sum" id="sumPlan"></span></span><svg class="chev" width="16" height="16"><use href="#i-chevron"/></svg></summary>
+          <div class="adv-body">
+            <div class="fields">
+              <label class="field"><span>Título del proyecto</span><div class="inp"><input type="text" id="title" value="Proyecto" maxlength="60"></div></label>
+              <label class="field"><span>Hoja de impresión (apaisada)</span><div class="inp"><select id="paper"><option value="A3">A3</option><option value="A4">A4</option></select></div></label>
+            </div>
+          </div>
+        </details>
       </div>
     </aside>
 
     <main class="work">
-      <section class="status" id="status" aria-live="polite"></section>
-      <section class="kpis" id="kpis"></section>
+      <section class="verdict" id="verdict" aria-live="polite"></section>
+
+      <details class="more-details" id="moreDetails">
+        <summary><span>Detalles y avisos</span><span class="sum" id="sumDetails"></span><svg class="chev" width="16" height="16"><use href="#i-chevron"/></svg></summary>
+        <div class="more-body">
+          <section class="status" id="status"></section>
+          <section class="kpis" id="kpis"></section>
+        </div>
+      </details>
 
       <nav class="tabs" role="tablist">
         <button class="tab is-on" data-view="section"><svg width="18" height="18"><use href="#i-section"/></svg><span>Corte</span></button>
         <button class="tab" data-view="plan"><svg width="18" height="18"><use href="#i-plan"/></svg><span>Planta</span></button>
-        <button class="tab" data-view="iso"><svg width="18" height="18"><use href="#i-iso"/></svg><span>Isométrico</span></button>
         <button class="tab" data-view="three"><svg width="18" height="18"><use href="#i-cube"/></svg><span>3D</span></button>
         <button class="tab" data-view="table"><svg width="18" height="18"><use href="#i-table"/></svg><span>Tabla y cómputos</span></button>
-        <button class="tab" data-view="grid"><svg width="18" height="18"><use href="#i-grid"/></svg><span>Rejilla</span></button>
+        <details class="menu tabs-more" id="tabsMore">
+          <summary class="tab" aria-label="Más vistas"><span id="tabsMoreLabel">Más vistas</span><svg class="chev" width="16" height="16"><use href="#i-chevron"/></svg></summary>
+          <div class="menu-list">
+            <button class="menu-item tab" data-view="iso"><svg width="18" height="18"><use href="#i-iso"/></svg><span>Isométrico</span></button>
+            <button class="menu-item tab" data-view="grid"><svg width="18" height="18"><use href="#i-grid"/></svg><span>Rejilla (todas las vistas)</span></button>
+          </div>
+        </details>
       </nav>
 
       <div class="views">

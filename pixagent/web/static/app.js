@@ -10,7 +10,7 @@
   const state = {
     session: null, pending: [], ws: null, running: false, current: null, lastSeq: 0,
     streamEl: null, streamText: "", rafPending: false, retry: 0, maxPx: 3200, everConnected: false,
-    tab: "view", view: "agent", pane: "chat", apps: null, app: null, lastDeliverable: null, pixpin: false,
+    tab: "view", view: "agent", pane: "chat", apps: null, app: null, lastDeliverable: null, pixpin: false, undone: false, appsQuery: "",
     saveData: (navigator.connection && navigator.connection.saveData) || localGet("saveData") === "1",
   };
 
@@ -148,11 +148,25 @@
       case "todos": renderTodos(ev.todos); break;
       case "error": addError(ev.text); break;
       case "done":
-        renderStream(); endStream(); setRunning(false); loadSessions(); refreshLibrary();
-        if (ev.usage) $("#usage").textContent = "Tokens: " + ev.usage.input.toLocaleString() + " entrada (" + ev.usage.cache_read.toLocaleString() + " caché) · " + ev.usage.output.toLocaleString() + " salida";
+        renderStream(); endStream(); state.undone = false; setRunning(false); loadSessions(); refreshLibrary();
+        if (ev.usage) renderUsage(ev.usage);
         break;
     }
   }
+  // Tokens y coste estimado acumulado de la sesión, discretos en el pie de la barra lateral
+  function renderUsage(u) {
+    const total = (u.input || 0) + (u.output || 0);
+    $("#usage").textContent = total.toLocaleString("es-ES") + " tokens";
+    $("#usage").title = (u.input || 0).toLocaleString("es-ES") + " entrada (" + (u.cache_read || 0).toLocaleString("es-ES") + " en caché) · " + (u.output || 0).toLocaleString("es-ES") + " salida";
+    const c = $("#usageCost");
+    if (typeof u.usd === "number") {
+      c.textContent = "≈ " + u.usd.toLocaleString("es-ES", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: u.usd < 0.1 ? 3 : 2 });
+      c.title = "Coste estimado acumulado de esta sesión"; c.classList.remove("hidden");
+    } else c.classList.add("hidden");
+  }
+  // Contadores locales de uso (para ordenar accesos rápidos y mini apps); fallan en silencio sin localStorage
+  function counts(key) { try { return JSON.parse(localStorage.getItem(key) || "{}") || {}; } catch (e) { return {}; } }
+  function bump(key, id) { try { const c = counts(key); c[id] = (c[id] || 0) + 1; localStorage.setItem(key, JSON.stringify(c)); } catch (e) { /* modo privado */ } }
   // Repintar como mucho una vez por fotograma (los móviles modestos lo agradecen)
   function scheduleRender() {
     if (state.rafPending) return;
@@ -164,7 +178,17 @@
   const toolLabel = (n) => TOOL_LABELS[n] || n;
 
   // ---------------------------------------------------------------- mensajes
-  function showWelcome() { $("#messages").innerHTML = ""; $("#messages").appendChild($("#welcomeTpl").content.cloneNode(true)); }
+  function showWelcome() {
+    $("#messages").innerHTML = ""; $("#messages").appendChild($("#welcomeTpl").content.cloneNode(true));
+    // Las 4 acciones más usadas por este usuario a la vista (orden por defecto: plano, informe, panel, mini app); el resto tras «Más…»
+    const grid = $("#quickMain"), used = counts("qa:count");
+    const cards = Array.from(grid.querySelectorAll(".quick-card")).map((el, i) => ({ el: el, n: used[el.dataset.tpl] || 0, i: i }));
+    cards.sort((a, b) => b.n - a.n || a.i - b.i);
+    cards.forEach((c, i) => { grid.appendChild(c.el); c.el.classList.toggle("quick-extra", i >= 4); });
+    const more = $("#quickMore");
+    more.classList.toggle("hidden", cards.length <= 4);
+    more.onclick = () => { const open = grid.classList.toggle("expanded"); more.querySelector("span").textContent = open ? "Menos" : "Más…"; more.classList.toggle("open", open); };
+  }
   function clearWelcome() { const w = $("#messages .welcome"); if (w) w.remove(); }
   function scroll() {
     const m = $("#messages");
@@ -245,7 +269,36 @@
     }).join("");
   }
   function setStatus(text) { $("#statusText").textContent = text; }
-  function setRunning(on) { state.running = on; $("#statusLine").classList.toggle("hidden", !on); $("#sendBtn").disabled = on; }
+  function setRunning(on) { state.running = on; $("#statusLine").classList.toggle("hidden", !on); $("#sendBtn").disabled = on; updateUndo(); }
+  // «Deshacer cambios» bajo el último mensaje del asistente, solo con la sesión en reposo
+  function updateUndo() {
+    $$("#messages .undo-row").forEach((r) => r.remove());
+    if (state.running || !state.session || state.undone) return;
+    const msgs = $$("#messages .msg.assistant"), last = msgs[msgs.length - 1];
+    if (!last) return;
+    const row = document.createElement("div"); row.className = "undo-row";
+    row.innerHTML = `<button type="button" class="btn btn-ghost btn-sm" id="undoBtn" title="Restaura los archivos que modificó o creó el agente en su última respuesta">${ico("undo")}Deshacer cambios</button>`;
+    last.insertAdjacentElement("afterend", row);
+  }
+  async function undoLast() {
+    if (!state.session || state.running) return;
+    const ok = await askConfirm("¿Deshacer los cambios del agente?", "Se restaurarán los archivos que modificó y se borrarán los que creó en su última respuesta. El chat se conserva.", "Deshacer", "undo");
+    if (!ok) return;
+    const b = $("#undoBtn"); if (b) b.disabled = true;
+    let j;
+    try { j = await api("/api/sessions/" + state.session + "/undo", {}); } catch (e) { j = { ok: false, error: "Sin conexión con el servidor" }; }
+    if (!j.ok) { if (b) b.disabled = false; toast(j.error || "No se pudo deshacer", 4500, "err"); return; }
+    const list = j.restored || [];
+    state.undone = true; updateUndo();
+    addMsg("note", esc("Cambios deshechos: " + list.join(", ")));
+    toast(list.length === 1 ? list[0].charAt(0).toUpperCase() + list[0].slice(1) : list.length + " archivos restaurados", 3500, "ok");
+    refreshLibrary();
+    if (state.current) { // el visor puede estar mostrando un archivo restaurado o borrado
+      const gone = list.some((s) => s.indexOf("borrado ") === 0 && s.slice(8) === state.current);
+      if (gone) { state.current = null; $("#viewerActions").classList.add("hidden"); $("#viewerBody").innerHTML = `<div class="empty"><span class="empty-icon">${ico("undo")}</span><div class="empty-title">Archivo deshecho</div><div class="empty-text">El agente lo había creado en su última respuesta y se ha eliminado.</div></div>`; }
+      else openFile(state.current, true);
+    }
+  }
 
   // ---------------------------------------------------------------- adjuntos (reducidos en el dispositivo)
   function addPending(rel) { if (state.pending.indexOf(rel) < 0) { state.pending.push(rel); renderPending(); } }
@@ -378,16 +431,32 @@
       return;
     }
     const isEmoji = (s) => s && !/^[a-z-]+$/i.test(s);
-    $("#appsGrid").innerHTML = apps.map((a, i) => {
+    const card = (a, i) => {
       const icon = isEmoji(a.icon) ? esc(a.icon) : ico("apps");
       return `<button type="button" class="app-card" data-app="${i}"${a.url ? "" : ' disabled title="Esta app se ejecuta en el equipo anfitrión"'}>
         <div class="app-card-top"><span class="app-ico">${icon}</span><div class="grow"><b>${esc(a.name)}</b></div>${a.uses_ai ? `<span class="badge badge-accent">${ico("sparkle", "icon-sm")}IA</span>` : ""}</div>
         <p>${esc(a.description || "Sin descripción.")}</p>
-        <div class="app-foot"><span class="chip">${esc(a.category)}</span>${a.builtin ? "" : '<span class="chip chip-accent">Mía</span>'}${a.kind !== "web" ? `<span class="chip chip-warn">${esc(a.kind)}</span>` : ""}</div></button>`;
-    }).join("");
+        <div class="app-foot">${a.builtin ? "" : '<span class="chip chip-accent">Mía</span>'}${a.kind !== "web" ? `<span class="chip chip-warn">${esc(a.kind)}</span>` : ""}</div></button>`;
+    };
+    // Búsqueda solo cuando la galería crece (más de 8 apps)
+    $("#appsSearchWrap").classList.toggle("hidden", apps.length <= 8);
+    const q = (state.appsQuery || "").trim().toLowerCase();
+    const items = apps.map((a, i) => ({ a: a, i: i })).filter((x) => !q || (x.a.name + " " + (x.a.description || "") + " " + (x.a.category || "")).toLowerCase().indexOf(q) >= 0);
+    if (!items.length) { $("#appsGrid").innerHTML = `<div class="empty"><span class="empty-icon">${ico("search")}</span><div class="empty-title">Sin resultados</div><div class="empty-text">Ninguna mini app coincide con «${esc(q)}».</div></div>`; return; }
+    // «Frecuentes» arriba (por aperturas en este dispositivo); el resto, agrupado por categoría
+    const used = counts("apps:count");
+    const freq = q ? [] : items.filter((x) => used[x.a.slug] > 0).sort((x, y) => used[y.a.slug] - used[x.a.slug]).slice(0, 4);
+    const rest = items.filter((x) => freq.indexOf(x) < 0);
+    const groups = {}; const order = [];
+    rest.forEach((x) => { const c = x.a.category || "General"; if (!groups[c]) { groups[c] = []; order.push(c); } groups[c].push(x); });
+    const section = (title, icon, list) => `<div class="apps-group"><span class="apps-group-title">${icon ? ico(icon, "icon-sm") : ""}${esc(title)}</span><span class="n">${list.length}</span></div>` + list.map((x) => card(x.a, x.i)).join("");
+    $("#appsGrid").innerHTML = (freq.length ? section("Frecuentes", "star", freq) : "") +
+      (order.length === 1 && !freq.length ? rest.map((x) => card(x.a, x.i)).join("") : order.map((c) => section(c, null, groups[c])).join(""));
   }
+  $("#appsSearch").addEventListener("input", (e) => { state.appsQuery = e.target.value; if (state.apps) renderApps(state.apps); });
   function openApp(a) {
     if (!a.url) return;
+    bump("apps:count", a.slug);
     state.app = a;
     $("#appName").textContent = a.name;
     $("#appIcon").innerHTML = a.icon && !/^[a-z-]+$/i.test(a.icon) ? esc(a.icon) : ico("apps");
@@ -436,14 +505,18 @@
       else if (ev.type === "assistant") addMsg("assistant", md(ev.text));
       else if (ev.type === "tool_end") { addTool({ id: ev.id, name: ev.name, input: {} }); finishTool(ev, false); }
       else if (ev.type === "error") addError(ev.text);
+      else if (ev.type === "status" && ev.text) addMsg("note", esc(ev.text));
     });
+    // si lo último que pasó fue un deshacer, no ofrecerlo otra vez hasta el próximo turno
+    const lastEv = d.transcript[d.transcript.length - 1];
+    state.undone = !!(lastEv && lastEv.type === "status" && /^Cambios deshechos/.test(lastEv.text || ""));
     renderTodos(d.todos); setRunning(!!d.running); loadSessions();
     if (state.lastDeliverable) openFile(state.lastDeliverable, true); // último resultado en el visor
     if (isMobile()) setPane("chat"); else setView("agent");
     $("#messages").scrollTop = $("#messages").scrollHeight;
   }
   function newSession() {
-    state.session = null; state.lastDeliverable = null; endStream();
+    state.session = null; state.lastDeliverable = null; state.undone = false; endStream();
     showWelcome(); renderTodos([]); setRunning(false); loadSessions();
     if (isMobile()) setPane("chat"); else setView("agent");
   }
@@ -458,10 +531,13 @@
     $("#allowBtn").onclick = () => done(true); $("#denyBtn").onclick = () => done(false);
     if (navigator.vibrate) navigator.vibrate(60);
   }
-  function askConfirm(title, text) {
+  function askConfirm(title, text, label, icon) {
     return new Promise((resolve) => {
       const m = $("#confirm");
       $("#confirmTitle").textContent = title; $("#confirmText").textContent = text || "";
+      const yes = $("#confirmYes"); yes.textContent = label || "Borrar";
+      yes.className = "btn " + (icon ? "btn-primary" : "btn-danger");
+      $("#confirmIcon").className = "modal-icon" + (icon ? "" : " danger"); $("#confirmIcon").innerHTML = ico(icon || "trash");
       m.classList.remove("hidden");
       const close = (v) => { m.classList.add("hidden"); resolve(v); };
       $("#confirmYes").onclick = () => close(true); $("#confirmNo").onclick = () => close(false);
@@ -520,7 +596,8 @@
       return;
     }
     const li = t.closest("[data-sid]"); if (li) { openSession(li.dataset.sid); return; }
-    const tpl = t.closest("[data-tpl]"); if (tpl) { composeFrom(TEMPLATES[tpl.dataset.tpl], []); if (isTouch) $("#input").focus(); return; }
+    if (t.closest("#undoBtn")) { undoLast(); return; }
+    const tpl = t.closest("[data-tpl]"); if (tpl) { bump("qa:count", tpl.dataset.tpl); composeFrom(TEMPLATES[tpl.dataset.tpl], []); if (isTouch) $("#input").focus(); return; }
     const pane = t.closest("#bottomNav [data-pane]"); if (pane) { setPane(pane.dataset.pane); return; }
     const nav = t.closest(".side-nav [data-view]"); if (nav) { setView(nav.dataset.view); if (isMobile()) setPane(nav.dataset.view === "apps" ? "apps" : "chat"); return; }
     const card = t.closest("[data-app]"); if (card && state.apps) { openApp(state.apps[+card.dataset.app]); return; }

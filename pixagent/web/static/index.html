@@ -61,6 +61,10 @@
   <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></symbol>
   <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></symbol>
   <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M3.5 13h5l1.5 2.5h4L15.5 13h5"/><path d="M5.5 5.5h13l2 7.5v6a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1v-6z"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M4 9h10a5 5 0 0 1 0 10H9"/><path d="M8 5L4 9l4 4"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><path d="M6 12h.01M12 12h.01M18 12h.01"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1.1 5.9L12 16.9l-5.3 2.8 1.1-5.9-4.3-4.1 5.9-.8z"/></symbol>
 </svg>
 
 <div id="app">
@@ -90,8 +94,8 @@
       <ul id="sessions" class="scroll-y"></ul>
     </div>
 
-    <details class="side-fold" id="pixpinFold" open>
-      <summary><svg class="icon"><use href="#i-zap"/></svg><span class="grow">PixPin</span><span id="pixpinDot" class="dot dot-muted"></span><svg class="icon icon-sm fold-chev"><use href="#i-chevron"/></svg></summary>
+    <details class="side-fold" id="pixpinFold">
+      <summary><svg class="icon"><use href="#i-zap"/></svg><span class="grow">PixPin</span><span id="pixpinSum" class="xs faint"></span><span id="pixpinDot" class="dot dot-muted"></span><svg class="icon icon-sm fold-chev"><use href="#i-chevron"/></svg></summary>
       <div class="fold-body">
         <div id="pixpinStatus" class="small muted">Comprobando…</div>
         <div id="pixpinButtons" class="stack gap-1">
@@ -105,34 +109,48 @@
     <details class="side-fold" id="settingsFold">
       <summary><svg class="icon"><use href="#i-sliders"/></svg><span class="grow">Ajustes</span><svg class="icon icon-sm fold-chev"><use href="#i-chevron"/></svg></summary>
       <div class="fold-body stack gap-3">
-        <label class="field">Esfuerzo
-          <span class="select"><select id="effort">
-            <option value="low">Bajo (rápido)</option><option value="medium">Medio</option>
-            <option value="high">Alto</option><option value="xhigh">Muy alto</option><option value="max">Máximo</option>
-          </select></span>
-        </label>
-        <label class="field">Permisos
-          <span class="select"><select id="perm">
-            <option value="auto">Automático (pregunta solo shell)</option>
-            <option value="ask">Preguntar (shell, Python, PixPin)</option>
-            <option value="full">Total (sin preguntas)</option>
-          </select></span>
-        </label>
-        <label class="switch"><input type="checkbox" id="saveData"><i></i><span class="small">Ahorro de datos<br><span class="faint xs">Miniaturas más pequeñas</span></span></label>
-        <div class="field">Tema
-          <div class="segmented" id="themeSeg">
-            <button type="button" data-theme="system" class="on">Sistema</button>
-            <button type="button" data-theme="light">Claro</button>
-            <button type="button" data-theme="dark">Oscuro</button>
+        <div class="field">Velocidad de respuesta
+          <div class="segmented seg-block" id="effortSeg" role="radiogroup" aria-label="Velocidad de respuesta">
+            <button type="button" data-effort="low" title="Respuestas rápidas y breves">Rápido</button>
+            <button type="button" data-effort="high" title="Buen equilibrio entre calidad y tiempo">Equilibrado</button>
+            <button type="button" data-effort="xhigh" title="Piensa más: tareas complejas">Máximo</button>
           </div>
+          <span id="effortNote" class="xs faint hidden"></span>
         </div>
-        <button class="btn btn-sm btn-block hidden" id="installApp"><svg class="icon"><use href="#i-download"/></svg>Instalar como app</button>
+        <div class="field">Pedir confirmación antes de…
+          <div class="perm-list">
+            <div class="perm-row"><svg class="icon icon-sm"><use href="#i-check"/></svg><span class="grow">Ejecutar comandos de terminal</span><span id="permShell" class="xs faint">Siempre</span></div>
+            <label class="switch perm-row"><input type="checkbox" id="permAsk"><i></i><span class="grow">Ejecutar Python y usar PixPin</span></label>
+          </div>
+          <span id="permFullNote" class="xs perm-warn hidden"><svg class="icon icon-sm"><use href="#i-alert"/></svg>Modo total activo: no se pide confirmación.</span>
+        </div>
+        <details class="sub-fold" id="moreSettings">
+          <summary><span class="grow">Más ajustes</span><svg class="icon icon-sm fold-chev"><use href="#i-chevron"/></svg></summary>
+          <div class="stack gap-3 sub-fold-body">
+            <div class="field">Tema
+              <div class="segmented seg-block" id="themeSeg">
+                <button type="button" data-theme="system" class="on">Sistema</button>
+                <button type="button" data-theme="light">Claro</button>
+                <button type="button" data-theme="dark">Oscuro</button>
+              </div>
+            </div>
+            <label class="switch"><input type="checkbox" id="saveData"><i></i><span class="small">Ahorro de datos<br><span class="faint xs">Miniaturas más pequeñas</span></span></label>
+            <label class="field">Nivel de esfuerzo exacto
+              <span class="select"><select id="effort">
+                <option value="low">Bajo (rápido)</option><option value="medium">Medio</option>
+                <option value="high">Alto (equilibrado)</option><option value="xhigh">Muy alto (máximo)</option><option value="max">Extremo (lento y caro)</option>
+              </select></span>
+            </label>
+            <label class="switch"><input type="checkbox" id="permFull"><i></i><span class="small">Modo total: sin confirmaciones<br><span class="faint xs">El agente ejecuta terminal, Python y PixPin sin preguntar. Úsalo solo si confías en la tarea.</span></span></label>
+            <button class="btn btn-sm btn-block hidden" id="installApp"><svg class="icon"><use href="#i-download"/></svg>Instalar como app</button>
+          </div>
+        </details>
       </div>
     </details>
 
     <div class="side-foot">
       <div id="wsInfo" class="xs faint truncate"></div>
-      <div id="usage" class="xs faint tabular"></div>
+      <div class="usage-row xs faint tabular"><span id="usage"></span><span id="usageCost" class="usage-cost hidden"></span></div>
     </div>
   </aside>
 
@@ -160,15 +178,16 @@
       <div class="welcome">
         <img class="welcome-mark" src="/static/icon-192.png" alt="" width="56" height="56">
         <h1>¿Qué hacemos hoy?</h1>
-        <p class="welcome-sub">Adjunta fotos y planos, pega una captura o envíala desde PixPin. Elige un punto de partida o describe la tarea con tus palabras.</p>
-        <div class="quick">
-          <button class="quick-card" data-tpl="plan"><span class="qc-icon"><svg class="icon"><use href="#i-plan"/></svg></span><b>Plano con fotos</b><small>Ubica cada foto en el plano con flechas, numeración y leyenda</small></button>
-          <button class="quick-card" data-tpl="diagram"><span class="qc-icon"><svg class="icon"><use href="#i-flow"/></svg></span><b>Diagrama</b><small>Flujos, organigramas y esquemas de proceso</small></button>
-          <button class="quick-card" data-tpl="report"><span class="qc-icon"><svg class="icon"><use href="#i-report"/></svg></span><b>Informe</b><small>PDF profesional con portada, índice y tablas</small></button>
+        <p class="welcome-sub">Adjunta fotos o planos y describe la tarea con tus palabras, o empieza por una de estas.</p>
+        <div class="quick" id="quickMain">
+          <button class="quick-card" data-tpl="plan"><span class="qc-icon"><svg class="icon"><use href="#i-plan"/></svg></span><b>Plano con fotos</b><small>Cada foto ubicada en el plano, con flechas y leyenda</small></button>
+          <button class="quick-card" data-tpl="report"><span class="qc-icon"><svg class="icon"><use href="#i-report"/></svg></span><b>Informe</b><small>PDF con portada, índice y tablas</small></button>
           <button class="quick-card" data-tpl="panel"><span class="qc-icon"><svg class="icon"><use href="#i-panel"/></svg></span><b>Panel fotográfico</b><small>Fotos numeradas con pies de foto y cajetín</small></button>
-          <button class="quick-card" data-tpl="app"><span class="qc-icon"><svg class="icon"><use href="#i-apps"/></svg></span><b>Mini app</b><small>Una herramienta a medida para repetir una tarea</small></button>
-          <button class="quick-card" data-tpl="python"><span class="qc-icon"><svg class="icon"><use href="#i-terminal"/></svg></span><b>Python</b><small>Cálculos, tablas y conversiones ejecutadas aquí</small></button>
+          <button class="quick-card" data-tpl="app"><span class="qc-icon"><svg class="icon"><use href="#i-apps"/></svg></span><b>Mini app</b><small>Una herramienta a medida para una tarea repetida</small></button>
+          <button class="quick-card" data-tpl="diagram"><span class="qc-icon"><svg class="icon"><use href="#i-flow"/></svg></span><b>Diagrama</b><small>Flujos, organigramas y esquemas</small></button>
+          <button class="quick-card" data-tpl="python"><span class="qc-icon"><svg class="icon"><use href="#i-terminal"/></svg></span><b>Python</b><small>Cálculos, tablas y conversiones</small></button>
         </div>
+        <button type="button" class="btn btn-ghost btn-sm quick-more" id="quickMore"><span>Más…</span><svg class="icon icon-sm fold-chev"><use href="#i-chevron"/></svg></button>
         <p class="welcome-hint faint small no-touch">Arrastra archivos al chat o pega una captura con <span class="kbd">Ctrl</span> <span class="kbd">V</span></p>
       </div>
     </template>
@@ -204,8 +223,9 @@
       <header class="apps-head">
         <div class="grow">
           <h2>Mini apps</h2>
-          <p class="muted small">Herramientas rápidas que trabajan sobre tu workspace. Pídele al agente una nueva cuando repitas una tarea.</p>
+          <p class="muted small">Herramientas rápidas sobre tu workspace. Pide una nueva al agente cuando repitas una tarea.</p>
         </div>
+        <label class="apps-search hidden" id="appsSearchWrap"><svg class="icon icon-sm"><use href="#i-search"/></svg><input class="input" id="appsSearch" type="search" placeholder="Buscar app…" aria-label="Buscar mini app"></label>
         <button id="appsRefresh" class="btn btn-ghost btn-icon" title="Actualizar"><svg class="icon"><use href="#i-refresh"/></svg></button>
       </header>
       <div id="appsGrid" class="apps-grid"></div>
@@ -284,7 +304,7 @@
 <!-- Confirmación genérica -->
 <div id="confirm" class="modal hidden" role="dialog" aria-modal="true">
   <div class="modal-card modal-sm">
-    <div class="modal-head"><span class="modal-icon danger"><svg class="icon"><use href="#i-trash"/></svg></span><h3 id="confirmTitle"></h3></div>
+    <div class="modal-head"><span class="modal-icon danger" id="confirmIcon"><svg class="icon"><use href="#i-trash"/></svg></span><h3 id="confirmTitle"></h3></div>
     <div class="modal-body"><p id="confirmText" class="muted"></p></div>
     <div class="modal-actions">
       <button class="btn" id="confirmNo">Cancelar</button>
