@@ -555,19 +555,26 @@
   // Cada capa abierta (modal, menú, mini app, panel móvil) añade una entrada al historial; «atrás» cierra la
   // capa superior en vez de sacar al usuario de la app.
   const layers = [];
+  let backPending = 0; // history.back() programáticos aún sin su popstate: evita carreras al cerrar una capa y abrir otra
   function pushLayer(name, close) {
-    layers.push({ name: name, close: close });
-    try { history.pushState({ layer: layers.length }, ""); } catch (e) { /* sin historial */ }
+    const entry = { name: name, close: close };
+    layers.push(entry);
+    const push = () => { if (layers.indexOf(entry) < 0) return; try { history.pushState({ layer: layers.indexOf(entry) + 1 }, ""); } catch (e) { /* sin historial */ } };
+    if (backPending > 0) setTimeout(push, 40); else push();
   }
   function dropLayer(name) { // cierre programático: quita la capa y retrocede en el historial si era la última
     const i = layers.map((l) => l.name).lastIndexOf(name);
     if (i < 0) return false;
     const wasTop = i === layers.length - 1;
     layers.splice(i, 1);
-    if (wasTop && history.state && history.state.layer === layers.length + 1) { try { history.back(); } catch (e) { /* nada */ } }
+    if (wasTop && history.state && history.state.layer === layers.length + 1) {
+      backPending++; setTimeout(() => { backPending = Math.max(0, backPending - 1); }, 600);
+      try { history.back(); } catch (e) { backPending = Math.max(0, backPending - 1); }
+    }
     return true;
   }
   window.addEventListener("popstate", (e) => {
+    if (backPending > 0) { backPending--; return; } // retroceso programático ya aplicado
     const depth = (e.state && e.state.layer) || 0;
     while (layers.length > depth) { const l = layers.pop(); try { l.close(); } catch (err) { /* ya cerrada */ } }
   });

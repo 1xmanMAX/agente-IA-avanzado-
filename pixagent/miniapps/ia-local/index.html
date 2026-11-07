@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#5b5bf7">
+<title>IA local</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-brain" viewBox="0 0 24 24"><path d="M9.5 4.5A2.5 2.5 0 0 0 7 7v.3A3 3 0 0 0 5 10v.5A3 3 0 0 0 4.5 16 3 3 0 0 0 8 19.5h1.5V4.5Z"/><path d="M14.5 4.5A2.5 2.5 0 0 1 17 7v.3a3 3 0 0 1 2 2.7v.5a3 3 0 0 1 .5 5.5A3 3 0 0 1 16 19.5h-1.5V4.5Z"/><path d="M9.5 12H7m7.5 0H17M9.5 8h-1m7 0h1"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.5-5.8"/><path d="M4 4v5h5"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4 2.5 20h19L12 4Z"/><path d="M12 10v4m0 3v.5"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8v.5"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-8 8"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4m0 0 4 4m-4-4L8 8"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-text" viewBox="0 0 24 24"><path d="M5 6h14M5 12h14M5 18h9"/></symbol>
+    <symbol id="i-open" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9"/><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></symbol>
+    <symbol id="i-server" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.5M7 16.5h.5"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 3 5 14h6l-1 7 8-11h-6l1-7Z"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+  </defs>
+</svg>
+
+<div id="app">
+  <header class="topbar">
+    <div class="brand">
+      <span class="mark"><svg class="i"><use href="#i-brain"/></svg></span>
+      <div style="min-width:0">
+        <h1>IA local</h1>
+        <small>Modelos pequeños en tu equipo: gratis, privados y rápidos</small>
+      </div>
+    </div>
+    <div class="actions">
+      <span class="pill" id="statusPill"><i class="dot"></i><span>Comprobando…</span></span>
+      <button class="btn icon ghost" id="btnRefresh" type="button" title="Volver a buscar motores" aria-label="Volver a buscar motores"><svg class="i"><use href="#i-refresh"/></svg></button>
+    </div>
+  </header>
+
+  <main class="page" id="page">
+    <div class="col">
+      <div id="notices" class="stack" style="gap:8px"></div>
+
+      <!-- 1. Motores -->
+      <section class="card" id="engineCard">
+        <div class="card-head">
+          <svg class="i" style="color:var(--accent-text)"><use href="#i-server"/></svg>
+          <h3>Motor de IA<span class="sub" id="engineSub">Buscando Ollama, llama.cpp y LM Studio en este equipo…</span></h3>
+        </div>
+        <div class="card-body">
+          <ul class="engines" id="engines" aria-live="polite"></ul>
+          <div class="guide" id="guide" hidden>
+            <div class="guide-head">
+              <b>Instalar Ollama en 2 minutos</b>
+              <div class="seg platforms" id="platforms" role="tablist" aria-label="Plataforma">
+                <button type="button" data-p="win" role="tab" aria-pressed="false">Windows</button>
+                <button type="button" data-p="mac" role="tab" aria-pressed="false">Mac</button>
+                <button type="button" data-p="linux" role="tab" aria-pressed="false">Linux</button>
+                <button type="button" data-p="mobile" role="tab" aria-pressed="false">Móvil</button>
+              </div>
+            </div>
+            <ol class="steps" id="steps"></ol>
+            <p class="hint" id="guideFoot"></p>
+          </div>
+          <details class="adv slim" id="guideMore" hidden>
+            <summary><span class="adv-head"><b>Cómo instalar un motor en otro equipo</b></span><svg class="i sm chev"><use href="#i-chevron"/></svg></summary>
+            <div class="adv-body" id="guideMoreBody"></div>
+          </details>
+        </div>
+      </section>
+
+      <!-- 2. Modelos instalados -->
+      <section class="card" id="modelsCard">
+        <div class="card-head">
+          <svg class="i" style="color:var(--accent-text)"><use href="#i-bolt"/></svg>
+          <h3>Modelos instalados<span class="sub" id="modelsSub">Cada modelo indica para qué sirve</span></h3>
+          <span class="count muted num" id="modelsCount"></span>
+        </div>
+        <div class="card-body">
+          <ul class="models" id="models"></ul>
+          <p class="empty" id="modelsEmpty" hidden>Aún no hay modelos. Descarga uno del kit recomendado.</p>
+        </div>
+      </section>
+
+      <!-- 3. Kit recomendado -->
+      <section class="card" id="kitCard">
+        <div class="card-head">
+          <svg class="i" style="color:var(--accent-text)"><use href="#i-download"/></svg>
+          <h3>Kit recomendado<span class="sub">Elige el perfil de tu equipo. Un modelo de visión para describir y leer, y uno de OCR para documentos.</span></h3>
+        </div>
+        <div class="card-body">
+          <div class="profiles" id="profiles"></div>
+          <p class="hint" id="kitHint"></p>
+        </div>
+      </section>
+
+      <!-- 4. Modelo por tarea -->
+      <section class="card" id="assignCard">
+        <div class="card-head">
+          <svg class="i" style="color:var(--accent-text)"><use href="#i-eye"/></svg>
+          <h3>Modelo por tarea<span class="sub">En automático se usa el mejor modelo instalado para cada tarea</span></h3>
+        </div>
+        <div class="card-body">
+          <div class="row three assign">
+            <div class="field"><label for="selVision">Visión y vídeo</label><select class="sel" id="selVision" data-task="vision"></select></div>
+            <div class="field"><label for="selOcr">Leer texto (OCR)</label><select class="sel" id="selOcr" data-task="ocr"></select></div>
+            <div class="field"><label for="selText">Texto y resúmenes</label><select class="sel" id="selText" data-task="text"></select></div>
+          </div>
+          <p class="hint" id="assignHint"></p>
+        </div>
+      </section>
+
+      <!-- 5. Probar -->
+      <section class="card" id="tryCard">
+        <div class="card-head">
+          <svg class="i" style="color:var(--accent-text)"><use href="#i-image"/></svg>
+          <h3>Probar con una imagen<span class="sub">Describe y lee el texto con el modelo local; verás el tiempo de respuesta</span></h3>
+        </div>
+        <div class="card-body">
+          <div class="try">
+            <div class="drop" id="drop">
+              <img id="tryImg" alt="" hidden>
+              <div class="drop-in" id="dropIn">
+                <svg class="i" style="width:26px;height:26px"><use href="#i-upload"/></svg>
+                <p><b>Suelta una imagen</b>, pégala o elige una del dispositivo</p>
+                <div class="btns"><button class="btn soft sm" id="btnPick" type="button"><svg class="i sm"><use href="#i-upload"/></svg> Elegir imagen</button></div>
+              </div>
+              <input type="file" id="filePick" accept="image/*" class="sr" tabindex="-1">
+            </div>
+            <div class="try-acts">
+              <button class="btn" id="btnCaption" type="button" disabled><svg class="i sm"><use href="#i-eye"/></svg> Describir</button>
+              <button class="btn" id="btnOcr" type="button" disabled><svg class="i sm"><use href="#i-text"/></svg> Leer texto</button>
+              <button class="btn ghost sm" id="btnTryClear" type="button" hidden>Otra imagen</button>
+            </div>
+            <div class="results" id="tryResults"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6. Avanzado -->
+      <details class="adv" id="advBox">
+        <summary><span class="adv-head"><b>Avanzado</b><span class="sum" id="advSum">Motores personalizados, catálogo completo y dependencias</span></span><svg class="i sm chev"><use href="#i-chevron"/></svg></summary>
+        <div class="adv-body stack" style="gap:16px">
+          <div class="field">
+            <span class="lbl">Motores personalizados (servidor compatible con OpenAI: vLLM, LocalAI, Jan, llama.cpp en otro puerto…)</span>
+            <ul class="custom" id="customList"></ul>
+            <div class="custom-add">
+              <input class="inp" id="cName" placeholder="Nombre (p. ej. Servidor del taller)" autocomplete="off">
+              <input class="inp" id="cUrl" placeholder="http://192.168.1.20:8080" inputmode="url" autocomplete="off">
+              <select class="sel" id="cKind" aria-label="Tipo"><option value="openai">Compatible OpenAI</option><option value="ollama">Ollama</option></select>
+              <button class="btn" id="btnAddEngine" type="button"><svg class="i sm"><use href="#i-plus"/></svg> Añadir</button>
+            </div>
+            <p class="hint">Se guarda en los ajustes de PixAgent y se comprueba al instante.</p>
+          </div>
+          <div class="field">
+            <span class="lbl">Catálogo completo de modelos pequeños</span>
+            <div class="tablewrap"><table class="catalog" id="catalog"></table></div>
+          </div>
+          <div class="field">
+            <span class="lbl">Dependencias opcionales en el equipo anfitrión</span>
+            <ul class="deps" id="deps"></ul>
+          </div>
+        </div>
+      </details>
+    </div>
+  </main>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="/static/pixagent-sdk.js"></script>
+<script src="/static/zoom.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
