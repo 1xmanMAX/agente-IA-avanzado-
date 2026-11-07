@@ -71,9 +71,9 @@
 
         <section class="group essentials">
           <div class="fields">
-            <label class="field big"><span>Desnivel H</span><div class="inp"><input type="number" id="H" step="0.01" min="0.1" value="3.00"><em>m</em></div></label>
-            <label class="field big"><span id="lblL">Distancia horizontal L</span><div class="inp"><input type="number" id="L" step="0.01" min="0.1" value="4.20"><em>m</em></div></label>
-            <label class="field big"><span id="lblB">Ancho B</span><div class="inp"><input type="number" id="B" step="0.05" min="0.3" value="1.20"><em>m</em></div></label>
+            <label class="field big"><span>Desnivel H</span><div class="inp"><input type="text" inputmode="decimal" autocomplete="off" id="H" data-step="0.01" data-min="0.1" value="3.00"><em>m</em></div></label>
+            <label class="field big"><span id="lblL">Distancia horizontal L</span><div class="inp"><input type="text" inputmode="decimal" autocomplete="off" id="L" data-step="0.01" data-min="0.1" value="4.20"><em>m</em></div></label>
+            <label class="field big"><span id="lblB">Ancho B</span><div class="inp"><input type="text" inputmode="decimal" autocomplete="off" id="B" data-step="0.05" data-min="0.3" value="1.20"><em>m</em></div></label>
           </div>
           <p class="hint" id="hintGeneral">H es el desnivel a salvar y L la distancia horizontal disponible. Medidas en metros.</p>
         </section>
@@ -85,22 +85,22 @@
           <div class="adv-body">
             <div class="mode-stair">
               <div class="fields">
-                <div class="field range"><span>Contrahuella c</span><div class="pair"><div class="inp"><input type="number" id="cmin" step="0.005" value="0.15"><em>mín</em></div><div class="inp"><input type="number" id="cmax" step="0.005" value="0.18"><em>máx</em></div></div></div>
-                <div class="field range"><span>Huella h</span><div class="pair"><div class="inp"><input type="number" id="hmin" step="0.005" value="0.25"><em>mín</em></div><div class="inp"><input type="number" id="hmax" step="0.005" value="0.30"><em>máx</em></div></div></div>
-                <label class="field"><span>Máx. contrahuellas por tramo</span><div class="inp"><input type="number" id="nmax" step="1" min="2" value="18"><em>ud</em></div></label>
-                <label class="field"><span>Longitud de descanso</span><div class="inp"><input type="number" id="Ld" step="0.05" min="0.3" value="" placeholder="auto"><em>m</em></div></label>
+                <div class="field range"><span>Contrahuella c</span><div class="pair"><div class="inp"><input type="text" inputmode="decimal" autocomplete="off" id="cmin" data-step="0.005" value="0.15"><em>mín</em></div><div class="inp"><input type="text" inputmode="decimal" autocomplete="off" id="cmax" data-step="0.005" value="0.18"><em>máx</em></div></div></div>
+                <div class="field range"><span>Huella h</span><div class="pair"><div class="inp"><input type="text" inputmode="decimal" autocomplete="off" id="hmin" data-step="0.005" value="0.25"><em>mín</em></div><div class="inp"><input type="text" inputmode="decimal" autocomplete="off" id="hmax" data-step="0.005" value="0.30"><em>máx</em></div></div></div>
+                <label class="field"><span>Máx. contrahuellas por tramo</span><div class="inp"><input type="text" inputmode="decimal" autocomplete="off" id="nmax" data-step="1" data-min="2" value="18"><em>ud</em></div></label>
+                <label class="field"><span>Longitud de descanso</span><div class="inp"><input type="text" inputmode="decimal" autocomplete="off" id="Ld" data-step="0.05" data-min="0.3" value="" placeholder="auto"><em>m</em></div></label>
               </div>
               <p class="hint">Regla de Blondel: 2c + h entre 0.60 y 0.64 m. Si el nº de contrahuellas supera el máximo por tramo se intercala un descanso (por defecto max(B, 1.00 m)). Las huellas son n − 1 por tramo.</p>
             </div>
             <div class="mode-bleacher" hidden>
               <div class="fields">
-                <div class="field range"><span>Peralte por grada N</span><div class="pair"><div class="inp"><input type="number" id="Nmin" step="0.01" value="0.40"><em>mín</em></div><div class="inp"><input type="number" id="Nmax" step="0.01" value="0.45"><em>máx</em></div></div></div>
-                <div class="field range"><span>Profundidad de grada T</span><div class="pair"><div class="inp"><input type="number" id="Tmin" step="0.01" value="0.70"><em>mín</em></div><div class="inp"><input type="number" id="Tmax" step="0.01" value="0.90"><em>máx</em></div></div></div>
+                <div class="field range"><span>Peralte por grada N</span><div class="pair"><div class="inp"><input type="text" inputmode="decimal" autocomplete="off" id="Nmin" data-step="0.01" value="0.40"><em>mín</em></div><div class="inp"><input type="text" inputmode="decimal" autocomplete="off" id="Nmax" data-step="0.01" value="0.45"><em>máx</em></div></div></div>
+                <div class="field range"><span>Profundidad de grada T</span><div class="pair"><div class="inp"><input type="text" inputmode="decimal" autocomplete="off" id="Tmin" data-step="0.01" value="0.70"><em>mín</em></div><div class="inp"><input type="text" inputmode="decimal" autocomplete="off" id="Tmax" data-step="0.01" value="0.90"><em>máx</em></div></div></div>
               </div>
               <p class="hint">Cada grada es un escalón de peralte N y profundidad T (asiento). El nº de gradas se elige para que N y T queden centrados en sus rangos.</p>
             </div>
             <div class="fields" style="margin-top:10px">
-              <label class="field"><span id="lblT">Espesor de losa (garganta)</span><div class="inp"><input type="number" id="t" step="0.01" min="0.05" value="0.15"><em>m</em></div></label>
+              <label class="field"><span id="lblT">Espesor de losa (garganta)</span><div class="inp"><input type="text" inputmode="decimal" autocomplete="off" id="t" data-step="0.01" data-min="0.05" value="0.15"><em>m</em></div></label>
             </div>
           </div>
         </details>
@@ -110,7 +110,7 @@
           <div class="adv-body">
             <label class="switch"><input type="checkbox" id="accessStair" checked><span class="sw"></span><span>Escalera de acceso intercalada</span></label>
             <div class="fields sub" id="accessFields">
-              <label class="field"><span>Ancho de la escalera</span><div class="inp"><input type="number" id="Be" step="0.05" min="0.6" value="1.20"><em>m</em></div></label>
+              <label class="field"><span>Ancho de la escalera</span><div class="inp"><input type="text" inputmode="decimal" autocomplete="off" id="Be" data-step="0.05" data-min="0.6" value="1.20"><em>m</em></div></label>
               <label class="field"><span>Escalones por grada</span><div class="inp"><select id="stepsPerRow"><option value="2" selected>2</option><option value="3">3</option></select></div></label>
             </div>
             <p class="hint">Divide cada grada en escalones iguales de c = N/k y h = T/k dentro de una franja central.</p>
@@ -122,7 +122,7 @@
           <div class="adv-body">
             <label class="switch"><input type="checkbox" id="aisle"><span class="sw"></span><span>Pasillo de circulación</span></label>
             <div class="fields sub" id="aisleFields" hidden>
-              <label class="field"><span>Ancho del pasillo</span><div class="inp"><input type="number" id="Wp" step="0.05" min="0.6" value="1.20"><em>m</em></div></label>
+              <label class="field"><span>Ancho del pasillo</span><div class="inp"><input type="text" inputmode="decimal" autocomplete="off" id="Wp" data-step="0.05" data-min="0.6" value="1.20"><em>m</em></div></label>
               <label class="field"><span>Posición</span><div class="inp"><select id="aislePos"><option value="top" selected>Superior (detrás de la última grada)</option><option value="bottom">Inferior (al pie, a nivel de suelo)</option></select></div></label>
             </div>
             <p class="hint">El pasillo descuenta su ancho de L.</p>
@@ -134,9 +134,9 @@
           <div class="adv-body">
             <label class="switch"><input type="checkbox" id="visOn"><span class="sw"></span><span>Evaluar la visibilidad de cada fila</span></label>
             <div class="fields sub" id="visFields" hidden>
-              <label class="field"><span>Distancia al punto focal desde la 1.ª fila</span><div class="inp"><input type="number" id="Df" step="0.1" min="0" value="6.0"><em>m</em></div></label>
-              <label class="field"><span>Altura del punto focal</span><div class="inp"><input type="number" id="hf" step="0.05" value="0.00"><em>m</em></div></label>
-              <label class="field"><span>Altura del ojo sentado</span><div class="inp"><input type="number" id="eyeH" step="0.01" value="1.15"><em>m</em></div></label>
+              <label class="field"><span>Distancia al punto focal desde la 1.ª fila</span><div class="inp"><input type="text" inputmode="decimal" autocomplete="off" id="Df" data-step="0.1" data-min="0" value="6.0"><em>m</em></div></label>
+              <label class="field"><span>Altura del punto focal</span><div class="inp"><input type="text" inputmode="decimal" autocomplete="off" id="hf" data-step="0.05" value="0.00"><em>m</em></div></label>
+              <label class="field"><span>Altura del ojo sentado</span><div class="inp"><input type="text" inputmode="decimal" autocomplete="off" id="eyeH" data-step="0.01" value="1.15"><em>m</em></div></label>
             </div>
             <p class="hint">C = D·(N + R)/(D + T) − R. Objetivo C ≥ 0.06 m (mínimo) y ≥ 0.09 m (bueno). Con peralte constante C decrece hacia atrás.</p>
           </div>
@@ -177,12 +177,13 @@
             <button class="menu-item tab" data-view="grid"><svg width="18" height="18"><use href="#i-grid"/></svg><span>Rejilla (todas las vistas)</span></button>
           </div>
         </details>
+        <button class="help" id="btnHelp" type="button" title="Atajos de teclado y gestos (?)" aria-label="Ayuda: atajos y gestos">?</button>
       </nav>
 
       <div class="views">
-        <div class="view is-on" data-view="section"><div class="sheet" id="vSection"></div></div>
-        <div class="view" data-view="plan"><div class="sheet" id="vPlan"></div></div>
-        <div class="view" data-view="iso"><div class="sheet" id="vIso"></div></div>
+        <div class="view is-on" data-view="section"><div class="sheet zoomer" id="vSection"><div class="zc"></div><span class="zoom-hint">Rueda: zoom · arrastrar: mover · doble clic: ajustar</span></div></div>
+        <div class="view" data-view="plan"><div class="sheet zoomer" id="vPlan"><div class="zc"></div><span class="zoom-hint">Rueda: zoom · arrastrar: mover · doble clic: ajustar</span></div></div>
+        <div class="view" data-view="iso"><div class="sheet zoomer" id="vIso"><div class="zc"></div><span class="zoom-hint">Rueda: zoom · arrastrar: mover · doble clic: ajustar</span></div></div>
         <div class="view" data-view="three">
           <div class="sheet three-wrap">
             <canvas id="c3d" aria-label="Modelo 3D interactivo"></canvas>
@@ -217,10 +218,27 @@
   <div class="toast" id="toast" role="status"></div>
 </div>
 
+<dialog class="help-dlg" id="helpDlg">
+  <div class="panel-head"><h3>Atajos y gestos</h3><button class="icon-btn" id="helpClose" aria-label="Cerrar"><svg width="18" height="18"><use href="#i-x"/></svg></button></div>
+  <div class="panel-body" style="white-space:normal">
+    <table>
+      <tr><td><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd></td><td>Corte · Planta · 3D · Tabla</td></tr>
+      <tr><td><kbd>5</kbd> <kbd>6</kbd></td><td>Isométrico · Rejilla</td></tr>
+      <tr><td><kbd>P</kbd></td><td>Exportar PDF / imprimir</td></tr>
+      <tr><td><kbd>E</kbd> / <kbd>G</kbd></td><td>Modo escalera / graderío</td></tr>
+      <tr><td><kbd>↑</kbd> <kbd>↓</kbd> en un campo</td><td>Ajusta el valor (con <kbd>Shift</kbd>, paso ×10). <kbd>Intro</kbd> recalcula.</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td>Cierra menús y esta ayuda</td></tr>
+      <tr><td>Planos</td><td>Rueda o pellizco: zoom · arrastrar: mover · doble clic o doble toque: ajustar ↔ 2,5× · <kbd>+</kbd> <kbd>−</kbd> <kbd>0</kbd></td></tr>
+      <tr><td>3D</td><td>Arrastrar o un dedo: girar · rueda, Ctrl+rueda o pellizco: zoom · dos dedos (trackpad): orbitar · doble clic: restablecer</td></tr>
+    </table>
+  </div>
+</dialog>
+
 <div id="printSheet" class="print-sheet" aria-hidden="true"></div>
 <style id="pageStyle">@page { size: A3 landscape; margin: 10mm; }</style>
 
 <script src="/static/pixagent-sdk.js"></script>
+<script src="/static/zoom.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

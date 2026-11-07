@@ -65,6 +65,9 @@
   <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3.5 12.5v-8a1 1 0 0 1 1-1h8l8 8-9 9z"/><path d="M7.5 7.5h.01"/></symbol>
   <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8v.5"/></symbol>
   <symbol id="i-coins" viewBox="0 0 24 24"><ellipse cx="12" cy="6.5" rx="7" ry="3"/><path d="M5 6.5v11c0 1.7 3.1 3 7 3s7-1.3 7-3v-11"/><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><path d="M6 12h.01M12 12h.01M18 12h.01"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1.1 5.9L12 16.9l-5.3 2.8 1.1-5.9-4.3-4.1 5.9-.8z"/></symbol>
+  <symbol id="i-check-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></symbol>
 </svg>
 
 <div id="app">
@@ -120,7 +123,7 @@
         <header class="page-head">
           <div class="grow">
             <h1>Informes</h1>
-            <p class="muted">Informes técnicos con estructura fija: tú defines la plantilla, añades las fotos y las notas, y la IA redacta cada parte por separado.</p>
+            <p class="muted">Elige una plantilla, añade fotos y notas, y la IA redacta cada parte por separado.</p>
           </div>
           <button class="btn btn-primary" type="button" data-go="#/nuevo"><svg class="icon"><use href="#i-plus"/></svg>Nuevo informe</button>
         </header>
@@ -145,7 +148,7 @@
           <button class="btn btn-ghost btn-icon" type="button" data-go="#/" title="Volver"><svg class="icon"><use href="#i-back"/></svg></button>
           <div class="grow">
             <h1>Nuevo informe</h1>
-            <p class="muted">Elige la estructura y cuenta lo observado. Las fotos se añaden en el siguiente paso.</p>
+            <p class="muted">Elige la plantilla y cuenta lo observado. Las fotos van en el siguiente paso.</p>
           </div>
         </header>
         <ol class="steps" aria-label="Pasos">
@@ -170,28 +173,34 @@
           </label>
           <div id="wizFields" class="form-grid"></div>
           <label class="field">Notas y contexto
-            <textarea class="textarea notes" id="wizNotes" rows="7" placeholder="Describe lo observado: qué se inspeccionó, en qué estado está, medidas, fechas, incidencias, lo que quieres que destaque el informe… Cuanto más concreto, mejor redactará la IA (no inventa datos)."></textarea>
+            <textarea class="textarea notes" id="wizNotes" rows="6" placeholder="Qué se inspeccionó, estado, medidas, fechas, incidencias y qué debe destacar el informe. Cuanto más concreto, mejor (la IA no inventa datos)."></textarea>
           </label>
-          <div id="wizPagesWrap" class="card card-pad stack gap-2 hidden">
-            <div class="row">
-              <div class="grow">
-                <b>Extensión objetivo</b>
-                <div class="small muted">La IA propondrá un índice ajustado a esta extensión y redactará cada apartado por separado.</div>
+          <details class="adv" id="wizAdvanced">
+            <summary><span class="grow">Opciones avanzadas</span><span id="wizAdvSum" class="xs faint"></span><svg class="icon icon-sm fold-chev"><use href="#i-chevron"/></svg></summary>
+            <div class="adv-body stack gap-3">
+              <div id="wizFieldsOpt" class="form-grid"></div>
+              <div id="wizPagesWrap" class="stack gap-2 hidden">
+                <div class="row">
+                  <div class="grow">
+                    <b class="small">Extensión objetivo</b>
+                    <div class="xs muted">La IA propone un índice para esta extensión y redacta cada apartado por separado.</div>
+                  </div>
+                  <div class="row gap-1 pages-ctl">
+                    <input class="input tabular" id="wizPages" type="number" min="5" max="200" step="1" value="20" inputmode="numeric" aria-label="Páginas objetivo">
+                    <span class="small muted">págs.</span>
+                  </div>
+                </div>
+                <input type="range" id="wizPagesRange" min="5" max="200" step="5" value="20" aria-label="Páginas objetivo">
               </div>
-              <div class="row gap-1 pages-ctl">
-                <input class="input tabular" id="wizPages" type="number" min="5" max="200" step="1" value="20" inputmode="numeric">
-                <span class="small muted">págs.</span>
+              <div class="field">Calidad de redacción
+                <div class="segmented seg-block" id="wizModel">
+                  <button type="button" data-model="claude-opus-5-5" class="on"><svg class="icon icon-sm"><use href="#i-sparkle"/></svg>Máxima</button>
+                  <button type="button" data-model="claude-sonnet-5-5"><svg class="icon icon-sm"><use href="#i-zap"/></svg>Económica</button>
+                </div>
+                <span id="wizModelHint" class="xs faint"></span>
               </div>
             </div>
-            <input type="range" id="wizPagesRange" min="5" max="200" step="5" value="20" aria-label="Páginas objetivo">
-          </div>
-          <div class="field">Calidad de redacción
-            <div class="segmented seg-block" id="wizModel">
-              <button type="button" data-model="claude-opus-5-5" class="on"><svg class="icon icon-sm"><use href="#i-sparkle"/></svg>Máxima</button>
-              <button type="button" data-model="claude-sonnet-5-5"><svg class="icon icon-sm"><use href="#i-zap"/></svg>Económica</button>
-            </div>
-            <span id="wizModelHint" class="xs faint"></span>
-          </div>
+          </details>
           <div class="wiz-actions">
             <button class="btn btn-ghost" type="button" id="wizBack">Atrás</button>
             <button class="btn btn-primary btn-lg" type="submit" id="wizCreate"><svg class="icon"><use href="#i-check"/></svg>Crear informe</button>
@@ -209,8 +218,8 @@
           <div id="edMeta" class="xs faint truncate"></div>
         </div>
         <span id="edRunning" class="chip chip-accent hidden"><span class="spinner"></span><span class="no-touch">Redactando…</span></span>
-        <button class="btn btn-ghost btn-sm" type="button" id="edData" title="Datos del informe"><svg class="icon"><use href="#i-sliders"/></svg><span class="no-touch">Datos</span></button>
-        <button class="btn btn-primary btn-sm" type="button" id="edBuild"><svg class="icon"><use href="#i-pdf"/></svg><span>Construir PDF</span></button>
+        <button class="btn btn-primary" type="button" id="edPrimary" data-act="photos"><svg class="icon"><use href="#i-plus"/></svg><span>Añadir fotos</span></button>
+        <button class="btn btn-ghost btn-icon" type="button" id="edMore" title="Más acciones" aria-haspopup="menu" aria-label="Más acciones"><svg class="icon"><use href="#i-more"/></svg></button>
       </header>
 
 
@@ -232,16 +241,15 @@
               </div>
               <span id="genModel" class="badge"></span>
             </div>
-            <div id="estimate" class="est"></div>
+            <details class="est-fold" id="estFold">
+              <summary><span id="estLine" class="grow truncate tabular"></span><svg class="icon icon-sm fold-chev"><use href="#i-chevron"/></svg></summary>
+              <div id="estimate" class="est"></div>
+            </details>
             <div id="genProgress" class="gen-progress hidden">
               <div class="row small"><span id="genLabel" class="grow truncate">Redactando…</span><span id="genCount" class="tabular faint"></span></div>
               <span class="progress"><i id="genBar"></i></span>
             </div>
             <div id="genMsg" class="gen-msg hidden"></div>
-            <div class="gen-actions">
-              <button class="btn btn-primary grow" type="button" id="genAll"><svg class="icon"><use href="#i-sparkle"/></svg><span>Generar todo</span></button>
-              <button class="btn btn-danger hidden" type="button" id="genCancel"><svg class="icon"><use href="#i-stop"/></svg>Cancelar</button>
-            </div>
           </div>
           <div id="outlineCard" class="card card-pad outline-card hidden"></div>
           <div class="pane-title row"><span class="grow">Estructura</span><span id="structSummary" class="xs faint tabular"></span></div>
@@ -323,30 +331,35 @@
               <input class="input" id="tplName" required placeholder="Ej.: Informe de patologías">
             </label>
             <label class="field span2">Descripción
-              <input class="input" id="tplDesc" placeholder="Para qué sirve esta plantilla (se muestra al elegirla)">
+              <input class="input" id="tplDesc" placeholder="Para qué sirve (se muestra al elegirla)">
             </label>
-            <label class="field">Color del PDF
-              <span class="row color-row"><input type="color" id="tplColor" value="#1f4e79" aria-label="Color"><input class="input mono" id="tplColorHex" value="#1f4e79" maxlength="7"></span>
-            </label>
-            <label class="field">Tamaño de página
-              <span class="select"><select id="tplPage"><option value="A4">A4</option><option value="Letter">Carta (Letter)</option></select></span>
-            </label>
-            <div class="row wrap gap-3 span2">
-              <label class="switch"><input type="checkbox" id="tplCover" checked><i></i>Portada</label>
-              <label class="switch"><input type="checkbox" id="tplCoverPhoto" checked><i></i>Foto en portada</label>
-              <label class="switch"><input type="checkbox" id="tplToc" checked><i></i>Índice</label>
-            </div>
           </div>
+          <details class="adv" id="tplLook">
+            <summary><span class="grow">Aspecto del PDF</span><span id="tplLookSum" class="xs faint"></span><svg class="icon icon-sm fold-chev"><use href="#i-chevron"/></svg></summary>
+            <div class="adv-body form-grid">
+              <label class="field">Color
+                <span class="row color-row"><input type="color" id="tplColor" value="#1f4e79" aria-label="Color"><input class="input mono" id="tplColorHex" value="#1f4e79" maxlength="7"></span>
+              </label>
+              <label class="field">Tamaño de página
+                <span class="select"><select id="tplPage"><option value="A4">A4</option><option value="Letter">Carta (Letter)</option></select></span>
+              </label>
+              <div class="row wrap gap-3 span2">
+                <label class="switch"><input type="checkbox" id="tplCover" checked><i></i>Portada</label>
+                <label class="switch"><input type="checkbox" id="tplCoverPhoto" checked><i></i>Foto en portada</label>
+                <label class="switch"><input type="checkbox" id="tplToc" checked><i></i>Índice</label>
+              </div>
+            </div>
+          </details>
         </div>
 
         <div class="block-head">
-          <div class="grow"><h3>Campos del informe</h3><div class="small muted">Datos que se piden al crear el informe. En el texto fijo puedes insertarlos como <code>{{clave}}</code>.</div></div>
+          <div class="grow"><h3>Campos del informe</h3><div class="small muted">Datos que se piden al crear cada informe.</div></div>
           <button class="btn btn-sm" type="button" id="tplAddField"><svg class="icon"><use href="#i-plus"/></svg>Campo</button>
         </div>
         <div id="tplFields" class="stack gap-2"></div>
 
         <div class="block-head">
-          <div class="grow"><h3>Secciones</h3><div class="small muted">En el orden en que aparecerán en el PDF. Cada tipo se comporta de forma distinta.</div></div>
+          <div class="grow"><h3>Secciones</h3><div class="small muted">En el orden del PDF. Título, tipo e instrucciones a la vista; el resto en «Más opciones».</div></div>
           <button class="btn btn-sm btn-primary" type="button" id="tplAddSection"><svg class="icon"><use href="#i-plus"/></svg>Sección</button>
         </div>
         <div id="tplSections" class="stack gap-2"></div>
@@ -431,6 +444,7 @@
 </div>
 
 <div id="toasts" class="toast-stack" role="status" aria-live="polite"></div>
+<script src="/static/zoom.js?v={{V}}" defer></script>
 <script src="/static/reports.js?v={{V}}" defer></script>
 </body>
 </html>

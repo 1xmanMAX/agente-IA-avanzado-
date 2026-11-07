@@ -4,8 +4,10 @@
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var STORE = "pixagent.calc.v1";
-  var store = { hist: [], angle: "deg", dos: null, tab: "sci", ucat: "longitud" };
+  var store = { hist: [], angle: "deg", dos: null, tab: "sci", ucat: "longitud", use: {} };
   try { var raw = localStorage.getItem(STORE); if (raw) { var d = JSON.parse(raw); Object.keys(store).forEach(function (k) { if (d[k] !== undefined) store[k] = d[k]; }); } } catch (e) { /* sin almacenamiento */ }
+  if (!store.use || typeof store.use !== "object") store.use = {};
+  var COARSE = window.matchMedia("(pointer: coarse)").matches;
   function persist() { try { localStorage.setItem(STORE, JSON.stringify(store)); } catch (e) { /* ignorar */ } }
 
   var toastTimer;
@@ -257,13 +259,22 @@
     return v * f[from] / f[to];
   }
   var ucat = UNITS[store.ucat] ? store.ucat : "longitud";
+  var COMMON_CATS = ["longitud", "area", "volumen", "angulo"], catsMore = false;
   function renderCats() {
     var box = $("#unitCats"); box.innerHTML = "";
-    Object.keys(UNITS).forEach(function (k) {
+    var showAll = catsMore || COMMON_CATS.indexOf(ucat) < 0;
+    var keys = COMMON_CATS.concat(Object.keys(UNITS).filter(function (k) { return COMMON_CATS.indexOf(k) < 0; }));
+    keys.forEach(function (k) {
+      if (!showAll && COMMON_CATS.indexOf(k) < 0) return;
       var b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = UNITS[k].name; b.setAttribute("aria-pressed", String(k === ucat));
       b.onclick = function () { ucat = k; store.ucat = k; persist(); renderCats(); fillUnits(); doConvert(); };
       box.appendChild(b);
     });
+    if (!showAll) {
+      var m = document.createElement("button"); m.type = "button"; m.className = "chip more"; m.textContent = "Más…"; m.title = "Masa, presión y fuerza";
+      m.onclick = function () { catsMore = true; renderCats(); };
+      box.appendChild(m);
+    }
   }
   function fillUnits() {
     var from = $("#uFrom"), to = $("#uTo"); from.innerHTML = ""; to.innerHTML = "";
@@ -386,6 +397,20 @@
     }
   };
   function calcAll() { Object.keys(CALCS).forEach(function (k) { try { CALCS[k](); } catch (e) { /* entradas incompletas */ } }); }
+  /* orden por uso: las 3 más usadas abiertas arriba, el resto plegadas en lista (se reordena al abrir la app) */
+  var ORDER_DEFAULT = ["losa", "concreto", "ladrillos", "zapata", "columna", "pendiente"];
+  function layoutObra() {
+    var keys = ORDER_DEFAULT.slice().sort(function (a, b) { return (store.use[b] || 0) - (store.use[a] || 0) || ORDER_DEFAULT.indexOf(a) - ORDER_DEFAULT.indexOf(b); });
+    var top = $("#obraTop"), more = $("#obraMore");
+    keys.forEach(function (k, i) {
+      var card = $('details.card[data-calc="' + k + '"]'); if (!card) return;
+      card.open = i < 3; (i < 3 ? top : more).appendChild(card);
+    });
+  }
+  var lastUseCard = null;
+  function countUse(key) { if (!key) return; store.use[key] = (store.use[key] || 0) + 1; persist(); }
+  $("#pane-obra").addEventListener("focusin", function (e) { var card = e.target.closest("details.card"); if (card && card !== lastUseCard && /INPUT|SELECT/.test(e.target.tagName)) { lastUseCard = card; countUse(card.dataset.calc); } });
+  $("#pane-obra").addEventListener("toggle", function (e) { var card = e.target.closest && e.target.closest("details.card"); if (card && card === e.target && card.open && e.isTrusted) countUse(card.dataset.calc); }, true);
   function textOf(key) {
     var card = $('.card[data-calc="' + key + '"]');
     return card.querySelector("h2").firstChild.textContent.trim() + "\n" + $$(".res", card).map(function (r) { return r.querySelector(".l").textContent + ": " + r.querySelector(".v, .blondel").textContent.replace(/\s+/g, " ").trim(); }).join("\n");
@@ -394,10 +419,26 @@
   $("#pane-obra").addEventListener("change", function (e) { var card = e.target.closest(".card"); if (card && CALCS[card.dataset.calc]) CALCS[card.dataset.calc](); });
   $("#pane-obra").addEventListener("click", function (e) {
     var b = e.target.closest("button[data-copy],button[data-save]"); if (!b) return;
+    countUse(b.dataset.copy || b.dataset.save);
     if (b.dataset.copy) copyText(textOf(b.dataset.copy));
     else saveJSON(b.dataset.save, Object.assign({ resumen: textOf(b.dataset.save) }, lastData[b.dataset.save] || {}));
   });
-  fillFc(); $("#cn_fc").value = "210"; renderDos(); calcAll();
+  fillFc(); $("#cn_fc").value = "210"; renderDos(); calcAll(); layoutObra();
+
+  /* ---------- campos numéricos: ↑/↓ ajustan (Shift = ×10), coma decimal, teclado virtual sin tapar ---------- */
+  document.addEventListener("keydown", function (e) {
+    var el = e.target; if (!el || el.tagName !== "INPUT" || !el.classList.contains("num")) return;
+    if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+    e.preventDefault();
+    var v = num(el.value); if (isNaN(v)) v = 0;
+    var raw = String(el.value).replace(",", "."), dec = raw.indexOf(".") >= 0 ? Math.min(3, raw.split(".")[1].length) : 0;
+    var step = (dec ? Math.pow(10, -dec) : 1) * (e.shiftKey ? 10 : 1);
+    var nv = v + (e.key === "ArrowUp" ? step : -step);
+    if (el.getAttribute("inputmode") === "numeric" || /_n$/.test(el.id)) nv = Math.max(1, Math.round(nv));
+    el.value = fmt(parseFloat(nv.toFixed(Math.max(dec, 0))), Math.max(dec, 0));
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  if (COARSE) document.addEventListener("focusin", function (e) { if (/INPUT|SELECT/.test(e.target.tagName) && e.target !== exprEl) setTimeout(function () { try { e.target.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (x) { /* ok */ } }, 250); });
 
   /* ---------- pestañas ---------- */
   function setTab(t) {

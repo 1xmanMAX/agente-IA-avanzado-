@@ -23,6 +23,9 @@
     <symbol id="i-wifi-off" viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M5 10.5a11 11 0 0 1 3.4-2.3M12 6a11 11 0 0 1 7 2.5M8.5 14a6 6 0 0 1 2.5-1.3M15.5 14a6 6 0 0 0-1.2-.8"/><circle cx="12" cy="18" r="1"/></symbol>
     <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></symbol>
     <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></symbol>
+    <symbol id="i-mirror" viewBox="0 0 24 24"><path d="M12 3v18"/><path d="M8 7 3 12l5 5V7zM16 7l5 5-5 5V7z"/></symbol>
+    <symbol id="i-stats" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
   </defs>
 </svg>
 
@@ -33,6 +36,22 @@
       <div><h1>Detector de gestos</h1><small>Reconocimiento de manos en tu dispositivo · nada sale de tu equipo</small></div>
     </div>
     <div class="status" id="status" data-s="idle"><span class="dot"></span><span class="txt" id="statusTxt">Cámara apagada</span></div>
+    <details class="menu" id="settings">
+      <summary class="btn icon" aria-label="Ajustes" title="Ajustes: cámara, espejo, estadísticas"><svg class="i"><use href="#i-gear"/></svg></summary>
+      <div class="menu-list">
+        <button class="menu-item" id="btnSwitch" type="button" disabled><svg class="i"><use href="#i-switch"/></svg><span>Cambiar cámara</span><small>Frontal ↔ trasera · tecla <kbd>C</kbd></small></button>
+        <label class="menu-item switch-row"><svg class="i"><use href="#i-mirror"/></svg><span>Espejo</span><input type="checkbox" id="optMirror" checked><span class="track"></span></label>
+        <label class="menu-item switch-row"><svg class="i"><use href="#i-stats"/></svg><span>Estadísticas</span><input type="checkbox" id="optStats"><span class="track"></span></label>
+        <div class="menu-sep"></div>
+        <div class="menu-static">
+          <b>Gestos reconocidos</b>
+          <div class="legend">
+            <span>Pulgar arriba</span><span>Pulgar abajo</span><span>Victoria</span><span>Puño cerrado</span><span>Palma abierta</span><span>Señalar arriba</span><span>Te quiero</span>
+          </div>
+          <p>Procesa a ~16 fps y se pausa sola cuando la pestaña no está visible. La primera vez descarga el modelo (≈8 MB). Atajos: <kbd>Espacio</kbd> capturar · <kbd>C</kbd> cambiar cámara · <kbd>Esc</kbd> cerrar.</p>
+        </div>
+      </div>
+    </details>
   </header>
 
   <div class="main">
@@ -48,47 +67,28 @@
       </div>
     </div>
 
-    <aside class="side">
-      <section class="block">
-        <h2>Lectura</h2>
-        <div class="reading">
-          <div class="g none" id="gName">Esperando la cámara</div>
-          <div class="raw" id="gRaw">—</div>
-          <div class="meter" aria-hidden="true"><i id="gBar"></i></div>
-          <div class="stats">
-            <div class="stat"><div class="l">Confianza</div><div class="v" id="sConf">—</div></div>
-            <div class="stat"><div class="l">Dedos</div><div class="v" id="sFingers">—</div></div>
-            <div class="stat"><div class="l">Manos</div><div class="v" id="sHands">—</div></div>
-          </div>
-        </div>
-      </section>
+    <div class="bar">
+      <div class="reading">
+        <div class="g none" id="gName">Esperando la cámara</div>
+        <div class="sub"><span id="gFingers">—</span><span class="raw" id="gRaw"></span></div>
+        <div class="meter" aria-hidden="true"><i id="gBar"></i></div>
+      </div>
+      <div class="stats" id="stats" hidden>
+        <div class="stat"><div class="l">Confianza</div><div class="v" id="sConf">—</div></div>
+        <div class="stat"><div class="l">Dedos</div><div class="v" id="sFingers">—</div></div>
+        <div class="stat"><div class="l">Manos</div><div class="v" id="sHands">—</div></div>
+      </div>
+      <div class="controls">
+        <button class="btn" id="btnStart" type="button" title="Iniciar o detener la cámara"><svg class="i"><use href="#i-play"/></svg><span>Iniciar cámara</span></button>
+        <button class="btn primary snap" id="btnSnap" type="button" disabled title="Capturar el fotograma (Espacio)"><svg class="i"><use href="#i-snap"/></svg><span>Capturar</span></button>
+      </div>
+    </div>
 
-      <section class="block">
-        <h2>Controles</h2>
-        <div class="controls">
-          <button class="btn primary span2" id="btnStart" type="button"><svg class="i"><use href="#i-play"/></svg> Iniciar cámara</button>
-          <button class="btn" id="btnSwitch" type="button" disabled><svg class="i"><use href="#i-switch"/></svg> Cambiar cámara</button>
-          <button class="btn" id="btnSnap" type="button" disabled><svg class="i"><use href="#i-snap"/></svg> Capturar</button>
-        </div>
-        <p class="hint" style="color:var(--text-3);font-size:12px;margin:8px 0 0">Procesa a ~16 fps y se pausa sola cuando la pestaña no está visible. La primera vez descarga el modelo (≈8 MB).</p>
-      </section>
-
-      <section class="block">
-        <h2>Gestos reconocidos</h2>
-        <div class="legend">
-          <span><b>Pulgar arriba</b> · Thumb_Up</span><span><b>Pulgar abajo</b> · Thumb_Down</span>
-          <span><b>Victoria</b> · Victory</span><span><b>Puño cerrado</b> · Closed_Fist</span>
-          <span><b>Palma abierta</b> · Open_Palm</span><span><b>Señalar arriba</b> · Pointing_Up</span>
-          <span><b>Te quiero</b> · ILoveYou</span>
-        </div>
-      </section>
-
-      <section class="block">
-        <h2>Capturas <span id="capCount" style="text-transform:none;letter-spacing:0;color:var(--text-2);font-weight:500"></span></h2>
-        <div class="caps" id="caps"></div>
-        <p class="caps-empty" id="capsEmpty">Las capturas se guardan en <code>outputs/gestos/</code> del workspace.</p>
-      </section>
-    </aside>
+    <section class="caps-block" id="capsBlock" hidden>
+      <h2>Capturas <span id="capCount"></span></h2>
+      <div class="caps" id="caps"></div>
+      <p class="caps-empty" id="capsEmpty">Las capturas se guardan en <code>outputs/gestos/</code> del workspace.</p>
+    </section>
   </div>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>

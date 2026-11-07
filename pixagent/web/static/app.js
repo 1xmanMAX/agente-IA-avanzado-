@@ -160,7 +160,8 @@
     $("#usage").title = (u.input || 0).toLocaleString("es-ES") + " entrada (" + (u.cache_read || 0).toLocaleString("es-ES") + " en caché) · " + (u.output || 0).toLocaleString("es-ES") + " salida";
     const c = $("#usageCost");
     if (typeof u.usd === "number") {
-      c.textContent = "≈ " + u.usd.toLocaleString("es-ES", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: u.usd < 0.1 ? 3 : 2 });
+      const money = u.usd.toLocaleString("es-ES", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      c.textContent = u.usd > 0 && u.usd < 0.005 ? "< " + (0.01).toLocaleString("es-ES", { style: "currency", currency: "USD" }) : "≈ " + money;
       c.title = "Coste estimado acumulado de esta sesión"; c.classList.remove("hidden");
     } else c.classList.add("hidden");
   }
@@ -352,22 +353,42 @@
   }
 
   // ---------------------------------------------------------------- visor
+  // Zoom universal (rueda, trackpad, pellizco, doble clic/toque, teclado) con PixZoom; una instancia por archivo abierto
+  function destroyZoom() { if (state.zoom) { try { state.zoom.destroy(); } catch (e) { /* ya destruido */ } state.zoom = null; } }
+  function attachZoom(box, content, opts) {
+    destroyZoom();
+    if (!window.PixZoom) return null;
+    const z = PixZoom.attach(box, content, opts);
+    state.zoom = z;
+    // Al ampliar una miniatura más de 1,5× se carga el original (nítido), una sola vez
+    if (content.tagName === "IMG" && content.dataset.full) {
+      const check = () => { if (state.zoom === z && z.scale > 1.5 && content.src.indexOf("/thumb/") >= 0) content.src = content.dataset.full; };
+      ["wheel", "pointerup", "keyup", "click", "gesturechange", "dblclick"].forEach((ev) => box.addEventListener(ev, check, { passive: true }));
+    }
+    return z;
+  }
   function openFile(rel, quiet) {
     state.current = rel;
     const k = kindOf(rel), url = fileUrl(rel), body = $("#viewerBody");
+    destroyZoom();
     body.className = "";
     $("#viewerActions").classList.remove("hidden");
     $("#viewerName").textContent = rel;
     $("#openBtn").href = url;
     if (k === "image") {
-      body.innerHTML = `<img id="viewImg" decoding="async" src="${thumbUrl(rel, Math.min(1600, body.clientWidth || 800))}" data-full="${url}" alt="">`;
+      body.className = "zooming";
+      body.innerHTML = `<div class="zoombox" id="zoomBox"><img id="viewImg" decoding="async" src="${thumbUrl(rel, Math.min(1600, body.clientWidth || 800))}" data-full="${url}" alt=""></div>`;
+      attachZoom($("#zoomBox"), $("#viewImg"), { wheel: "zoom" });
     } else if (k === "pdf") {
-      if (isTouch || isIOS) { // iOS/iPadOS solo muestran la 1.ª página en iframes: páginas como imágenes
+      if (isTouch || isIOS) { // iOS/iPadOS solo muestran la 1.ª página en iframes: páginas como imágenes (con zoom por pellizco)
         body.innerHTML = '<div class="pdfpages"><div class="loading"><span class="spinner"></span>Cargando páginas…</div></div>';
         api("/api/pdfinfo/" + enc(rel)).then((j) => {
+          if (state.current !== rel) return;
           const n = Math.min(j.pages || 0, 60);
-          body.innerHTML = n ? '<div class="pdfpages">' + Array.from({ length: n }, (_, i) => `<img loading="lazy" decoding="async" src="${thumbUrl(rel, Math.min(900, body.clientWidth || 600), i)}" alt="Página ${i + 1}">`).join("") + "</div>"
-            : `<iframe src="${url}" title="PDF"></iframe>`;
+          if (!n) { body.innerHTML = `<iframe src="${url}" title="PDF"></iframe>`; return; }
+          body.className = "zooming";
+          body.innerHTML = '<div class="zoombox" id="zoomBox"><div class="pdfpages">' + Array.from({ length: n }, (_, i) => `<img loading="lazy" decoding="async" src="${thumbUrl(rel, Math.min(900, body.clientWidth || 600), i)}" alt="Página ${i + 1}">`).join("") + "</div></div>";
+          attachZoom($("#zoomBox"), $("#zoomBox .pdfpages"), { wheel: "scroll" });
         });
       } else body.innerHTML = `<iframe src="${url}" title="PDF"></iframe>`;
     } else if (k === "html") body.innerHTML = `<iframe src="${url}" title="HTML" sandbox="allow-scripts allow-forms allow-modals allow-downloads allow-popups"></iframe>`;
@@ -404,7 +425,11 @@
     $$(".side-nav .nav-item[data-view]").forEach((b) => b.classList.toggle("on", b.dataset.view === v));
     if (v === "apps") loadApps();
   }
-  function setPane(p) {
+  function setPane(p, fromBack) {
+    if (p !== state.pane && !fromBack) { // «atrás» en el móvil vuelve al chat en vez de salir de la app
+      if (p === "chat") dropLayer("pane");
+      else if (!layers.some((l) => l.name === "pane")) pushLayer("pane", () => setPane("chat", true));
+    }
     state.pane = p; document.body.dataset.pane = p;
     $$("#bottomNav [data-pane]").forEach((b) => b.classList.toggle("on", b.dataset.pane === p));
     if (p === "viewer") { $("#viewBadge").classList.add("hidden"); if (state.tab === "library") refreshLibrary(); }
@@ -461,14 +486,19 @@
     $("#appName").textContent = a.name;
     $("#appIcon").innerHTML = a.icon && !/^[a-z-]+$/i.test(a.icon) ? esc(a.icon) : ico("apps");
     $("#appOpen").href = a.url;
-    $("#appIframe").src = a.url;
+    // location.replace: la mini app no añade entradas al historial (el botón «atrás» sigue cerrando capas)
+    const fr = $("#appIframe");
+    try { fr.contentWindow.location.replace(a.url); } catch (e) { fr.src = a.url; }
     $("#appsGallery").classList.add("hidden"); $("#appFrame").classList.remove("hidden");
     document.body.classList.add("app-open");
     if (isMobile()) setPane("apps"); else setView("apps");
+    if (!layers.some((l) => l.name === "app")) pushLayer("app", () => closeApp(true));
   }
-  function closeApp() {
+  function closeApp(fromBack) {
+    if (!state.app) return;
     state.app = null;
-    $("#appIframe").src = "about:blank";
+    if (!fromBack) dropLayer("app");
+    try { $("#appIframe").contentWindow.location.replace("about:blank"); } catch (e) { $("#appIframe").src = "about:blank"; }
     $("#appFrame").classList.add("hidden"); $("#appsGallery").classList.remove("hidden");
     document.body.classList.remove("app-open");
     loadApps(true);
@@ -521,13 +551,64 @@
     if (isMobile()) setPane("chat"); else setView("agent");
   }
 
+  // ---------------------------------------------------------------- capas y botón «atrás» (Android, gesto atrás, Alt+←)
+  // Cada capa abierta (modal, menú, mini app, panel móvil) añade una entrada al historial; «atrás» cierra la
+  // capa superior en vez de sacar al usuario de la app.
+  const layers = [];
+  function pushLayer(name, close) {
+    layers.push({ name: name, close: close });
+    try { history.pushState({ layer: layers.length }, ""); } catch (e) { /* sin historial */ }
+  }
+  function dropLayer(name) { // cierre programático: quita la capa y retrocede en el historial si era la última
+    const i = layers.map((l) => l.name).lastIndexOf(name);
+    if (i < 0) return false;
+    const wasTop = i === layers.length - 1;
+    layers.splice(i, 1);
+    if (wasTop && history.state && history.state.layer === layers.length + 1) { try { history.back(); } catch (e) { /* nada */ } }
+    return true;
+  }
+  window.addEventListener("popstate", (e) => {
+    const depth = (e.state && e.state.layer) || 0;
+    while (layers.length > depth) { const l = layers.pop(); try { l.close(); } catch (err) { /* ya cerrada */ } }
+  });
+  try { history.replaceState({ layer: 0 }, ""); } catch (e) { /* nada */ }
+
+  // Modales accesibles: foco atrapado dentro y devuelto al cerrar; Esc y «atrás» cierran
+  const FOCUSABLE = 'button:not([disabled]), a[href], input:not([disabled]):not([type=hidden]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  function openModal(m, onClose) {
+    if (!m.classList.contains("hidden")) return;
+    m._prevFocus = document.activeElement; m._onClose = onClose || null;
+    m.classList.remove("hidden");
+    pushLayer("modal:" + m.id, () => finishModal(m, true));
+    const f = $$(FOCUSABLE).filter((el) => m.contains(el) && el.offsetParent !== null);
+    const first = m.querySelector("[autofocus]") || f[0];
+    if (first) setTimeout(() => first.focus(), 30);
+  }
+  function finishModal(m, fromBack) {
+    if (m.classList.contains("hidden")) return;
+    m.classList.add("hidden");
+    if (!fromBack) dropLayer("modal:" + m.id);
+    const cb = m._onClose; m._onClose = null; if (cb) cb();
+    const p = m._prevFocus; m._prevFocus = null;
+    if (p && p.focus && document.contains(p)) setTimeout(() => p.focus(), 0);
+  }
+  const closeModal = (m) => finishModal(m, false);
+  document.addEventListener("keydown", (e) => { // trampa de foco con Tab
+    if (e.key !== "Tab") return;
+    const m = $$(".modal:not(.hidden)").pop(); if (!m) return;
+    const f = $$(FOCUSABLE).filter((el) => m.contains(el) && el.offsetParent !== null); if (!f.length) return;
+    if (e.shiftKey && (document.activeElement === f[0] || !m.contains(document.activeElement))) { e.preventDefault(); f[f.length - 1].focus(); }
+    else if (!e.shiftKey && document.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
+  });
+
   // ---------------------------------------------------------------- aprobación y confirmación
   function askApproval(ev) {
     const m = $("#approval"); m.dataset.id = ev.id;
     $("#approvalName").textContent = toolLabel(ev.name);
     $("#approvalBody").textContent = ev.summary;
-    m.classList.remove("hidden");
-    const done = (ok) => { send({ type: "approve", id: ev.id, ok: ok }); m.classList.add("hidden"); };
+    let answered = false;
+    const done = (ok) => { if (answered) return; answered = true; send({ type: "approve", id: ev.id, ok: ok }); closeModal(m); };
+    openModal(m, () => done(false)); // cerrar con «atrás» o Esc equivale a rechazar
     $("#allowBtn").onclick = () => done(true); $("#denyBtn").onclick = () => done(false);
     if (navigator.vibrate) navigator.vibrate(60);
   }
@@ -538,11 +619,202 @@
       const yes = $("#confirmYes"); yes.textContent = label || "Borrar";
       yes.className = "btn " + (icon ? "btn-primary" : "btn-danger");
       $("#confirmIcon").className = "modal-icon" + (icon ? "" : " danger"); $("#confirmIcon").innerHTML = ico(icon || "trash");
-      m.classList.remove("hidden");
-      const close = (v) => { m.classList.add("hidden"); resolve(v); };
-      $("#confirmYes").onclick = () => close(true); $("#confirmNo").onclick = () => close(false);
+      let result = false;
+      openModal(m, () => resolve(result));
+      const close = (v) => { result = v; closeModal(m); };
+      yes.onclick = () => close(true); $("#confirmNo").onclick = () => close(false);
       m.onclick = (e) => { if (e.target === m) close(false); };
     });
+  }
+
+  // ---------------------------------------------------------------- menú contextual (clic derecho · pulsación larga)
+  function showMenu(items, x, y) {
+    hideMenu();
+    const menu = document.createElement("div"); menu.className = "ctx-menu"; menu.id = "ctxMenu"; menu.setAttribute("role", "menu");
+    menu.innerHTML = items.map((it, i) => it === "-" ? '<hr>' : `<button type="button" role="menuitem" data-i="${i}" class="${it.danger ? "danger" : ""}" ${it.disabled ? "disabled" : ""}>${it.icon ? ico(it.icon, "icon-sm") : ""}<span>${esc(it.label)}</span></button>`).join("");
+    if (isMobile()) menu.classList.add("sheet");
+    document.body.appendChild(menu);
+    if (!isMobile()) {
+      const r = menu.getBoundingClientRect();
+      menu.style.left = Math.max(8, Math.min(x, innerWidth - r.width - 8)) + "px";
+      menu.style.top = Math.max(8, Math.min(y, innerHeight - r.height - 8)) + "px";
+    }
+    menu.addEventListener("click", (e) => { const b = e.target.closest("[data-i]"); if (!b) return; const it = items[+b.dataset.i]; hideMenu(); if (it && it.onClick) it.onClick(); });
+    menu.addEventListener("keydown", (e) => {
+      const bs = $$("#ctxMenu button:not([disabled])"), i = bs.indexOf(document.activeElement);
+      if (e.key === "ArrowDown") { e.preventDefault(); (bs[i + 1] || bs[0]).focus(); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); (bs[i - 1] || bs[bs.length - 1]).focus(); }
+    });
+    menu._prevFocus = document.activeElement;
+    pushLayer("menu", () => hideMenu(true));
+    setTimeout(() => { const b = menu.querySelector("button:not([disabled])"); if (b && !isTouch) b.focus(); }, 20);
+    if (navigator.vibrate && isTouch) navigator.vibrate(12);
+  }
+  function hideMenu(fromBack) {
+    const m = $("#ctxMenu"); if (!m) return;
+    m.remove(); if (!fromBack) dropLayer("menu");
+    const p = m._prevFocus; if (p && p.focus && document.contains(p) && !isTouch) p.focus();
+  }
+  document.addEventListener("pointerdown", (e) => { if ($("#ctxMenu") && !e.target.closest("#ctxMenu")) hideMenu(); }, true);
+  window.addEventListener("resize", () => hideMenu());
+  function fileMenuItems(rel) {
+    const items = [
+      { label: "Abrir en el visor", icon: "eye", onClick: () => openFile(rel) },
+      { label: "Adjuntar al mensaje", icon: "clip", onClick: () => { addPending(rel); toast("Añadido como adjunto", 2000, "ok"); if (isMobile()) setPane("chat"); } },
+    ];
+    if (state.pixpin) items.push({ label: "Fijar en PixPin", icon: "pin", onClick: async () => { const j = await api("/api/pixpin/pin", { files: [rel], session: state.session }); toast(j.ok ? "Fijado en PixPin" : j.error, j.ok ? 2000 : 6000, j.ok ? "ok" : "err"); } });
+    if (navigator.share) items.push({ label: "Compartir…", icon: "share", onClick: () => shareFile(rel) });
+    items.push("-", { label: "Abrir en pestaña nueva", icon: "external", onClick: () => window.open(fileUrl(rel), "_blank", "noopener") },
+      { label: "Descargar", icon: "download", onClick: () => { const a = document.createElement("a"); a.href = fileUrl(rel); a.download = baseName(rel); document.body.appendChild(a); a.click(); a.remove(); } });
+    return items;
+  }
+  function sessionMenuItems(li) {
+    const sid = li.dataset.sid, title = li.querySelector(".nm").textContent;
+    return [
+      { label: "Abrir sesión", icon: "chat", onClick: () => openSession(sid) },
+      "-",
+      { label: "Borrar sesión", icon: "trash", danger: true, onClick: async () => {
+        if (await askConfirm("¿Borrar esta sesión?", "«" + title + "» se eliminará de forma permanente.")) {
+          await fetch("/api/sessions/" + sid, { method: "DELETE" });
+          if (state.session === sid) newSession(); loadSessions(); toast("Sesión borrada", 2000, "ok");
+        } } },
+    ];
+  }
+  function contextFor(target) {
+    const li = target.closest("#sessions li[data-sid]"); if (li) return sessionMenuItems(li);
+    const f = target.closest("[data-open]"); if (f && !target.closest("#viewerBody")) return fileMenuItems(f.dataset.open);
+    if (target.closest("#viewerBody") && state.current) return fileMenuItems(state.current);
+    return null;
+  }
+  let lpTimer = null, lpStart = null, lpFired = 0;
+  document.addEventListener("contextmenu", (e) => {
+    if (Date.now() - lpFired < 1200) { e.preventDefault(); return; } // ya lo abrió la pulsación larga
+    const items = contextFor(e.target); if (!items) return;
+    e.preventDefault(); showMenu(items, e.clientX, e.clientY);
+  });
+  // Pulsación larga (táctil y lápiz): mismo menú que el clic derecho, sin pelear con el scroll
+  document.addEventListener("pointerdown", (e) => {
+    if (e.pointerType === "mouse" || !contextFor(e.target)) return;
+    clearTimeout(lpTimer); lpStart = { x: e.clientX, y: e.clientY, t: e.target };
+    lpTimer = setTimeout(() => { lpFired = Date.now(); const items = contextFor(lpStart.t); if (items) showMenu(items, lpStart.x, lpStart.y); }, 480);
+  }, { passive: true });
+  document.addEventListener("pointermove", (e) => { if (lpStart && Math.hypot(e.clientX - lpStart.x, e.clientY - lpStart.y) > 10) { clearTimeout(lpTimer); lpStart = null; } }, { passive: true });
+  ["pointerup", "pointercancel"].forEach((ev) => document.addEventListener(ev, () => { clearTimeout(lpTimer); lpStart = null; }, { passive: true }));
+  document.addEventListener("click", (e) => { if (Date.now() - lpFired < 600 && !e.target.closest("#ctxMenu")) { e.stopPropagation(); e.preventDefault(); } }, true); // el toque que abrió el menú no "hace clic"
+  async function shareFile(rel) {
+    try {
+      const blob = await (await fetch(fileUrl(rel))).blob();
+      const file = new File([blob], baseName(rel), { type: blob.type });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ files: [file], title: file.name });
+      else await navigator.share({ title: file.name, url: location.origin + fileUrl(rel) });
+    } catch (err) { if (err.name !== "AbortError") toast("No se pudo compartir", 3000, "err"); }
+  }
+
+  // ---------------------------------------------------------------- teclado (Windows: Ctrl · Mac: ⌘)
+  const isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform) || /Mac/.test(navigator.userAgent);
+  const MOD = isMac ? "⌘" : "Ctrl";
+  const mod = (e) => (isMac ? e.metaKey : e.ctrlKey) && !e.altKey;
+  const inField = (el) => el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable);
+  state.enterSend = localGet("enterSend") == null ? !isTouch : localGet("enterSend") === "1";
+  const SHORTCUTS = [
+    ["Mensajes", [[MOD + " K", "Buscar o cambiar de sesión"], [MOD + " N", "Nueva sesión"], ["Intro", "Enviar (si está activado en «Más ajustes»)"], [MOD + " Intro", "Enviar siempre"], ["Mayús Intro", "Salto de línea"], [MOD + " U", "Adjuntar archivos"], ["/", "Escribir en el mensaje"], ["Esc", "Cerrar menú o ventana · detener el agente"]]],
+    ["Navegación", [["Alt 1", "Agente"], ["Alt 2", "Mini apps"], ["Alt 3", "Resultado / Biblioteca"], ["Alt 4", "Informes"], ["?", "Esta ayuda"]]],
+    ["Visor", [["Rueda · pellizco", "Zoom hacia el cursor"], ["Arrastrar", "Mover la imagen"], ["Doble clic", "Ajustar ↔ ampliar"], ["+ − 0 1", "Acercar · alejar · ajustar · tamaño real"], ["Flechas", "Desplazar"]]],
+  ];
+  function showShortcuts() {
+    const m = $("#shortcuts");
+    $("#shortcutsBody").innerHTML = SHORTCUTS.map(([g, rows]) => `<div class="sc-group"><div class="sc-title">${esc(g)}</div>${rows.map(([k, d]) => `<div class="sc-row"><span>${esc(d)}</span><span class="sc-keys">${k.split(" ").map((p) => `<span class="kbd">${esc(p)}</span>`).join("")}</span></div>`).join("")}</div>`).join("");
+    openModal(m);
+  }
+  // Paleta de sesiones (Ctrl/⌘+K): filtrar, flechas, Intro
+  let palItems = [];
+  async function showPalette() {
+    const m = $("#palette"), inp = $("#paletteInput");
+    inp.value = ""; $("#paletteList").innerHTML = '<div class="pal-empty">Cargando…</div>';
+    openModal(m);
+    palItems = await api("/api/sessions");
+    renderPalette("");
+  }
+  function renderPalette(q) {
+    q = q.trim().toLowerCase();
+    const list = palItems.filter((s) => !q || s.title.toLowerCase().indexOf(q) >= 0).slice(0, 30);
+    $("#paletteList").innerHTML = `<button type="button" class="pal-item ${!list.length || q ? "on" : ""}" data-pal="new">${ico("plus", "icon-sm")}<span>Nueva sesión${q ? ": «" + esc(q) + "»" : ""}</span><span class="kbd">${MOD} N</span></button>` +
+      list.map((s, i) => `<button type="button" class="pal-item ${i === 0 && !q ? "on" : ""}" data-pal="${esc(s.id)}">${ico("chat", "icon-sm")}<span>${esc(s.title)}</span></button>`).join("");
+  }
+  $("#paletteInput").addEventListener("input", (e) => renderPalette(e.target.value));
+  $("#paletteInput").addEventListener("keydown", (e) => {
+    const items = $$("#paletteList .pal-item"), i = items.findIndex((x) => x.classList.contains("on"));
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); const j = Math.max(0, Math.min(items.length - 1, i + (e.key === "ArrowDown" ? 1 : -1))); items.forEach((x, k) => x.classList.toggle("on", k === j)); if (items[j]) items[j].scrollIntoView({ block: "nearest" }); }
+    else if (e.key === "Enter") { e.preventDefault(); const it = items[i] || items[0]; if (it) it.click(); }
+  });
+  $("#paletteList").addEventListener("click", (e) => {
+    const it = e.target.closest("[data-pal]"); if (!it) return;
+    const q = $("#paletteInput").value.trim();
+    closeModal($("#palette"));
+    if (it.dataset.pal === "new") { newSession(); if (q) composeFrom(q, []); } else openSession(it.dataset.pal);
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.isComposing) return;
+    const field = inField(e.target);
+    if (e.key === "Escape") {
+      if ($("#ctxMenu")) { hideMenu(); return; }
+      const m = $$(".modal:not(.hidden)").pop();
+      if (m) { if (m.id === "confirm") $("#confirmNo").click(); else closeModal(m); return; }
+      if (state.app) { closeApp(); return; }
+      if (state.running && !field) { send({ type: "cancel", session: state.session }); toast("Deteniendo…", 1500); return; }
+      if (field) e.target.blur();
+      return;
+    }
+    if (mod(e) && !e.shiftKey && (e.key === "k" || e.key === "K")) { e.preventDefault(); showPalette(); return; }
+    if ((mod(e) || e.altKey) && !e.shiftKey && (e.key === "n" || e.key === "N")) { e.preventDefault(); newSession(); if (!isTouch) $("#input").focus(); return; }
+    if (mod(e) && (e.key === "u" || e.key === "U")) { e.preventDefault(); $("#fileInput").click(); return; }
+    if (e.altKey && !mod(e) && /^[1-4]$/.test(e.key)) {
+      e.preventDefault();
+      if (e.key === "1") { if (isMobile()) setPane("chat"); else setView("agent"); if (!isTouch) $("#input").focus(); }
+      else if (e.key === "2") { if (isMobile()) setPane("apps"); else setView("apps"); }
+      else if (e.key === "3") { if (isMobile()) setPane("viewer"); else { if (state.view !== "agent") setView("agent"); switchTab(state.tab === "view" ? "library" : "view"); } }
+      else location.href = "/reports";
+      return;
+    }
+    if (field) return;
+    if (e.key === "/" && !mod(e)) { e.preventDefault(); if (isMobile()) setPane("chat"); $("#input").focus(); return; }
+    if (e.key === "?" || (e.shiftKey && e.key === "/")) { e.preventDefault(); showShortcuts(); return; }
+  });
+  $("#shortcutsBtn").onclick = showShortcuts;
+  // Los atajos globales también funcionan con el foco dentro de una mini app (mismo origen)
+  $("#appIframe").addEventListener("load", () => {
+    try {
+      const doc = $("#appIframe").contentDocument; if (!doc) return;
+      doc.addEventListener("keydown", (e) => {
+        const relay = e.key === "Escape" || (e.altKey && /^[1-4nN]$/.test(e.key)) || (mod(e) && /^[kKnN]$/.test(e.key));
+        if (!relay) return;
+        e.preventDefault();
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: e.key, code: e.code, altKey: e.altKey, ctrlKey: e.ctrlKey, metaKey: e.metaKey, shiftKey: e.shiftKey, bubbles: true }));
+      });
+    } catch (err) { /* otro origen */ }
+  });
+  $("#enterSend").checked = state.enterSend;
+  $("#enterSend").onchange = (e) => { state.enterSend = e.target.checked; localSet("enterSend", e.target.checked ? "1" : "0"); renderComposerHint(); };
+  function renderComposerHint() {
+    $("#composerHint").innerHTML = state.enterSend
+      ? `<span class="kbd">Intro</span> enviar · <span class="kbd">Mayús</span>+<span class="kbd">Intro</span> salto de línea`
+      : `<span class="kbd">${MOD}</span>+<span class="kbd">Intro</span> enviar`;
+  }
+  renderComposerHint();
+  $$(".mod-key").forEach((el) => { el.textContent = MOD; });
+
+  // ---------------------------------------------------------------- teclado virtual (Android/iOS): el compositor no queda tapado
+  if (window.visualViewport) {
+    const vv = window.visualViewport;
+    const onVV = () => {
+      if (!isMobile()) { document.body.classList.remove("kb-open"); return; }
+      const kb = window.innerHeight - vv.height - vv.offsetTop;
+      const open = kb > 120;
+      document.body.classList.toggle("kb-open", open);
+      document.documentElement.style.setProperty("--vvh", open ? vv.height + "px" : "");
+      if (open) { window.scrollTo(0, 0); setTimeout(scroll, 60); }
+    };
+    vv.addEventListener("resize", onVV); vv.addEventListener("scroll", onVV);
   }
 
   // ---------------------------------------------------------------- tema
@@ -567,7 +839,9 @@
     if (isTouch) $("#input").blur(); // cerrar el teclado para ver la respuesta
   });
   $("#input").addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey && !isTouch && !e.isComposing) { e.preventDefault(); $("#composer").requestSubmit(); }
+    if (e.key !== "Enter" || e.isComposing) return;
+    const modEnter = e.ctrlKey || e.metaKey;
+    if (modEnter || (state.enterSend && !e.shiftKey && !isTouch)) { e.preventDefault(); $("#composer").requestSubmit(); }
   });
   $("#input").addEventListener("input", (e) => { e.target.style.height = "auto"; e.target.style.height = Math.min(200, e.target.scrollHeight) + "px"; });
   $("#fileInput").addEventListener("change", (e) => { uploadFiles(e.target.files); e.target.value = ""; });
@@ -583,6 +857,8 @@
 
   document.addEventListener("click", async (e) => {
     const t = e.target;
+    const close = t.closest("[data-close]"); if (close) { closeModal($(close.dataset.close)); return; }
+    if (t.classList.contains("modal") && (t.id === "shortcuts" || t.id === "palette")) { closeModal(t); return; }
     const o = t.closest("[data-open]"); if (o && !t.closest("#viewerBody")) { openFile(o.dataset.open); return; }
     const rm = t.closest("[data-rm]"); if (rm) { state.pending.splice(+rm.dataset.rm, 1); renderPending(); return; }
     const del = t.closest("[data-del]");
@@ -611,15 +887,9 @@
     const tab = t.closest(".viewer-tabs [data-tab]"); if (tab) { switchTab(tab.dataset.tab); return; }
     const th = t.closest("#themeSeg [data-theme]"); if (th) applyTheme(th.dataset.theme);
   });
-  $("#viewerBody").addEventListener("click", (e) => {
-    const im = e.target;
-    if (im.id !== "viewImg") return;
-    if (!im.classList.contains("zoom") && im.dataset.full && im.src.indexOf("/thumb/") >= 0) im.src = im.dataset.full; // original solo al ampliar
-    im.classList.toggle("zoom");
-  });
   $("#newSession").onclick = newSession;
   $("#cancelBtn").onclick = () => send({ type: "cancel", session: state.session });
-  $("#appBack").onclick = closeApp;
+  $("#appBack").onclick = () => closeApp();
   $("#appsRefresh").onclick = () => loadApps(true);
   $("#attachBtn").onclick = () => { if (state.current) { addPending(state.current); toast("Añadido como adjunto", 2000, "ok"); if (isMobile()) setPane("chat"); } };
   $("#pinBtn").onclick = async () => {
@@ -630,26 +900,43 @@
   // Compartir con la hoja nativa (iOS, iPadOS, Android, macOS Safari, Windows Edge)
   if (navigator.share) {
     $("#shareBtn").classList.remove("hidden");
-    $("#shareBtn").onclick = async () => {
-      if (!state.current) return;
-      try {
-        const blob = await (await fetch(fileUrl(state.current))).blob();
-        const file = new File([blob], baseName(state.current), { type: blob.type });
-        if (navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ files: [file], title: file.name });
-        else await navigator.share({ title: file.name, url: location.origin + fileUrl(state.current) });
-      } catch (err) { if (err.name !== "AbortError") toast("No se pudo compartir", 3000, "err"); }
-    };
+    $("#shareBtn").onclick = () => { if (state.current) shareFile(state.current); };
   }
   $("#installScripts").onclick = async () => { await api("/api/pixpin/install", {}); toast("Scripts generados en pixpin_scripts/ (ver LEEME.txt)", 5000, "ok"); refreshLibrary(); };
-  $("#effort").onchange = (e) => api("/api/settings", { effort: e.target.value });
-  $("#perm").onchange = (e) => api("/api/settings", { permission_mode: e.target.value });
+  // Velocidad de respuesta (3 opciones visibles) ↔ nivel de esfuerzo exacto (5 valores, en «Más ajustes»)
+  const EFFORT_NAMES = { low: "Bajo", medium: "Medio", high: "Alto", xhigh: "Muy alto", max: "Extremo" };
+  function renderEffort(v) {
+    $("#effort").value = v;
+    $$("#effortSeg [data-effort]").forEach((b) => b.classList.toggle("on", b.dataset.effort === v));
+    const custom = !$("#effortSeg .on");
+    $("#effortNote").classList.toggle("hidden", !custom);
+    if (custom) $("#effortNote").textContent = "Nivel personalizado: " + (EFFORT_NAMES[v] || v) + " (ver «Más ajustes»)";
+  }
+  function setEffort(v) { renderEffort(v); api("/api/settings", { effort: v }); }
+  $("#effortSeg").addEventListener("click", (e) => { const b = e.target.closest("[data-effort]"); if (b) setEffort(b.dataset.effort); });
+  $("#effort").onchange = (e) => setEffort(e.target.value);
+  // Permisos: auto (confirma terminal) · ask (también Python y PixPin) · full (sin confirmaciones, solo en «Más ajustes»)
+  function renderPerm(mode) {
+    const full = mode === "full";
+    $("#permAsk").checked = mode === "ask"; $("#permAsk").disabled = full;
+    $("#permFull").checked = full;
+    $("#permShell").textContent = full ? "No" : "Siempre";
+    $("#permFullNote").classList.toggle("hidden", !full);
+    $(".perm-list").classList.toggle("off", full);
+  }
+  function setPerm(mode) { renderPerm(mode); api("/api/settings", { permission_mode: mode }); }
+  $("#permAsk").onchange = (e) => setPerm(e.target.checked ? "ask" : "auto");
+  $("#permFull").onchange = async (e) => {
+    if (e.target.checked && !await askConfirm("¿Activar el modo total?", "El agente ejecutará comandos de terminal, Python y PixPin sin pedir confirmación. Puedes volver a desactivarlo aquí mismo.", "Activar", "shield")) { e.target.checked = false; return; }
+    setPerm(e.target.checked ? "full" : "auto");
+  };
   $("#saveData").checked = state.saveData;
   $("#saveData").onchange = (e) => { state.saveData = e.target.checked; localSet("saveData", e.target.checked ? "1" : "0"); refreshLibrary(); };
   // En escritorio las secciones plegables recuerdan su estado
   $$(".side-fold").forEach((d) => {
     const k = "fold:" + d.id, v = localGet(k);
     if (v === "1") d.open = true; else if (v === "0") d.open = false;
-    d.addEventListener("toggle", () => localSet(k, d.open ? "1" : "0"));
+    d.addEventListener("toggle", (e) => { if (e.isTrusted === false || d._auto) { d._auto = false; return; } localSet(k, d.open ? "1" : "0"); });
   });
 
   // Instalación como app (PWA)
@@ -668,11 +955,15 @@
     let st;
     try { st = await api("/api/status"); } catch (e) { toast("No se pudo contactar con el servidor", 5000, "err"); connect(); return; }
     state.lastSeq = st.seq; state.maxPx = st.upload_max_px || 3200; state.pixpin = !!st.pixpin;
-    $("#effort").value = st.effort; $("#perm").value = st.permission_mode;
+    renderEffort(st.effort); renderPerm(st.permission_mode);
     $("#pixpinDot").className = "dot " + (st.pixpin ? "dot-ok" : "dot-danger");
+    $("#pixpinSum").textContent = st.pixpin ? "" : "No conectado";
     $("#pixpinStatus").innerHTML = st.pixpin
       ? `<span class="dot dot-ok" style="margin-top:5px"></span><span>PixPin conectado${st.is_host ? "" : " en el equipo anfitrión"}</span>`
       : `<span class="dot dot-danger" style="margin-top:5px"></span><span>PixPin no disponible${st.is_host ? ". Configura <code>pixpin_path</code> en los ajustes." : " en el anfitrión."}</span>`;
+    // PixPin plegado si no está conectado; si lo está, abierto salvo que el usuario lo haya cerrado antes
+    const pf = $("#pixpinFold"), want = st.pixpin ? localGet("fold:pixpinFold") !== "0" : false;
+    if (pf.open !== want) { pf._auto = true; pf.open = want; }
     if (!st.pixpin) { $$("[data-capture]").forEach((b) => b.classList.add("hidden")); $("#pinBtn").classList.add("hidden"); }
     else if (st.is_host) $("#capBtn").classList.remove("hidden");
     $("#wsInfo").textContent = st.workspace + " · v" + st.version; $("#wsInfo").title = "Workspace: " + st.workspace;

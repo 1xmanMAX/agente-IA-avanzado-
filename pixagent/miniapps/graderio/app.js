@@ -12,6 +12,10 @@
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const deg = (r) => (r * 180) / Math.PI;
   const debounce = (fn, ms) => { let t; return function () { clearTimeout(t); const a = arguments; t = setTimeout(() => fn.apply(null, a), ms); }; };
+  // "1,5" → 1.5 ; "1.234,5" → 1234.5 (coma decimal aceptada en todos los campos)
+  const num = (v) => { let t = String(v == null ? "" : v).trim().replace(/\s/g, ""); if (!t) return NaN; if (t.indexOf(",") >= 0 && t.indexOf(".") >= 0) { t = t.lastIndexOf(",") > t.lastIndexOf(".") ? t.replace(/\./g, "").replace(",", ".") : t.replace(/,/g, ""); } else t = t.replace(",", "."); return parseFloat(t); };
+  const cm = (m) => String(Math.round(m * 100));
+  const COARSE = window.matchMedia("(pointer: coarse)").matches;
   const FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif";
   const STORE_KEY = "graderio.params.v1";
   const today = () => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
@@ -22,14 +26,14 @@
 
   function readParams() {
     const p = { mode };
-    NUM_IDS.forEach((id) => { const v = parseFloat($("#" + id).value); p[id] = isFinite(v) ? v : NaN; });
+    NUM_IDS.forEach((id) => { const v = num($("#" + id).value); p[id] = isFinite(v) ? v : NaN; });
     p.stepsPerRow = parseInt($("#stepsPerRow").value, 10) || 2;
     p.accessStair = $("#accessStair").checked;
     p.aisle = $("#aisle").checked;
     p.aislePos = $("#aislePos").value;
     p.title = $("#title").value.trim() || "Proyecto";
     p.paper = $("#paper").value;
-    p.vis = $("#visDetails").open;
+    p.vis = $("#visOn").checked;
     // saneado mínimo
     if (!(p.H > 0)) p.H = 1; if (!(p.L > 0)) p.L = 1; if (!(p.B > 0)) p.B = 1; if (!(p.t > 0)) p.t = 0.15;
     if (!(p.cmin > 0)) p.cmin = 0.15; if (!(p.cmax > p.cmin)) p.cmax = p.cmin + 0.03;
@@ -592,26 +596,64 @@
   }
 
   // ------------------------------------------------------------------ 3D interactivo (canvas 2D, proyección propia)
-  const three = { yaw: -0.75, pitch: 0.5, zoom: 1, design: null, canvas: null, ctx: null, ptrs: new Map(), pinch: 0 };
+  const three = { yaw: -0.75, pitch: 0.5, zoom: 1, panX: 0, panY: 0, design: null, canvas: null, ctx: null, ptrs: new Map(), pinch: 0, pinchC: null, lastTap: 0, multi: false };
+  function reset3D() { three.yaw = -0.75; three.pitch = 0.5; three.zoom = 1; three.panX = 0; three.panY = 0; draw3D(); }
   function setup3D() {
     const cv = $("#c3d"); three.canvas = cv; three.ctx = cv.getContext("2d");
-    cv.addEventListener("pointerdown", (e) => { cv.setPointerCapture(e.pointerId); three.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (three.ptrs.size === 2) three.pinch = pinchDist(); e.preventDefault(); });
+    // Ratón / lápiz / un dedo: girar. Dos dedos: pellizco = zoom, desplazar = mover. Botón derecho o Shift+arrastrar: mover.
+    cv.addEventListener("pointerdown", (e) => {
+      if (e.button > 0 && e.button !== 2) return;
+      try { cv.setPointerCapture(e.pointerId); } catch (err) { /* sin captura */ }
+      three.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY, pan: e.button === 2 || e.shiftKey, moved: false });
+      if (three.ptrs.size === 2) { three.pinch = pinchDist(); three.pinchC = pinchCenter(); three.multi = true; }
+      e.preventDefault();
+    });
+    cv.addEventListener("contextmenu", (e) => e.preventDefault());
     cv.addEventListener("pointermove", (e) => {
       const prev = three.ptrs.get(e.pointerId); if (!prev) return;
-      if (three.ptrs.size === 1) { three.yaw += (e.clientX - prev.x) * 0.011; three.pitch = clamp(three.pitch + (e.clientY - prev.y) * 0.011, -0.3, 1.5); }
-      three.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      if (three.ptrs.size === 2) { const dnow = pinchDist(); if (three.pinch > 0) three.zoom = clamp(three.zoom * dnow / three.pinch, 0.3, 6); three.pinch = dnow; }
+      const dx = e.clientX - prev.x, dy = e.clientY - prev.y;
+      if (Math.abs(dx) + Math.abs(dy) > 3) prev.moved = true;
+      if (three.ptrs.size === 1) {
+        if (prev.pan) { three.panX += dx; three.panY += dy; }
+        else { three.yaw += dx * 0.011; three.pitch = clamp(three.pitch + dy * 0.011, -0.3, 1.5); }
+      }
+      prev.x = e.clientX; prev.y = e.clientY;
+      if (three.ptrs.size === 2) {
+        const dnow = pinchDist(), c = pinchCenter();
+        if (three.pinch > 0) three.zoom = clamp(three.zoom * dnow / three.pinch, 0.3, 6);
+        if (three.pinchC) { three.panX += c.x - three.pinchC.x; three.panY += c.y - three.pinchC.y; }
+        three.pinch = dnow; three.pinchC = c;
+      }
       draw3D();
     });
-    const up = (e) => { three.ptrs.delete(e.pointerId); three.pinch = 0; };
+    const up = (e) => {
+      const p = three.ptrs.get(e.pointerId); three.ptrs.delete(e.pointerId); three.pinch = 0; three.pinchC = null;
+      if (!three.ptrs.size) {
+        // doble toque táctil = restablecer (el doble clic del ratón usa dblclick)
+        if (e.type === "pointerup" && e.pointerType === "touch" && p && !p.moved && !three.multi) { const now = Date.now(); if (now - three.lastTap < 300) { reset3D(); three.lastTap = 0; } else three.lastTap = now; }
+        three.multi = false;
+      }
+    };
     cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up); cv.addEventListener("lostpointercapture", up);
-    cv.addEventListener("wheel", (e) => { e.preventDefault(); three.zoom = clamp(three.zoom * Math.exp(-e.deltaY * 0.0015), 0.3, 6); draw3D(); }, { passive: false });
+    cv.addEventListener("dblclick", (e) => { e.preventDefault(); reset3D(); });
+    // Rueda del ratón o Ctrl+rueda / pellizco de trackpad: zoom. Dos dedos en trackpad (deltas finos sin Ctrl): orbitar.
+    cv.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY, dx = e.deltaMode === 1 ? e.deltaX * 16 : e.deltaX;
+      const trackpadPan = !e.ctrlKey && !e.metaKey && (Math.abs(dx) > 0 || (Math.abs(dy) < 40 && dy % 1 !== 0));
+      if (trackpadPan) { three.yaw += dx * 0.006; three.pitch = clamp(three.pitch + dy * 0.006, -0.3, 1.5); }
+      else three.zoom = clamp(three.zoom * Math.exp(-dy * (e.ctrlKey ? 0.01 : 0.0015)), 0.3, 6);
+      draw3D();
+    }, { passive: false });
+    cv.addEventListener("gesturestart", (e) => { e.preventDefault(); three.gz = three.zoom; });
+    cv.addEventListener("gesturechange", (e) => { e.preventDefault(); three.zoom = clamp((three.gz || 1) * e.scale, 0.3, 6); draw3D(); });
     cv.tabIndex = 0;
-    cv.addEventListener("keydown", (e) => { const k = e.key; if (k === "ArrowLeft") three.yaw -= 0.1; else if (k === "ArrowRight") three.yaw += 0.1; else if (k === "ArrowUp") three.pitch = clamp(three.pitch + 0.1, -0.3, 1.5); else if (k === "ArrowDown") three.pitch = clamp(three.pitch - 0.1, -0.3, 1.5); else if (k === "+" ) three.zoom = clamp(three.zoom * 1.15, .3, 6); else if (k === "-") three.zoom = clamp(three.zoom / 1.15, .3, 6); else return; e.preventDefault(); draw3D(); });
-    $("#btnResetView").addEventListener("click", () => { three.yaw = -0.75; three.pitch = 0.5; three.zoom = 1; draw3D(); });
+    cv.addEventListener("keydown", (e) => { const k = e.key; if (k === "ArrowLeft") three.yaw -= 0.1; else if (k === "ArrowRight") three.yaw += 0.1; else if (k === "ArrowUp") three.pitch = clamp(three.pitch + 0.1, -0.3, 1.5); else if (k === "ArrowDown") three.pitch = clamp(three.pitch - 0.1, -0.3, 1.5); else if (k === "+" ) three.zoom = clamp(three.zoom * 1.15, .3, 6); else if (k === "-") three.zoom = clamp(three.zoom / 1.15, .3, 6); else if (k === "0") { reset3D(); return; } else return; e.preventDefault(); draw3D(); });
+    $("#btnResetView").addEventListener("click", reset3D);
     if (window.ResizeObserver) new ResizeObserver(() => draw3D()).observe(cv);
   }
   function pinchDist() { const a = Array.from(three.ptrs.values()); return a.length < 2 ? 0 : Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y); }
+  function pinchCenter() { const a = Array.from(three.ptrs.values()); return a.length < 2 ? null : { x: (a[0].x + a[1].x) / 2, y: (a[0].y + a[1].y) / 2 }; }
   function draw3D() {
     const d = three.design, cv = three.canvas; if (!d || !cv) return;
     const cw = cv.clientWidth, ch = cv.clientHeight; if (!cw || !ch) return;
@@ -627,7 +669,7 @@
     const cy = Math.cos(three.yaw), sy = Math.sin(three.yaw), cp = Math.cos(three.pitch), sp = Math.sin(three.pitch);
     const rot = (p) => { const x = p[0] - c[0], y = p[1] - c[1], z = p[2] - c[2]; const x1 = x * cy - y * sy, y1 = x * sy + y * cy; return [x1, y1 * cp - z * sp, y1 * sp + z * cp]; };
     const rotN = (n) => { const x1 = n[0] * cy - n[1] * sy, y1 = n[0] * sy + n[1] * cy; return [x1, y1 * cp - n[2] * sp, y1 * sp + n[2] * cp]; };
-    const proj = (p) => { const r = rot(p); const k = D / (D + r[1]); return [cw / 2 + r[0] * k * S, ch * 0.54 - r[2] * k * S, r[1]]; };
+    const proj = (p) => { const r = rot(p); const k = D / (D + r[1]); return [cw / 2 + three.panX + r[0] * k * S, ch * 0.54 + three.panY - r[2] * k * S, r[1]]; };
     const light = norm3([-0.4, -0.55, 0.75]);
     const view = {
       proj,
@@ -651,30 +693,78 @@
   let current = null, lastSVG = { section: "", plan: "", iso: "" };
   const views = { section: svgSection, plan: svgPlan, iso: svgIso };
 
+  // Visores con zoom (PixZoom) para corte, planta e isométrico; sin la librería, el SVG se muestra a ancho completo.
+  const zoomers = {};
+  function setupZoomers() {
+    const ok = !!(window.PixZoom && typeof window.PixZoom.attach === "function");
+    [["section", "#vSection"], ["plan", "#vPlan"], ["iso", "#vIso"]].forEach(([k, sel]) => {
+      const box = $(sel), zc = $(".zc", box);
+      if (!ok) { box.classList.remove("zoomer"); zoomers[k] = { box, zc, z: null }; return; }
+      const z = PixZoom.attach(box, zc, { wheel: "zoom", maxFit: 1.25 });
+      zoomers[k] = { box, zc, z, fitScale: z.scale };
+    });
+  }
+  function setSheet(k, svg) {
+    const v = zoomers[k]; if (!v) return;
+    v.zc.innerHTML = svg;
+    if (!v.z) return;
+    const m = svg.match(/<svg[^>]*\swidth="(\d+)"[^>]*\sheight="(\d+)"/);
+    if (m) { v.zc.style.width = m[1] + "px"; v.zc.style.height = m[2] + "px"; }
+    const wasFit = Math.abs(v.z.scale - v.fitScale) < 0.02;
+    if (wasFit) { v.z.fit(); v.fitScale = v.z.scale; } else v.z.zoomBy(1);
+  }
   function render() {
     const p = readParams();
     const d = p.mode === "stair" ? designStair(p) : designBleacher(p);
     current = d; three.design = d;
-    const W = Math.max(560, ($(".views").clientWidth || 900) - 18);
+    const vw = $(".views").clientWidth || 900;
+    const zoomOn = !!zoomers.section && !!zoomers.section.z;
+    const W = zoomOn ? (vw < 600 ? 640 : Math.max(900, vw - 2)) : Math.max(560, vw - 18);
     lastSVG.section = svgSection(d, W); lastSVG.plan = svgPlan(d, W); lastSVG.iso = svgIso(d, W);
-    $("#vSection").innerHTML = lastSVG.section; $("#vPlan").innerHTML = lastSVG.plan; $("#vIso").innerHTML = lastSVG.iso;
-    const gw = Math.max(400, Math.floor(W / 2) - 8);
+    setSheet("section", lastSVG.section); setSheet("plan", lastSVG.plan); setSheet("iso", lastSVG.iso);
+    const gw = Math.max(400, Math.floor(Math.max(560, vw - 18) / 2) - 8);
     const twoCol = window.matchMedia("(min-width: 901px)").matches;
-    $("#gSection").innerHTML = twoCol ? svgSection(d, gw) : lastSVG.section;
-    $("#gPlan").innerHTML = twoCol ? svgPlan(d, gw) : lastSVG.plan;
-    $("#gIso").innerHTML = twoCol ? svgIso(d, gw) : lastSVG.iso;
-    renderStatus(d); renderKpis(d); renderTable(d); renderQty(d);
-    $("#paramsSummary").textContent = (p.mode === "stair" ? "Escalera" : "Graderío") + " · H " + fmt(p.H, 2) + " · L " + fmt(p.L, 2) + " · B " + fmt(p.B, 2);
+    $("#gSection").innerHTML = twoCol ? svgSection(d, gw) : svgSection(d, Math.max(560, vw - 18));
+    $("#gPlan").innerHTML = twoCol ? svgPlan(d, gw) : svgPlan(d, Math.max(560, vw - 18));
+    $("#gIso").innerHTML = twoCol ? svgIso(d, gw) : svgIso(d, Math.max(560, vw - 18));
+    renderVerdict(d); renderStatus(d); renderKpis(d); renderTable(d); renderQty(d);
+    updateSummaries(p);
+    $("#paramsSummary").textContent = "H " + fmt(p.H, 2) + " · L " + fmt(p.L, 2) + " · B " + fmt(p.B, 2);
     buildPrintSheet(d);
     draw3D();
     saveParams();
   }
   const ICON = { ok: "#i-check", warn: "#i-warn", bad: "#i-x" };
+  const KEY_COUNT = 4;
+  function renderVerdict(d) {
+    const lv = d.level, first = d.checks.filter((c) => c.lv === lv)[0];
+    const title = lv === "ok" ? "Cumple" : lv === "warn" ? "Revisar" : "No cumple";
+    const why = lv === "ok" ? "" : (first ? first.text.split(" · ")[0] : "");
+    const act = d.checks.filter((c) => c.action)[0];
+    const figs = d.kpis.slice(0, KEY_COUNT).map((k) => '<div class="kf ' + (k.lv || "") + '"><div class="k">' + esc(k.k) + '</div><div class="v">' + esc(k.v) + (k.u ? "<small>" + esc(k.u) + "</small>" : "") + "</div></div>").join("");
+    $("#verdict").className = "verdict " + lv;
+    $("#verdict").innerHTML = '<div class="verdict-main"><span class="verdict-ico"><svg width="18" height="18"><use href="' + ICON[lv] + '"/></svg></span><div style="min-width:0"><h2>' + title + (why ? ': <span class="why">' + esc(why) + "</span>" : "") + "</h2><p>" + esc(d.summary) + "</p>" +
+      (act ? '<div class="verdict-act"><button class="btn sm" data-act="' + d.checks.indexOf(act) + '" title="Ajusta L al valor recomendado">Usar L = ' + fmt(act.action.value, 2) + " m</button></div>" : "") + "</div></div>" +
+      '<div class="keyfigs">' + figs + "</div>";
+    const nWarn = d.checks.filter((c) => c.lv !== "ok").length;
+    const rest = d.kpis.slice(KEY_COUNT).map((k) => k.k + " " + k.v + (k.u ? " " + k.u : ""));
+    $("#sumDetails").textContent = (nWarn ? nWarn + (nWarn === 1 ? " aviso" : " avisos") : d.checks.length + " comprobaciones correctas") + (rest.length ? " · " + rest.join(" · ") : "");
+  }
   function renderStatus(d) {
     $("#status").innerHTML = d.checks.map((c, i) => '<span class="chip ' + c.lv + '"><svg width="16" height="16"><use href="' + ICON[c.lv] + '"/></svg>' + esc(c.text) + (c.action ? '<button data-act="' + i + '">' + esc(c.action.label) + "</button>" : "") + "</span>").join("");
   }
   function renderKpis(d) {
-    $("#kpis").innerHTML = d.kpis.map((k) => '<div class="kpi ' + (k.lv || "") + '"><div class="k">' + esc(k.k) + '</div><div class="v">' + esc(k.v) + (k.u ? "<small>" + esc(k.u) + "</small>" : "") + "</div>" + (k.d ? '<div class="d">' + esc(k.d) + "</div>" : "") + "</div>").join("");
+    $("#kpis").innerHTML = d.kpis.slice(KEY_COUNT).map((k) => '<div class="kpi ' + (k.lv || "") + '"><div class="k">' + esc(k.k) + '</div><div class="v">' + esc(k.v) + (k.u ? "<small>" + esc(k.u) + "</small>" : "") + "</div>" + (k.d ? '<div class="d">' + esc(k.d) + "</div>" : "") + "</div>").join("");
+  }
+  // resúmenes de una línea para los ajustes avanzados plegados
+  function updateSummaries(p) {
+    $("#sumSteps").textContent = p.mode === "stair"
+      ? "Contrahuella " + cm(p.cmin) + "–" + cm(p.cmax) + " cm · Huella " + cm(p.hmin) + "–" + cm(p.hmax) + " cm · Losa " + cm(p.t) + " cm"
+      : "Peralte " + cm(p.Nmin) + "–" + cm(p.Nmax) + " cm · Profundidad " + cm(p.Tmin) + "–" + cm(p.Tmax) + " cm · Losa " + cm(p.t) + " cm";
+    $("#sumAccess").textContent = p.accessStair ? p.stepsPerRow + " escalones por grada · ancho " + fmt(p.Be, 2) + " m" : "Sin escalera de acceso";
+    $("#sumAisle").textContent = p.aisle ? fmt(p.Wp, 2) + " m · " + (p.aislePos === "top" ? "superior" : "inferior") : "Sin pasillo";
+    $("#sumVis").textContent = p.vis ? "Foco a " + fmt(p.Df, 1) + " m · ojo a " + fmt(p.eyeH, 2) + " m" : "No evaluada";
+    $("#sumPlan").textContent = p.title + " · " + p.paper + " apaisada";
   }
   function tableHTML(d) {
     let h = "<table><thead><tr>" + d.tableHead.map((x) => "<th>" + esc(x) + "</th>").join("") + "</tr></thead><tbody>";
@@ -698,7 +788,7 @@
       : [["H / L / B", fmt(p.H, 2) + " / " + fmt(p.L, 2) + " / " + fmt(p.B, 2) + " m"], ["Gradas", d.n + " × N " + fmt(d.N, 3) + " m"], ["Profundidad T", fmt(d.TReal, 3) + " m"], ["Acceso", d.k > 1 ? d.k + " esc./grada, " + fmt(p.Be, 2) + " m" : "no"], ["Pasillo", d.aisle ? fmt(d.aisle.W, 2) + " m " + (d.aisle.pos === "top" ? "superior" : "inferior") : "no"], ["Losa", fmt(p.t, 2) + " m"]];
     const notes = d.mode === "stair"
       ? ["Contrahuella c = H / n con n elegido para que c quede en el rango indicado y 2c + h se acerque a 0.62 m (Blondel 0.60–0.64).", "Huellas = n − 1 por tramo: la última contrahuella llega al descanso o al nivel superior. h = L útil / huellas, descontando descansos.", "Si n supera el máximo por tramo se intercala un descanso de longitud ≥ ancho B (mín. 1.00 m).", "Losa de garganta de espesor t medida perpendicular a la línea de huella. Cómputos sin solapes ni recargos.", "Verificar la normativa local (CTE DB-SUA, reglamentos municipales): alturas libres, pasamanos, barandillas y accesibilidad."]
-      : ["Nº de gradas n elegido para que N = H / n y T = L útil / n queden lo más centrados posible en sus rangos.", "La escalera de acceso divide cada grada en k escalones iguales (c = N/k, h = T/k) dentro de una franja central.", d.vis ? "Visibilidad: C = D·(N+R)/(D+T) − R con ojo a " + fmt(p.eyeH, 2) + " m sobre la grada, punto focal a " + fmt(p.Df, 1) + " m del frente y " + fmt(p.hf, 2) + " m de altura. Objetivo C ≥ 0.06–0.09 m." : "Visibilidad (valor C) no evaluada: actívela en Parámetros › Visibilidad.", "Losa inclinada de espesor t bajo gradas macizas; el fondo de losa no requiere encofrado si apoya en relleno compactado.", "Verificar normativa local de espectáculos públicos: anchos de evacuación, barandillas, aforo y accesibilidad."];
+      : ["Nº de gradas n elegido para que N = H / n y T = L útil / n queden lo más centrados posible en sus rangos.", "La escalera de acceso divide cada grada en k escalones iguales (c = N/k, h = T/k) dentro de una franja central.", d.vis ? "Visibilidad: C = D·(N+R)/(D+T) − R con ojo a " + fmt(p.eyeH, 2) + " m sobre la grada, punto focal a " + fmt(p.Df, 1) + " m del frente y " + fmt(p.hf, 2) + " m de altura. Objetivo C ≥ 0.06–0.09 m." : "Visibilidad (valor C) no evaluada: actívela en Ajustes avanzados › Visibilidad.", "Losa inclinada de espesor t bajo gradas macizas; el fondo de losa no requiere encofrado si apoya en relleno compactado.", "Verificar normativa local de espectáculos públicos: anchos de evacuación, barandillas, aforo y accesibilidad."];
     const sec = svgSection(d, ws[0]), plan = svgPlan(d, ws[1]), iso = svgIso(d, ws[2]);
     return '<div class="ps-head"><div><h1>' + esc(p.title) + " · " + (d.mode === "stair" ? "Escalera" : "Graderío") + '</h1><div class="sub">' + esc(d.summary) + '</div></div><div class="meta">' + meta.map((m) => "<span>" + esc(m[0]) + "</span><b>" + esc(m[1]) + "</b>").join("") + "<span>Fecha</span><b>" + today() + "</b><span>Hoja</span><b>" + p.paper + " apaisada · escala gráfica</b></div></div>" +
       '<div class="ps-grid"><div class="ps-box">' + sec + '</div><div class="ps-box">' + plan + "</div></div>" +
@@ -759,7 +849,7 @@
   async function pinIt() {
     const btn = $("#btnPin"); busy(btn, true);
     try {
-      const active = $(".tab.is-on").dataset.view;
+      const active = ($(".tab[data-view].is-on") || {}).dataset ? $(".tab[data-view].is-on").dataset.view : "section";
       const svgText = active === "iso" ? svgIso(current, 1200) : active === "plan" ? svgPlan(current, 1200) : svgSection(current, 1400);
       const path = await PixAgent.save(slug() + "_" + (active === "iso" ? "isometrico" : active === "plan" ? "planta" : "corte") + "_pin.png", await svgToPng(svgText, 2), { folder: "graderio" });
       await PixAgent.pin([path]);
@@ -785,7 +875,7 @@
 
   // ------------------------------------------------------------------ persistencia
   function saveParams() {
-    try { const o = { mode }; NUM_IDS.forEach((id) => { o[id] = $("#" + id).value; }); ["stepsPerRow", "aislePos", "title", "paper"].forEach((id) => { o[id] = $("#" + id).value; }); o.accessStair = $("#accessStair").checked; o.aisle = $("#aisle").checked; o.vis = $("#visDetails").open; localStorage.setItem(STORE_KEY, JSON.stringify(o)); } catch (e) { /* sin almacenamiento */ }
+    try { const o = { mode }; NUM_IDS.forEach((id) => { o[id] = $("#" + id).value; }); ["stepsPerRow", "aislePos", "title", "paper"].forEach((id) => { o[id] = $("#" + id).value; }); o.accessStair = $("#accessStair").checked; o.aisle = $("#aisle").checked; o.vis = $("#visOn").checked; localStorage.setItem(STORE_KEY, JSON.stringify(o)); } catch (e) { /* sin almacenamiento */ }
   }
   function loadParams() {
     try {
@@ -794,7 +884,7 @@
       ["stepsPerRow", "aislePos", "title", "paper"].forEach((id) => { if (o[id] != null) $("#" + id).value = o[id]; });
       if (o.accessStair != null) $("#accessStair").checked = !!o.accessStair;
       if (o.aisle != null) $("#aisle").checked = !!o.aisle;
-      if (o.vis) $("#visDetails").open = true;
+      $("#visOn").checked = !!o.vis;
       if (o.mode === "bleacher" || o.mode === "stair") setMode(o.mode, true);
     } catch (e) { /* ignorar */ }
   }
@@ -807,31 +897,78 @@
     $$(".mode-bleacher").forEach((el) => { el.hidden = m !== "bleacher"; });
     $("#lblL").textContent = m === "stair" ? "Distancia horizontal L" : "Fondo horizontal L";
     $("#lblB").textContent = m === "stair" ? "Ancho B" : "Longitud del frente B";
+    $("#advStepsTitle").textContent = m === "stair" ? "Escalones" : "Gradas";
+    $("#lblT").textContent = m === "stair" ? "Espesor de losa (garganta)" : "Espesor de la losa inclinada";
     $("#hintGeneral").textContent = m === "stair"
       ? "H es el desnivel a salvar y L la distancia horizontal disponible entre el arranque y la llegada. Medidas en metros."
       : "H es el desnivel entre el suelo y la última grada; L el fondo horizontal disponible (incluido el pasillo) y B la longitud del graderío a lo largo de las filas. Medidas en metros.";
     if (!silent) render();
   }
+  const VIEW_ORDER = ["section", "plan", "three", "table", "iso", "grid"];
   function showView(v) {
-    $$(".tab").forEach((b) => b.classList.toggle("is-on", b.dataset.view === v));
+    $$(".tab[data-view]").forEach((b) => b.classList.toggle("is-on", b.dataset.view === v));
     $$(".view").forEach((el) => el.classList.toggle("is-on", el.dataset.view === v));
+    const moreBtn = $(".tabs-more .menu-item.is-on");
+    $("#tabsMore > summary").classList.toggle("is-on", !!moreBtn);
+    $("#tabsMoreLabel").textContent = moreBtn ? moreBtn.querySelector("span").textContent.replace(/ \(.*\)$/, "") : "Más vistas";
+    closeMenus();
     if (v === "three") requestAnimationFrame(draw3D);
+    const z = zoomers[v]; if (z && z.z) { z.z.fit(); z.fitScale = z.z.scale; }
+  }
+  function closeMenus() { $$("details.menu[open]").forEach((d) => { d.open = false; }); }
+  function openHelp() { const dlg = $("#helpDlg"); if (dlg.showModal) { if (!dlg.open) dlg.showModal(); } else dlg.setAttribute("open", ""); }
+  function closeHelp() { const dlg = $("#helpDlg"); if (dlg.close) dlg.close(); else dlg.removeAttribute("open"); }
+  // campos numéricos: ↑/↓ ajustan el valor (Shift = paso ×10), Intro recalcula, el teclado virtual no tapa el campo
+  function setupNumericFields() {
+    $$('input[inputmode="decimal"]', $("#params")).forEach((inp) => {
+      inp.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+          e.preventDefault();
+          const step = parseFloat(inp.dataset.step || "0.01") * (e.shiftKey ? 10 : 1), min = inp.dataset.min != null ? parseFloat(inp.dataset.min) : -Infinity;
+          const cur = num(inp.value), base = isFinite(cur) ? cur : (inp.placeholder === "auto" ? 1 : 0);
+          const dec = Math.max(0, (String(inp.dataset.step || "0.01").split(".")[1] || "").length);
+          let v = Math.max(min, base + (e.key === "ArrowUp" ? step : -step));
+          inp.value = v.toFixed(dec); render();
+        } else if (e.key === "Enter") { e.preventDefault(); render(); inp.blur(); }
+      });
+      inp.addEventListener("focus", () => { if (COARSE) setTimeout(() => { try { inp.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (err) { /* ok */ } }, 250); });
+    });
   }
 
   function init() {
     loadParams();
     setup3D();
+    setupZoomers();
+    setupNumericFields();
     const rerender = debounce(render, 120);
     $$("input, select", $("#params")).forEach((el) => { el.addEventListener("input", rerender); el.addEventListener("change", rerender); });
-    $("#visDetails").addEventListener("toggle", rerender);
     $("#accessStair").addEventListener("change", () => { $("#accessFields").hidden = !$("#accessStair").checked; });
     $("#aisle").addEventListener("change", () => { $("#aisleFields").hidden = !$("#aisle").checked; });
-    $("#accessFields").hidden = !$("#accessStair").checked; $("#aisleFields").hidden = !$("#aisle").checked;
+    $("#visOn").addEventListener("change", () => { $("#visFields").hidden = !$("#visOn").checked; });
+    $("#accessFields").hidden = !$("#accessStair").checked; $("#aisleFields").hidden = !$("#aisle").checked; $("#visFields").hidden = !$("#visOn").checked;
     $$(".seg-btn").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
-    $$(".tab").forEach((b) => b.addEventListener("click", () => showView(b.dataset.view)));
-    $("#status").addEventListener("click", (e) => { const b = e.target.closest("button[data-act]"); if (!b) return; const act = current.checks[+b.dataset.act].action; if (act) { $("#L").value = fmt(act.value, 2); render(); } });
+    $$(".tab[data-view]").forEach((b) => b.addEventListener("click", () => showView(b.dataset.view)));
+    const useAction = (e) => { const b = e.target.closest("button[data-act]"); if (!b) return; const act = current.checks[+b.dataset.act].action; if (act) { $("#L").value = fmt(act.value, 2); render(); } };
+    $("#status").addEventListener("click", useAction); $("#verdict").addEventListener("click", useAction);
+    // menús: cerrar al pulsar fuera o con Esc; ayuda de atajos
+    document.addEventListener("click", (e) => { $$("details.menu[open]").forEach((d) => { if (!d.contains(e.target)) d.open = false; }); });
+    $("#btnHelp").addEventListener("click", openHelp); $("#helpClose").addEventListener("click", closeHelp);
+    $("#helpDlg").addEventListener("click", (e) => { if (e.target === $("#helpDlg")) closeHelp(); });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") { closeMenus(); closeHelp(); return; }
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target; if (t && /INPUT|SELECT|TEXTAREA/.test(t.tagName)) return;
+      if (t && t.id === "c3d" && /^[0-9+\-]$/.test(e.key)) return;
+      if (t && t.closest && t.closest(".zoomer") && /^[01+\-=_]$/.test(e.key)) return;
+      const k = e.key.toLowerCase();
+      if (/^[1-6]$/.test(k)) { showView(VIEW_ORDER[+k - 1]); e.preventDefault(); }
+      else if (k === "p") { buildPrintSheet(current); window.print(); e.preventDefault(); }
+      else if (k === "e") setMode("stair"); else if (k === "g") setMode("bleacher");
+      else if (k === "?") openHelp();
+    });
     $("#paramsToggle").addEventListener("click", () => { const open = $("#paramsToggle").getAttribute("aria-expanded") === "true"; $("#paramsToggle").setAttribute("aria-expanded", open ? "false" : "true"); $("#paramsBody").hidden = open; });
     $("#btnPrint").addEventListener("click", () => { buildPrintSheet(current); window.print(); });
+    ["#btnSave", "#btnPin", "#btnAI"].forEach((id) => $(id).addEventListener("click", closeMenus));
     window.addEventListener("beforeprint", () => buildPrintSheet(current));
     $("#btnSave").addEventListener("click", saveAll);
     $("#btnPin").addEventListener("click", pinIt);
@@ -839,7 +976,7 @@
     $("#aiClose").addEventListener("click", () => { $("#aiPanel").hidden = true; });
     window.addEventListener("resize", debounce(render, 200));
     // SDK / servidor: ocultar acciones que lo requieren si no está disponible
-    const hideSdk = () => $$(".needs-sdk").forEach((b) => { b.hidden = true; });
+    const hideSdk = () => { $$(".needs-sdk").forEach((b) => { b.hidden = true; }); $$(".no-sdk").forEach((b) => { b.hidden = false; }); };
     if (!hasSDK()) hideSdk();
     else fetch("/api/apps", { method: "GET" }).then((r) => { if (!r.ok) hideSdk(); }).catch(hideSdk);
     render();

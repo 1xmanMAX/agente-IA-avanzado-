@@ -142,8 +142,23 @@ svg.i.sm { width: 16px; height: 16px; }
 
 /* Tarjetas */
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-.card h2 { margin: 0; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.card h2 { margin: 0; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
 .card h2 .k { color: var(--text-3); font-weight: 500; font-size: 12px; margin-left: auto; }
+/* tarjetas de obra plegables */
+details.card { padding: 0; display: block; }
+details.card > summary { list-style: none; display: flex; align-items: center; gap: 10px; padding: 14px 16px; min-height: 50px; cursor: pointer; border-radius: var(--r-lg); }
+details.card > summary::-webkit-details-marker { display: none; }
+details.card > summary:hover { background: var(--surface-2); }
+details.card > summary:focus-visible { box-shadow: var(--focus); }
+details.card .chev { color: var(--text-3); transition: transform var(--dur); }
+details.card[open] .chev { transform: rotate(180deg); }
+details.card[open] > summary { border-radius: var(--r-lg) var(--r-lg) 0 0; }
+details.card .card-body { display: flex; flex-direction: column; gap: 12px; padding: 0 16px 16px; }
+.obra-hint { margin: 0 0 12px; color: var(--text-3); font-size: 12.5px; }
+.obra-more { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+.obra-more details.card:not([open]) > summary { min-height: 46px; padding: 10px 16px; }
+.obra-more details.card:not([open]) h2 { font-size: 14px; }
+.chip.more { border-style: dashed; }
 .card p.desc { margin: -6px 0 0; color: var(--text-2); font-size: 13px; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
 .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; align-items: start; }
@@ -234,4 +249,5 @@ table.dos tr.sel td:first-child { color: var(--accent-text); font-weight: 600; b
   .display input.expr { font-size: 24px; }
 }
 @media (max-width: 560px) { .conv { grid-template-columns: 1fr; } .conv .swap { justify-self: center; transform: rotate(90deg); } .tabs button svg { display: none; } }
+@media (hover: none) and (pointer: coarse) { .btn, .chip, .tabs button { min-height: 44px; } .keys button { min-height: 50px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0ms !important; animation-duration: 0ms !important; } }

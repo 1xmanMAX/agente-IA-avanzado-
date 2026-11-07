@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="theme-color" content="#f4f5f9" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0d0e13" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
@@ -119,8 +119,8 @@
         </div>
         <div class="field">Pedir confirmación antes de…
           <div class="perm-list">
-            <div class="perm-row"><svg class="icon icon-sm"><use href="#i-check"/></svg><span class="grow">Ejecutar comandos de terminal</span><span id="permShell" class="xs faint">Siempre</span></div>
-            <label class="switch perm-row"><input type="checkbox" id="permAsk"><i></i><span class="grow">Ejecutar Python y usar PixPin</span></label>
+            <div class="perm-row"><svg class="icon icon-sm"><use href="#i-check"/></svg><span class="grow">Comandos de terminal</span><span id="permShell" class="xs faint">Siempre</span></div>
+            <label class="switch perm-row"><input type="checkbox" id="permAsk"><i></i><span class="grow">Python y PixPin</span></label>
           </div>
           <span id="permFullNote" class="xs perm-warn hidden"><svg class="icon icon-sm"><use href="#i-alert"/></svg>Modo total activo: no se pide confirmación.</span>
         </div>
@@ -142,6 +142,8 @@
               </select></span>
             </label>
             <label class="switch"><input type="checkbox" id="permFull"><i></i><span class="small">Modo total: sin confirmaciones<br><span class="faint xs">El agente ejecuta terminal, Python y PixPin sin preguntar. Úsalo solo si confías en la tarea.</span></span></label>
+            <label class="switch no-touch"><input type="checkbox" id="enterSend"><i></i><span class="small">Enviar con Intro<br><span class="faint xs">Desactivado: Intro hace salto de línea y <span class="mod-key">Ctrl</span>+Intro envía</span></span></label>
+            <button class="btn btn-sm btn-block no-touch" id="shortcutsBtn" type="button"><svg class="icon"><use href="#i-list"/></svg>Atajos de teclado</button>
             <button class="btn btn-sm btn-block hidden" id="installApp"><svg class="icon"><use href="#i-download"/></svg>Instalar como app</button>
           </div>
         </details>
@@ -209,7 +211,7 @@
             <input id="camInput" type="file" accept="image/*" capture="environment" hidden></label>
           <button type="button" class="btn btn-ghost btn-icon btn-round hidden" id="capBtn" data-capture="last" title="Capturar con PixPin"><svg class="icon"><use href="#i-zap"/></svg></button>
           <span class="grow"></span>
-          <span class="composer-hint no-touch xs faint"><span class="kbd">Intro</span> enviar · <span class="kbd">Mayús</span>+<span class="kbd">Intro</span> salto de línea</span>
+          <span class="composer-hint no-touch xs faint" id="composerHint"></span>
           <button class="btn btn-primary btn-icon btn-round" id="sendBtn" type="submit" aria-label="Enviar"><svg class="icon"><use href="#i-send"/></svg></button>
         </div>
       </div>
@@ -313,7 +315,25 @@
   </div>
 </div>
 
+<!-- Atajos de teclado -->
+<div id="shortcuts" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="shortcutsTitle">
+  <div class="modal-card">
+    <div class="modal-head"><span class="modal-icon"><svg class="icon"><use href="#i-list"/></svg></span><h3 id="shortcutsTitle">Atajos de teclado y gestos</h3>
+      <button class="btn btn-ghost btn-icon" type="button" data-close="#shortcuts" aria-label="Cerrar"><svg class="icon"><use href="#i-x"/></svg></button></div>
+    <div class="modal-body" id="shortcutsBody"></div>
+  </div>
+</div>
+
+<!-- Buscar / cambiar de sesión -->
+<div id="palette" class="modal hidden" role="dialog" aria-modal="true" aria-label="Sesiones">
+  <div class="modal-card modal-sm pal">
+    <label class="pal-search"><svg class="icon"><use href="#i-search"/></svg><input id="paletteInput" class="input" type="text" placeholder="Buscar sesión o escribir un mensaje nuevo…" autocomplete="off" autofocus></label>
+    <div id="paletteList" class="pal-list"></div>
+  </div>
+</div>
+
 <div id="toasts" class="toast-stack" role="status" aria-live="polite"></div>
+<script src="/static/zoom.js?v={{V}}" defer></script>
 <script src="/static/app.js?v={{V}}" defer></script>
 </body>
 </html>

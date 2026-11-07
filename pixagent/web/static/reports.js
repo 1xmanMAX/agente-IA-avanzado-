@@ -122,6 +122,56 @@
     return out.join("").replace(/\u0000(\d+)\u0000/g, (_, i) => blocks[i]);
   }
 
+  // ---------------------------------------------------------------- capas y botón «atrás» (Android, gesto atrás)
+  // Modales, menú contextual y el editor de sección añaden una entrada al historial: «atrás» cierra la capa
+  // superior en vez de abandonar la pantalla (las pantallas ya se enrutan por hash).
+  const layers = [];
+  function pushLayer(name, close) {
+    layers.push({ name: name, close: close });
+    try { history.pushState({ layer: layers.length, hash: location.hash }, "", location.hash || "#/"); } catch (e) { /* sin historial */ }
+  }
+  function dropLayer(name) {
+    const i = layers.map((l) => l.name).lastIndexOf(name);
+    if (i < 0) return false;
+    const wasTop = i === layers.length - 1;
+    layers.splice(i, 1);
+    if (wasTop && history.state && history.state.layer === layers.length + 1) { try { history.back(); } catch (e) { /* nada */ } }
+    return true;
+  }
+  window.addEventListener("popstate", (e) => {
+    const depth = (e.state && e.state.layer) || 0;
+    while (layers.length > depth) { const l = layers.pop(); try { l.close(); } catch (err) { /* ya cerrada */ } }
+  });
+  try { history.replaceState({ layer: 0, hash: location.hash }, ""); } catch (e) { /* nada */ }
+
+  // Modales accesibles: foco atrapado y devuelto al cerrar; Esc y «atrás» cierran
+  const FOCUSABLE = 'button:not([disabled]), a[href], input:not([disabled]):not([type=hidden]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  function openModal(sel, onClose) {
+    const m = typeof sel === "string" ? $(sel) : sel;
+    if (!m.classList.contains("hidden")) return;
+    m._prevFocus = document.activeElement; m._onClose = onClose || null;
+    m.classList.remove("hidden");
+    pushLayer("modal:" + m.id, () => finishModal(m, true));
+    const f = $$(FOCUSABLE, m).filter((el) => el.offsetParent !== null);
+    const first = m.querySelector("[autofocus]") || f.find((el) => el.tagName === "INPUT" || el.tagName === "TEXTAREA") || f[0];
+    if (first && !isTouch) setTimeout(() => first.focus(), 30);
+  }
+  function finishModal(m, fromBack) {
+    if (m.classList.contains("hidden")) return;
+    m.classList.add("hidden");
+    if (!fromBack) dropLayer("modal:" + m.id);
+    const cb = m._onClose; m._onClose = null; if (cb) cb();
+    const p = m._prevFocus; m._prevFocus = null;
+    if (p && p.focus && document.contains(p) && !isTouch) setTimeout(() => p.focus(), 0);
+  }
+  const closeModal = (sel) => { const m = typeof sel === "string" ? $(sel) : sel; if (m) finishModal(m, false); };
+  document.addEventListener("keydown", (e) => { // trampa de foco con Tab
+    if (e.key !== "Tab") return;
+    const m = $$(".modal:not(.hidden)").pop(); if (!m) return;
+    const f = $$(FOCUSABLE, m).filter((el) => el.offsetParent !== null); if (!f.length) return;
+    if (e.shiftKey && (document.activeElement === f[0] || !m.contains(document.activeElement))) { e.preventDefault(); f[f.length - 1].focus(); }
+    else if (!e.shiftKey && document.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
+  });
   function askConfirm(title, text, label, soft) {
     return new Promise((resolve) => {
       const m = $("#confirm");
@@ -130,14 +180,95 @@
       yes.textContent = label || "Borrar";
       yes.className = "btn " + (soft ? "btn-primary" : "btn-danger");
       $(".modal-icon", m).className = "modal-icon" + (soft ? "" : " danger");
-      m.classList.remove("hidden");
-      const close = (v) => { m.classList.add("hidden"); resolve(v); };
+      let result = false;
+      openModal(m, () => resolve(result));
+      const close = (v) => { result = v; closeModal(m); };
       yes.onclick = () => close(true); $("#confirmNo").onclick = () => close(false);
       m.onclick = (e) => { if (e.target === m) close(false); };
     });
   }
-  const openModal = (sel) => $(sel).classList.remove("hidden");
-  const closeModal = (sel) => $(sel).classList.add("hidden");
+
+  // ---------------------------------------------------------------- menú contextual (clic derecho · pulsación larga · botón ⋯)
+  function showMenu(items, x, y) {
+    hideMenu();
+    const menu = document.createElement("div"); menu.className = "ctx-menu"; menu.id = "ctxMenu"; menu.setAttribute("role", "menu");
+    menu.innerHTML = items.map((it, i) => it === "-" ? "<hr>" : `<button type="button" role="menuitem" data-i="${i}" class="${it.danger ? "danger" : ""}" ${it.disabled ? "disabled" : ""}>${it.icon ? ico(it.icon, "icon-sm") : ""}<span>${esc(it.label)}</span></button>`).join("");
+    if (isMobile()) menu.classList.add("sheet");
+    document.body.appendChild(menu);
+    if (!isMobile()) {
+      const r = menu.getBoundingClientRect();
+      menu.style.left = Math.max(8, Math.min(x, innerWidth - r.width - 8)) + "px";
+      menu.style.top = Math.max(8, Math.min(y, innerHeight - r.height - 8)) + "px";
+    }
+    menu.addEventListener("click", (e) => { const b = e.target.closest("[data-i]"); if (!b) return; const it = items[+b.dataset.i]; hideMenu(); if (it && it.onClick) it.onClick(); });
+    menu.addEventListener("keydown", (e) => {
+      const bs = $$("button:not([disabled])", menu), i = bs.indexOf(document.activeElement);
+      if (e.key === "ArrowDown") { e.preventDefault(); (bs[i + 1] || bs[0]).focus(); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); (bs[i - 1] || bs[bs.length - 1]).focus(); }
+    });
+    menu._prevFocus = document.activeElement;
+    pushLayer("menu", () => hideMenu(true));
+    setTimeout(() => { const b = menu.querySelector("button:not([disabled])"); if (b && !isTouch) b.focus(); }, 20);
+    if (navigator.vibrate && isTouch) navigator.vibrate(12);
+  }
+  function hideMenu(fromBack) {
+    const m = $("#ctxMenu"); if (!m) return;
+    m.remove(); if (!fromBack) dropLayer("menu");
+    const p = m._prevFocus; if (p && p.focus && document.contains(p) && !isTouch) p.focus();
+  }
+  document.addEventListener("pointerdown", (e) => { if ($("#ctxMenu") && !e.target.closest("#ctxMenu")) hideMenu(); }, true);
+  window.addEventListener("resize", () => hideMenu());
+  function contextFor(target) {
+    const ph = target.closest("#photoGrid .ph");
+    if (ph) {
+      const i = +ph.dataset.idx, photos = state.project ? state.project.photos : [], sel = state.sel.indexOf(i) >= 0;
+      const move = (d) => { const j = i + d; if (j < 0 || j >= photos.length) return; const x = photos.splice(i, 1)[0]; photos.splice(j, 0, x); state.sel = []; renderPhotos(); savePhotos(); };
+      return [
+        { label: sel ? "Quitar de la selección" : "Seleccionar", icon: "check", onClick: () => { const at = state.sel.indexOf(i); if (at >= 0) state.sel.splice(at, 1); else state.sel.push(i); renderPhotos(); } },
+        { label: "Ver en grande", icon: "eye", onClick: () => window.open(fileUrl(photos[i].path), "_blank", "noopener") },
+        "-",
+        { label: "Mover antes", icon: "up", disabled: i === 0, onClick: () => move(-1) },
+        { label: "Mover después", icon: "down", disabled: i >= photos.length - 1, onClick: () => move(1) },
+        "-",
+        { label: "Quitar del informe", icon: "trash", danger: true, onClick: async () => { if (!await askConfirm("¿Quitar esta foto del informe?", "El archivo se conserva en el workspace; solo se quita de este informe.", "Quitar")) return; photos.splice(i, 1); state.sel = []; renderPhotos(); savePhotos(); } },
+      ];
+    }
+    const rc = target.closest("[data-open-report]");
+    if (rc) {
+      const r = (state.reports || []).find((x) => x.id === rc.dataset.openReport); if (!r) return null;
+      const items = [{ label: "Abrir informe", icon: "edit", onClick: () => go("#/informe/" + encodeURIComponent(r.id)) }];
+      if (r.pdf) items.push({ label: "Abrir PDF", icon: "pdf", onClick: () => window.open(fileUrl(r.pdf), "_blank", "noopener") });
+      items.push("-", { label: "Borrar informe", icon: "trash", danger: true, onClick: async () => {
+        if (await askConfirm("¿Borrar este informe?", "«" + r.title + "» y sus secciones redactadas se eliminarán de forma permanente.")) { await apiDel("/api/reports/" + encodeURIComponent(r.id)); toast("Informe borrado", 2000, "ok"); loadReports(); } } });
+      return items;
+    }
+    const tc = target.closest(".tcard[data-pick-tpl], .tcard:not(.new)");
+    if (tc && !target.closest("[data-pick-tpl]")) {
+      const btn = tc.querySelector("[data-use-tpl], [data-dup-tpl], [data-edit-tpl]"); if (!btn) return null;
+      const id = btn.dataset.useTpl || btn.dataset.dupTpl || btn.dataset.editTpl, t = tplById(id); if (!t) return null;
+      const items = [{ label: "Usar para un informe nuevo", icon: "plus", onClick: () => go("#/nuevo/" + encodeURIComponent(id)) }];
+      if (t.builtin) items.push({ label: "Duplicar y personalizar", icon: "copy", onClick: () => go("#/plantilla/" + encodeURIComponent(id) + "/copiar") });
+      else items.push({ label: "Editar plantilla", icon: "edit", onClick: () => go("#/plantilla/" + encodeURIComponent(id)) }, "-",
+        { label: "Borrar plantilla", icon: "trash", danger: true, onClick: async () => { if (await askConfirm("¿Borrar esta plantilla?", "«" + t.name + "» se eliminará. Los informes ya creados no se ven afectados.")) { await apiDel("/api/report-templates/" + encodeURIComponent(id)); toast("Plantilla borrada", 2000, "ok"); loadTemplates(true); } } });
+      return items;
+    }
+    return null;
+  }
+  let lpTimer = null, lpStart = null, lpFired = 0;
+  document.addEventListener("contextmenu", (e) => {
+    if (Date.now() - lpFired < 1200) { e.preventDefault(); return; }
+    if (e.target.closest("input, textarea")) return;
+    const items = contextFor(e.target); if (!items) return;
+    e.preventDefault(); showMenu(items, e.clientX, e.clientY);
+  });
+  document.addEventListener("pointerdown", (e) => { // pulsación larga en táctil/lápiz, sin pelear con el scroll
+    if (e.pointerType === "mouse" || e.target.closest("input, textarea, button, label") || !contextFor(e.target)) return;
+    clearTimeout(lpTimer); lpStart = { x: e.clientX, y: e.clientY, t: e.target };
+    lpTimer = setTimeout(() => { lpFired = Date.now(); const items = contextFor(lpStart.t); if (items) showMenu(items, lpStart.x, lpStart.y); }, 480);
+  }, { passive: true });
+  document.addEventListener("pointermove", (e) => { if (lpStart && Math.hypot(e.clientX - lpStart.x, e.clientY - lpStart.y) > 10) { clearTimeout(lpTimer); lpStart = null; } }, { passive: true });
+  ["pointerup", "pointercancel"].forEach((ev) => document.addEventListener(ev, () => { clearTimeout(lpTimer); lpStart = null; }, { passive: true }));
+  document.addEventListener("click", (e) => { if (Date.now() - lpFired < 600 && !e.target.closest("#ctxMenu")) { e.stopPropagation(); e.preventDefault(); } }, true);
 
   // ---------------------------------------------------------------- tema (misma clave que la pantalla principal)
   function applyTheme(t) {
@@ -220,7 +351,12 @@
     else if (parts[0] === "informe" && parts[1]) { screen = "editor"; if (state.rid !== parts[1]) openEditor(parts[1]); }
     else if (parts[0] === "plantilla" && parts[1]) { screen = "template"; openTemplateEditor(parts[1] === "nueva" ? null : parts[1], parts[2] === "copiar"); }
     else { screen = "home"; loadHome(); }
-    if (screen !== "editor") { state.rid = null; state.project = null; state.unit = null; }
+    if (screen !== "editor") {
+      state.rid = null; state.project = null; state.unit = null;
+      const si = layers.map((l) => l.name).indexOf("section"); if (si >= 0) layers.splice(si, 1);
+      $("#sectionPane").classList.add("hidden");
+      if (state.zoom) { try { state.zoom.destroy(); } catch (e) { /* nada */ } state.zoom = null; }
+    }
     document.body.dataset.screen = screen;
     $$(".sub-item").forEach((a) => a.classList.toggle("on", screen === "home" && ((a.dataset.sub === "templates") === (parts[0] === "plantillas"))));
     $$("#recentList a").forEach((a) => a.classList.toggle("on", a.getAttribute("href") === location.hash));
@@ -284,7 +420,7 @@
   function sectionChips(t) {
     return `<div class="seclist">${(t.sections || []).map((s) => { const k = KINDS[s.kind] || KINDS.ai; return `<span class="chip" title="${esc(k.label)}">${ico(k.icon)}${esc(s.title || k.label)}</span>`; }).join("")}</div>`;
   }
-  function tplCard(t, mode) {
+  function tplCard(t, mode, frequent) {
     const n = (t.sections || []).length, ai = (t.sections || []).filter((s) => ["ai", "per_group", "auto_outline"].indexOf(s.kind) >= 0).length;
     const foot = mode === "pick" ? "" : `<div class="tcard-foot">
         <button type="button" class="btn btn-sm btn-soft" data-use-tpl="${esc(t.id)}">${ico("plus")}Usar</button>
@@ -293,7 +429,7 @@
       </div>`;
     return `<div class="tcard" ${tplColorStyle(t)} ${mode === "pick" ? `role="button" tabindex="0" data-pick-tpl="${esc(t.id)}"` : ""}>
       <div class="tcard-top"><span class="tpl-ico">${ico("layers")}</span><div class="grow"><b>${esc(t.name)}</b><div class="xs faint">${n} ${n === 1 ? "sección" : "secciones"} · ${ai} con IA</div></div>
-        <span class="badge ${t.builtin ? "" : "badge-accent"}">${t.builtin ? "Integrada" : "Mía"}</span></div>
+        ${frequent ? `<span class="badge badge-accent" title="La has usado antes">${ico("star", "icon-sm")}Habitual</span>` : `<span class="badge ${t.builtin ? "" : "badge-accent"}">${t.builtin ? "Integrada" : "Mía"}</span>`}</div>
       <p>${esc(t.description || "Sin descripción.")}</p>
       ${sectionChips(t)}${foot}</div>`;
   }
@@ -318,10 +454,18 @@
     if (f.type === "number") return `<input class="input tabular" id="${id}" type="number" step="any" inputmode="decimal" value="${v}" placeholder="${ph}"${req}>`;
     return `<input class="input" id="${id}" value="${v}"${req}>`;
   }
-  function fieldsForm(t, prefix, values) {
+  function fieldsForm(t, prefix, values, only) { // only: "req" | "opt" | undefined (todos)
     values = values || {};
-    return (t.fields || []).map((f, i) => `<label class="field ${f.type === "textarea" ? "span2" : ""}"><span>${esc(f.label || f.key)}${f.required ? ' <span class="faint">*</span>' : ""}</span>${fieldInput(f, prefix + i, values[f.key])}</label>`).join("")
-      || '<div class="xs faint span2">Esta plantilla no pide datos adicionales.</div>';
+    const list = (t.fields || []).map((f, i) => ({ f: f, i: i })).filter((x) => !only || (only === "req") === !!x.f.required);
+    return list.map((x) => `<label class="field ${x.f.type === "textarea" ? "span2" : ""}"><span>${esc(x.f.label || x.f.key)}${x.f.required ? ' <span class="faint">*</span>' : ""}</span>${fieldInput(x.f, prefix + x.i, values[x.f.key])}</label>`).join("")
+      || (only ? "" : '<div class="xs faint span2">Esta plantilla no pide datos adicionales.</div>');
+  }
+  // Contadores locales de uso (plantillas más usadas primero); fallan en silencio sin localStorage
+  function counts(key) { try { return JSON.parse(localStorage.getItem(key) || "{}") || {}; } catch (e) { return {}; } }
+  function bump(key, id) { try { const c = counts(key); c[id] = (c[id] || 0) + 1; localStorage.setItem(key, JSON.stringify(c)); } catch (e) { /* modo privado */ } }
+  function templatesByUse(list) {
+    const used = counts("rt:count");
+    return list.map((t, i) => ({ t: t, n: used[t.id] || 0, i: i })).sort((a, b) => b.n - a.n || (a.t.builtin ? 1 : 0) - (b.t.builtin ? 1 : 0) || a.i - b.i).map((x) => x.t);
   }
   function readFields(t, prefix) {
     const out = {};
@@ -333,23 +477,35 @@
     $$(".steps li").forEach((li) => { const n = +li.dataset.step; li.classList.toggle("on", n === (t ? 2 : 1)); li.classList.toggle("done", t && n === 1); });
     $("#wizStep1").classList.toggle("hidden", !!t); $("#wizStep2").classList.toggle("hidden", !t);
     if (!t) {
-      const list = state.templates || [];
-      $("#wizTemplates").innerHTML = list.map((x) => tplCard(x, "pick")).join("") || `<div class="empty"><span class="empty-icon">${ico("layers")}</span><div class="empty-title">No hay plantillas</div></div>`;
+      const list = templatesByUse(state.templates || []), used = counts("rt:count");
+      $("#wizTemplates").innerHTML = list.map((x) => tplCard(x, "pick", used[x.id] > 0)).join("") || `<div class="empty"><span class="empty-icon">${ico("layers")}</span><div class="empty-title">No hay plantillas</div></div>`;
       return;
     }
     $("#wizTplName").textContent = t.name;
-    $("#wizFields").innerHTML = fieldsForm(t, "wf");
+    // visibles: título, campos obligatorios y notas; lo opcional, el modelo y la extensión en «Opciones avanzadas»
+    $("#wizFields").innerHTML = fieldsForm(t, "wf", null, "req");
+    const opt = fieldsForm(t, "wf", null, "opt");
+    $("#wizFieldsOpt").innerHTML = opt; $("#wizFieldsOpt").classList.toggle("hidden", !opt);
     $("#wizPagesWrap").classList.toggle("hidden", !hasOutline(t));
     if (!$("#wizTitle").value) $("#wizTitle").value = "";
     $$("#wizModel button").forEach((b) => b.classList.toggle("on", b.dataset.model === state.wiz.model));
     $("#wizModelHint").textContent = MODEL_HINT[state.wiz.model] || "";
+    renderWizAdvSum();
     if (!isTouch) setTimeout(() => $("#wizTitle").focus(), 50);
+  }
+  function renderWizAdvSum() {
+    const t = state.wiz.tpl; if (!t) return;
+    const nOpt = (t.fields || []).filter((f) => !f.required).length;
+    const parts = ["Calidad " + (MODELS[state.wiz.model] || "").toLowerCase()];
+    if (hasOutline(t)) parts.push(($("#wizPages").value || 20) + " págs.");
+    if (nOpt) parts.push(nOpt + (nOpt === 1 ? " campo opcional" : " campos opcionales"));
+    $("#wizAdvSum").textContent = parts.join(" · ");
   }
   $("#wizChange").onclick = () => { state.wiz.tpl = null; renderWizard(); };
   $("#wizBack").onclick = () => { state.wiz.tpl = null; renderWizard(); };
   $("#wizModel").addEventListener("click", (e) => { const b = e.target.closest("[data-model]"); if (b) { state.wiz.model = b.dataset.model; renderWizard(); } });
-  $("#wizPages").addEventListener("input", (e) => { $("#wizPagesRange").value = Math.max(5, Math.min(200, +e.target.value || 5)); });
-  $("#wizPagesRange").addEventListener("input", (e) => { $("#wizPages").value = e.target.value; });
+  $("#wizPages").addEventListener("input", (e) => { $("#wizPagesRange").value = Math.max(5, Math.min(200, +e.target.value || 5)); renderWizAdvSum(); });
+  $("#wizPagesRange").addEventListener("input", (e) => { $("#wizPages").value = e.target.value; renderWizAdvSum(); });
   $("#wizStep2").addEventListener("submit", async (e) => {
     e.preventDefault();
     const t = state.wiz.tpl; if (!t) return;
@@ -360,6 +516,7 @@
     const j = await api("/api/reports", body);
     btn.disabled = false;
     if (!j.ok) { toast(j.error || "No se pudo crear el informe", 5000, "err"); return; }
+    bump("rt:count", t.id);
     $("#wizTitle").value = ""; $("#wizNotes").value = ""; state.wiz.tpl = null;
     state.reports = null;
     toast("Informe creado. Ahora añade las fotos.", 3200, "ok");
@@ -439,18 +596,16 @@
     $("#edRunning").classList.toggle("hidden", !state.running);
     const tokens = (e.input_tokens || 0) + (e.output_tokens || 0);
     const kTokens = tokens >= 1e6 ? (tokens / 1e6).toLocaleString("es-ES", { maximumFractionDigits: 1 }) + " M" : tokens >= 1000 ? Math.round(tokens / 1000).toLocaleString("es-ES") + " k" : num(tokens);
+    const pages = Number(e.pages_estimate || 0).toLocaleString("es-ES", { maximumFractionDigits: 0 });
+    // una línea visible; el detalle (llamadas, tokens, páginas) al desplegar
+    $("#estLine").innerHTML = e.calls ? `<b>${usd(e.usd)}</b> · ${num(e.calls)} ${e.calls === 1 ? "llamada" : "llamadas"} · ≈ ${pages} págs.` : `<b>Todo redactado</b> · ≈ ${pages} págs.`;
     $("#estimate").innerHTML = `
       <div class="k"><b>${num(e.calls)}</b><small>Llamadas</small></div>
       <div class="k"><b>${kTokens}</b><small>Tokens</small></div>
       <div class="k usd"><b>${usd(e.usd)}</b><small>Coste aprox.</small></div>
-      <div class="k"><b>≈ ${Number(e.pages_estimate || 0).toLocaleString("es-ES", { maximumFractionDigits: 0 })}</b><small>Páginas</small></div>
-      <div class="est-note">${e.calls ? "Estimación orientativa de lo que falta por redactar; las partes ya listas no se repiten." : "Todas las partes están redactadas. Puedes regenerar una sección desde su editor o rehacer todo."}</div>`;
-    $("#genSub").textContent = state.running ? "Trabajando en segundo plano" : p.needs_outline ? "Primero hace falta el índice" : "Estimación antes de generar";
-    const btn = $("#genAll");
-    btn.disabled = !!state.running || !!p.needs_outline;
-    btn.classList.toggle("hidden", !!p.needs_outline);
-    $("span", btn).textContent = e.calls ? "Generar todo" : "Regenerar todo";
-    $("#genCancel").classList.toggle("hidden", !state.running);
+      <div class="k"><b>≈ ${pages}</b><small>Páginas</small></div>
+      <div class="est-note">${e.calls ? "Estimación orientativa de lo que falta por redactar; las partes ya listas no se repiten." : "Todas las partes están redactadas. Regenera una sección desde su editor o rehaz todo desde el menú ⋯."}</div>`;
+    $("#genSub").textContent = state.running ? "Trabajando en segundo plano" : p.needs_outline ? "Primero hace falta el índice" : "Estimación antes de redactar";
     const prog = $("#genProgress");
     if (state.running) {
       prog.classList.remove("hidden");
@@ -458,7 +613,53 @@
       $("#genCount").textContent = pr.total ? pr.done + "/" + pr.total : "";
       $("#genBar").style.width = pr.total ? Math.round(Math.min(1, pr.done / pr.total) * 100) + "%" : "8%";
     }
+    renderPrimary();
   }
+  // Acción principal única según el estado: Añadir fotos → Proponer índice → Redactar informe → Construir PDF → Ver PDF
+  function primaryAction() {
+    const p = state.project; if (!p) return null;
+    const e = p.estimate || {};
+    const pdf = p.outputs && p.outputs.pdf;
+    const usesPhotos = p.units.some((u) => u.kind === "per_group" || u.kind === "heading" || u.kind === "photo_grid") || (p.template.sections || []).some((s) => s.photos);
+    if (state.running) return { act: "running", label: "Redactando…", icon: "sparkle", disabled: true };
+    if (!p.photos.length && usesPhotos && !pdf && e.calls) return { act: "photos", label: "Añadir fotos", icon: "plus" };
+    if (p.needs_outline) return { act: "outline", label: "Proponer índice", icon: "book" };
+    if (e.calls) return { act: "generate", label: "Redactar informe", icon: "sparkle" };
+    const stale = pdf && p.updated && p.outputs.built && p.updated > p.outputs.built + 2;
+    if (!pdf || stale) return { act: "build", label: stale ? "Reconstruir PDF" : "Construir PDF", icon: "pdf" };
+    return { act: "view", label: "Ver PDF", icon: "eye" };
+  }
+  function renderPrimary() {
+    const a = primaryAction(), b = $("#edPrimary"); if (!a) return;
+    b.dataset.act = a.act; b.disabled = !!a.disabled;
+    b.innerHTML = (a.act === "running" ? '<span class="spinner"></span>' : ico(a.icon)) + `<span>${esc(a.label)}</span>`;
+    b.title = a.label;
+  }
+  $("#edPrimary").onclick = () => {
+    const act = $("#edPrimary").dataset.act;
+    if (act === "photos") { document.body.dataset.etab = "photos"; $("#fileInput").click(); }
+    else if (act === "outline") generate({ sections: [] }, "Diseñando el índice…");
+    else if (act === "generate") generateAll();
+    else if (act === "build") buildPdf();
+    else if (act === "view") document.body.dataset.etab = "preview";
+  };
+  // Menú «⋯»: acciones secundarias (datos, regenerar todo, cancelar, reconstruir, markdown, borrar)
+  $("#edMore").onclick = (e) => {
+    const p = state.project; if (!p) return;
+    const e2 = p.estimate || {}, pdf = p.outputs && p.outputs.pdf;
+    const items = [{ label: "Datos del informe…", icon: "sliders", onClick: openDataModal }];
+    if (state.running) items.push({ label: "Cancelar la redacción", icon: "stop", onClick: cancelGeneration });
+    else {
+      items.push({ label: e2.calls ? "Redactar lo que falta" : "Rehacer todo el informe", icon: "sparkle", disabled: !!p.needs_outline, onClick: generateAll });
+    }
+    items.push("-");
+    items.push({ label: pdf ? "Reconstruir PDF" : "Construir PDF", icon: "pdf", disabled: !!state.running && false, onClick: buildPdf });
+    if (pdf) items.push({ label: "Abrir PDF en pestaña nueva", icon: "external", onClick: () => window.open(fileUrl(pdf), "_blank", "noopener") });
+    if (p.outputs && p.outputs.md) items.push({ label: "Ver Markdown", icon: "text", onClick: () => window.open(fileUrl(p.outputs.md), "_blank", "noopener") });
+    items.push("-", { label: "Borrar informe", icon: "trash", danger: true, onClick: deleteReport });
+    const r = e.currentTarget.getBoundingClientRect();
+    showMenu(items, r.right - 220, r.bottom + 6);
+  };
   function genMsg(type, text) {
     const m = $("#genMsg");
     m.className = "gen-msg " + type; m.innerHTML = ico(type === "ok" ? "check" : "alert") + `<span>${esc(text)}</span>`;
@@ -475,8 +676,8 @@
     if (isMobile() && !body.sections) document.body.dataset.etab = "structure";
     return true;
   }
-  $("#genAll").onclick = async () => {
-    const p = state.project; if (!p) return;
+  async function generateAll() {
+    const p = state.project; if (!p || state.running) return;
     const e = p.estimate || {};
     if (!p.photos.length && p.units.some((u) => u.kind === "per_group")) {
       if (!await askConfirm("¿Redactar sin fotos?", "La plantilla crea un apartado por zona de fotos y todavía no hay ninguna. Puedes añadirlas primero.", "Redactar igualmente", true)) return;
@@ -487,12 +688,13 @@
       generate({ sections: ids, force: true, unlock: true }, "Rehaciendo todas las partes…");
       return;
     }
+    if (!await askConfirm("¿Redactar el informe?", num(e.calls) + (e.calls === 1 ? " llamada a la IA" : " llamadas a la IA") + ", coste aproximado " + usd(e.usd) + ". Puedes cancelar en cualquier momento; las partes terminadas se conservan.", "Redactar", true)) return;
     generate({}, "Preparando " + e.calls + (e.calls === 1 ? " llamada…" : " llamadas…"));
-  };
-  $("#genCancel").onclick = async () => {
+  }
+  async function cancelGeneration() {
     await api("/api/reports/" + encodeURIComponent(state.rid) + "/cancel", {});
     $("#genLabel").textContent = "Cancelando… (termina la parte en curso)";
-  };
+  }
 
   // ---- índice automático
   function renderOutlineCard() {
@@ -748,9 +950,11 @@
   // ---- editor de sección
   function openSection(uid) {
     const u = state.project.units.find((x) => x.id === uid); if (!u) return;
+    const wasOpen = !!state.unit;
     state.unit = uid; state.dirty = false;
     renderTree();
     const pane = $("#sectionPane"); pane.classList.remove("hidden");
+    if (!wasOpen) pushLayer("section", () => closeSection(true)); // «atrás» cierra la sección
     renderSectionHead(u);
     const auto = !u.uses_ai;
     $(".sec-body", pane).classList.toggle("hidden", auto); $(".sec-tools", pane).classList.toggle("hidden", auto);
@@ -823,11 +1027,13 @@
       toast("Redactando la sección…", 2000);
     }
   };
-  function closeSection() {
+  function closeSection(fromBack) {
+    if (!state.unit && $("#sectionPane").classList.contains("hidden")) return;
     state.unit = null; state.dirty = false; $("#sectionPane").classList.add("hidden"); renderTree();
+    if (!fromBack) dropLayer("section");
     if (isMobile()) document.body.dataset.etab = "structure";
   }
-  $("#secBack").onclick = closeSection;
+  $("#secBack").onclick = () => closeSection();
 
   // ---- vista previa / PDF
   function renderPreview() {
@@ -846,16 +1052,13 @@
     body.innerHTML = `<div class="pv-actions">
         <span class="nm">${ico("pdf")}<b>${esc(baseName(pdf))}</b>${built ? `<span class="xs faint">construido ${esc(built)}</span>` : ""}</span>
         <div class="pv-btns">
-          <button type="button" class="btn btn-ghost btn-sm" id="pvRebuild" title="Volver a construir">${ico("refresh")}<span class="no-touch">Reconstruir</span></button>
           ${canPin ? `<button type="button" class="btn btn-ghost btn-icon btn-sm" id="pvPin" title="Fijar en PixPin">${ico("pin")}</button>` : ""}
           ${navigator.share ? `<button type="button" class="btn btn-ghost btn-icon btn-sm" id="pvShare" title="Compartir">${ico("share")}</button>` : ""}
           <a class="btn btn-ghost btn-icon btn-sm" href="${fileUrl(pdf)}" download="${esc(baseName(pdf))}" title="Descargar">${ico("download")}</a>
           <a class="btn btn-ghost btn-icon btn-sm" href="${fileUrl(pdf)}" target="_blank" rel="noopener" title="Abrir en pestaña nueva">${ico("external")}</a>
-          ${p.outputs.md ? `<a class="btn btn-ghost btn-icon btn-sm" href="${fileUrl(p.outputs.md)}" target="_blank" rel="noopener" title="Ver Markdown">${ico("text")}</a>` : ""}
         </div></div>
       ${warns.length ? `<div class="alert alert-warn pv-warn">${ico("alert")}<div>${warns.map(esc).join("<br>")}</div></div>` : ""}
       <div id="pvDoc" class="grow" style="display:flex;flex-direction:column;min-height:0"></div>`;
-    $("#pvRebuild").onclick = buildPdf;
     if ($("#pvPin")) $("#pvPin").onclick = async () => { const j = await api("/api/pixpin/pin", { files: [pdf] }); toast(j.ok ? "Fijado en PixPin" : (j.error || "PixPin no disponible"), j.ok ? 2000 : 5000, j.ok ? "ok" : "err"); };
     if ($("#pvShare")) $("#pvShare").onclick = async () => {
       try {
@@ -866,12 +1069,16 @@
       } catch (err) { if (err.name !== "AbortError") toast("No se pudo compartir", 3000, "err"); }
     };
     const doc = $("#pvDoc"), url = fileUrl(pdf) + "?t=" + Math.round(p.outputs.built || 0);
-    if (isTouch || isIOS) { // iOS solo muestra la 1.ª página en iframes: páginas como imágenes
+    if (state.zoom) { try { state.zoom.destroy(); } catch (e) { /* ya destruido */ } state.zoom = null; }
+    if (isTouch || isIOS) { // iOS solo muestra la 1.ª página en iframes: páginas como imágenes, con zoom por pellizco (PixZoom)
       doc.innerHTML = '<div class="pdfpages"><div class="loading"><span class="spinner spinner-lg"></span></div></div>';
+      const rid = state.rid;
       api("/api/pdfinfo/" + enc(pdf)).then((j) => {
+        if (state.rid !== rid) return;
         const n = Math.min(j.pages || 0, 120), w = Math.min(900, doc.clientWidth || 600);
-        doc.innerHTML = n ? '<div class="pdfpages">' + Array.from({ length: n }, (_, i) => `<img loading="lazy" decoding="async" src="${thumbUrl(pdf, w, i)}&t=${Math.round(p.outputs.built || 0)}" alt="Página ${i + 1}">`).join("") + "</div>"
-          : `<iframe src="${url}" title="PDF"></iframe>`;
+        if (!n) { doc.innerHTML = `<iframe src="${url}" title="PDF"></iframe>`; return; }
+        doc.innerHTML = '<div class="zoombox" id="pvZoom"><div class="pdfpages">' + Array.from({ length: n }, (_, i) => `<img loading="lazy" decoding="async" src="${thumbUrl(pdf, w, i)}&t=${Math.round(p.outputs.built || 0)}" alt="Página ${i + 1}">`).join("") + "</div></div>";
+        if (window.PixZoom) state.zoom = PixZoom.attach($("#pvZoom"), $("#pvZoom .pdfpages"), { wheel: "scroll" });
       });
     } else doc.innerHTML = `<iframe src="${url}" title="PDF"></iframe>`;
   }
@@ -879,7 +1086,7 @@
     const p = state.project; if (!p) return;
     const pend = p.units.filter((u) => u.uses_ai && u.kind !== "outline" && u.status !== "done");
     if (pend.length && !await askConfirm("Hay " + pend.length + (pend.length === 1 ? " parte sin redactar" : " partes sin redactar"), "El PDF marcará esas partes como pendientes. Puedes construirlo igualmente para revisar el formato.", "Construir igualmente", true)) return;
-    const b = $("#edBuild"); b.disabled = true;
+    const b = $("#edPrimary"); b.disabled = true;
     toast("Construyendo el PDF…", 2500);
     const j = await api("/api/reports/" + encodeURIComponent(state.rid) + "/build", {});
     b.disabled = false;
@@ -890,7 +1097,12 @@
     document.body.dataset.etab = "preview";
     loadReports();
   }
-  $("#edBuild").onclick = buildPdf;
+  async function deleteReport() {
+    const p = state.project; if (!p) return;
+    if (!await askConfirm("¿Borrar este informe?", "«" + p.title + "» y sus secciones redactadas se eliminarán de forma permanente. Las fotos originales se conservan.")) return;
+    await apiDel("/api/reports/" + encodeURIComponent(state.rid));
+    closeModal("#dataModal"); toast("Informe borrado", 2000, "ok"); state.reports = null; go("#/");
+  }
 
   // ---- datos del informe
   function openDataModal() {
@@ -901,7 +1113,6 @@
     $$("#dModel button").forEach((b) => b.classList.toggle("on", b.dataset.model === (p.model || "claude-opus-5-5")));
     openModal("#dataModal");
   }
-  $("#edData").onclick = openDataModal;
   $("#dModel").addEventListener("click", (e) => { const b = e.target.closest("[data-model]"); if (b) $$("#dModel button").forEach((x) => x.classList.toggle("on", x === b)); });
   $("#dataForm").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -914,12 +1125,7 @@
     state.project = j.report; renderEditorHead(); renderGenState(); renderOutlineCard(); renderTree();
     closeModal("#dataModal"); toast("Datos guardados", 2000, "ok"); loadReports();
   });
-  $("#dDelete").onclick = async () => {
-    const p = state.project;
-    if (!await askConfirm("¿Borrar este informe?", "«" + p.title + "» y sus secciones redactadas se eliminarán de forma permanente. Las fotos originales se conservan.")) return;
-    await apiDel("/api/reports/" + encodeURIComponent(state.rid));
-    closeModal("#dataModal"); toast("Informe borrado", 2000, "ok"); state.reports = null; go("#/");
-  };
+  $("#dDelete").onclick = deleteReport;
 
   // ---------------------------------------------------------------- editor de plantillas
   const KIND_STYLE = (k) => { const K = KINDS[k] || KINDS.static; return `style="--kind-color:${K.color};--kind-soft:${K.soft}"`; };
@@ -946,6 +1152,7 @@
     $("#tplColor").value = /^#[0-9a-f]{6}$/i.test(t.style.theme_color) ? t.style.theme_color : "#1f4e79"; $("#tplColorHex").value = $("#tplColor").value;
     $("#tplPage").value = t.style.page_size === "Letter" ? "Letter" : "A4";
     $("#tplCover").checked = t.style.cover !== false; $("#tplToc").checked = t.style.toc !== false; $("#tplCoverPhoto").checked = t.style.cover_photo !== false;
+    $("#tplLook").open = false; renderTplLookSum();
     renderTplFields(); renderTplSections();
   }
   function renderTplFields() {
@@ -953,8 +1160,8 @@
     $("#tplFields").innerHTML = t.fields.map((f, i) => `
       <div class="frow" data-i="${i}">
         <span class="grip" title="Arrastrar">${ico("grip")}</span>
-        <input class="input" data-fk="label" value="${esc(f.label)}" placeholder="Etiqueta (ej.: Cliente)" aria-label="Etiqueta del campo ${i + 1}">
-        <input class="input mono" data-fk="key" value="${esc(f.key)}" placeholder="clave" aria-label="Clave del campo ${i + 1}" title="Clave para usar en textos fijos: {{clave}}">
+        <input class="input" data-fk="label" value="${esc(f.label)}" placeholder="Etiqueta (ej.: Cliente)" aria-label="Etiqueta del campo ${i + 1}" title="${f.key ? "Clave para textos fijos: {{" + esc(f.key) + "}}" : ""}">
+        <input class="input mono hidden" data-fk="key" value="${esc(f.key)}" aria-label="Clave del campo ${i + 1}">
         <span class="select"><select data-fk="type" aria-label="Tipo">${Object.keys(FIELD_TYPES).map((k) => `<option value="${k}" ${f.type === k ? "selected" : ""}>${FIELD_TYPES[k]}</option>`).join("")}</select></span>
         <label class="switch"><input type="checkbox" data-fk="required" ${f.required ? "checked" : ""}><i></i>Obligatorio</label>
         <span class="mv"><button type="button" class="btn btn-ghost" data-fmv="-1" title="Subir" ${i === 0 ? "disabled" : ""}>${ico("up")}</button><button type="button" class="btn btn-ghost" data-fmv="1" title="Bajar" ${i === t.fields.length - 1 ? "disabled" : ""}>${ico("down")}</button><button type="button" class="btn btn-ghost" data-fdel title="Quitar">${ico("trash")}</button></span>
@@ -966,7 +1173,7 @@
     if (t.dataset.fk === "required") f.required = t.checked;
     else if (t.dataset.fk === "key") f.key = t.value.toLowerCase().replace(/[^a-z0-9_]/g, "_");
     else f[t.dataset.fk] = t.value;
-    if (t.dataset.fk === "label" && (!f.key || f._auto)) { f.key = slug(t.value).replace(/-/g, "_"); f._auto = true; $("[data-fk=key]", row).value = f.key; }
+    if (t.dataset.fk === "label" && (!f.key || f._auto !== false)) { f.key = slug(t.value).replace(/-/g, "_"); f._auto = true; $("[data-fk=key]", row).value = f.key; t.title = f.key ? "Clave para textos fijos: {{" + f.key + "}}" : ""; }
     if (t.dataset.fk === "key") f._auto = false;
     if (t.dataset.fk === "type") f.type = t.value;
   });
@@ -986,22 +1193,31 @@
     const ids = t.sections.map((s) => s.id).filter(Boolean);
     $("#tplSections").innerHTML = t.sections.map((s, i) => {
       const K = KINDS[s.kind] || KINDS.static, usesAI = ["ai", "per_group", "auto_outline"].indexOf(s.kind) >= 0;
-      let body = `<div class="hint">${ico("info")}<span>${esc(K.desc)}</span></div>`;
-      if (usesAI) body += `<label class="field span2">Instrucciones para la IA<textarea class="textarea" data-sk="instructions" placeholder="${s.kind === "auto_outline" ? "Cómo debe ser el índice (enfoque, capítulos imprescindibles…)" : "Qué debe cubrir, tono, tablas que incluir, cómo citar las fotos…"}">${esc(s.instructions || "")}</textarea></label>`;
+      // visible: tipo, título e instrucciones; lo demás (palabras, fotos, dependencias, disposición, texto fijo) en «Más opciones»
+      let body = "";
+      if (usesAI) body += `<label class="field span2">Instrucciones para la IA<textarea class="textarea" data-sk="instructions" placeholder="${s.kind === "auto_outline" ? "Cómo debe ser el índice (enfoque, capítulos imprescindibles…)" : "Qué debe cubrir, tono, tablas, cómo citar las fotos…"}">${esc(s.instructions || "")}</textarea></label>`;
+      let more = "", sum = [];
       if (s.kind === "ai" || s.kind === "per_group") {
-        body += `<label class="field">Extensión (palabras)<input class="input tabular" type="number" min="50" max="5000" step="50" inputmode="numeric" data-sk="words" value="${esc(s.words || 400)}"></label>`;
-        body += `<div class="field">Fotos<label class="switch" style="min-height:38px"><input type="checkbox" data-sk="photos" ${s.photos ? "checked" : ""}><i></i>${s.kind === "per_group" ? "Incluir las fotos de cada zona" : "Enviar todas las fotos a la IA"}</label></div>`;
+        more += `<label class="field">Extensión (palabras)<input class="input tabular" type="number" min="50" max="5000" step="50" inputmode="numeric" data-sk="words" value="${esc(s.words || 400)}"></label>`;
+        more += `<div class="field">Fotos<label class="switch" style="min-height:38px"><input type="checkbox" data-sk="photos" ${s.photos ? "checked" : ""}><i></i>${s.kind === "per_group" ? "Incluir las fotos de cada zona" : "Enviar todas las fotos a la IA"}</label></div>`;
+        sum.push("~" + num(s.words || 400) + " palabras", s.photos ? "con fotos" : "sin fotos");
       }
       if (s.kind === "ai") {
-        const others = ids.filter((x) => x !== s.id);
-        body += `<div class="field span2">Depende de (se redacta después y con sus resúmenes)<div class="deps">
-          <span class="chip chip-btn ${(s.depends_on || []).indexOf("*") >= 0 ? "on" : ""}" data-dep="*">${ico("layers")}Todas las demás</span>
-          ${others.map((id) => { const o = t.sections.find((x) => x.id === id); return `<span class="chip chip-btn ${(s.depends_on || []).indexOf(id) >= 0 ? "on" : ""}" data-dep="${esc(id)}">${esc(o && o.title || id)}</span>`; }).join("")}
+        const others = ids.filter((x) => x !== s.id), deps = s.depends_on || [];
+        more += `<div class="field span2">Depende de (se redacta después, con sus resúmenes)<div class="deps">
+          <span class="chip chip-btn ${deps.indexOf("*") >= 0 ? "on" : ""}" data-dep="*">${ico("layers")}Todas las demás</span>
+          ${others.map((id) => { const o = t.sections.find((x) => x.id === id); return `<span class="chip chip-btn ${deps.indexOf(id) >= 0 ? "on" : ""}" data-dep="${esc(id)}">${esc(o && o.title || id)}</span>`; }).join("")}
           ${others.length ? "" : '<span class="xs faint">Añade otras secciones con título para poder elegirlas.</span>'}</div></div>`;
+        if (deps.length) sum.push(deps.indexOf("*") >= 0 ? "tras todas" : "depende de " + deps.length);
       }
-      if (s.kind === "photo_grid") body += `<label class="field">Disposición (columnas × filas)<span class="select"><select data-sk="layout">${["1x2", "2x2", "2x3", "3x3", "3x4"].map((l) => `<option ${(s.layout || "2x3") === l ? "selected" : ""}>${l}</option>`).join("")}</select></span></label>`;
-      if (s.kind === "static") body += `<label class="field span2">Texto fijo (Markdown)<textarea class="textarea" data-sk="content" placeholder="Ej.: ______________________&#10;**{{inspector}}**&#10;{{registro}}">${esc(s.content || "")}</textarea>
-        <span class="inserts">${t.fields.filter((f) => f.key).map((f) => `<span class="chip chip-btn" data-ins="{{${esc(f.key)}}}" title="Insertar ${esc(f.label || f.key)}">{{${esc(f.key)}}}</span>`).join("")}</span></label>`;
+      if (s.kind === "photo_grid") { more += `<label class="field">Disposición (columnas × filas)<span class="select"><select data-sk="layout">${["1x2", "2x2", "2x3", "3x3", "3x4"].map((l) => `<option ${(s.layout || "2x3") === l ? "selected" : ""}>${l}</option>`).join("")}</select></span></label>`; sum.push("rejilla " + (s.layout || "2x3")); }
+      if (s.kind === "static") {
+        more += `<label class="field span2">Texto fijo (Markdown)<textarea class="textarea" data-sk="content" placeholder="Ej.: ______________________&#10;**{{inspector}}**&#10;{{registro}}">${esc(s.content || "")}</textarea>
+          <span class="inserts">${t.fields.filter((f) => f.key).map((f) => `<span class="chip chip-btn" data-ins="{{${esc(f.key)}}}" title="Insertar ${esc(f.label || f.key)}">{{${esc(f.key)}}}</span>`).join("")}</span></label>`;
+        const n = (s.content || "").trim().split("\n").filter(Boolean).length; sum.push(n ? n + (n === 1 ? " línea de texto" : " líneas de texto") : "sin texto todavía");
+      }
+      if (more) body += `<details class="sopts span2" ${s._open ? "open" : ""} data-sopts><summary><span class="grow">Más opciones</span><span class="xs faint truncate">${esc(sum.join(" · "))}</span>${ico("chevron", "icon-sm fold-chev")}</summary><div class="sopts-body">${more}</div></details>`;
+      body += `<div class="hint">${ico("info")}<span>${esc(K.desc)}</span></div>`;
       return `<div class="srow" data-i="${i}" draggable="false">
         <div class="srow-head"><span class="grip" title="Arrastrar para reordenar">${ico("grip")}</span>
           <span class="kind" ${KIND_STYLE(s.kind)}>${ico(K.icon)}${esc(K.label)}</span>
@@ -1023,6 +1239,17 @@
     else if (k === "words") s.words = Math.max(50, +t.value || 0);
     else s[k] = t.value;
   });
+  $("#tplSections").addEventListener("toggle", (e) => { // recordar qué «Más opciones» están abiertas al repintar
+    const d = e.target, row = d.closest && d.closest(".srow"); if (!row || !d.hasAttribute("data-sopts")) return;
+    state.tpl.sections[+row.dataset.i]._open = d.open;
+  }, true);
+  function renderTplLookSum() {
+    const parts = [$("#tplPage").value, $("#tplColorHex").value];
+    if ($("#tplCover").checked) parts.push("portada" + ($("#tplCoverPhoto").checked ? " con foto" : ""));
+    if ($("#tplToc").checked) parts.push("índice");
+    $("#tplLookSum").textContent = parts.join(" · ");
+  }
+  $("#tplLook").addEventListener("input", renderTplLookSum); $("#tplLook").addEventListener("change", renderTplLookSum);
   $("#tplSections").addEventListener("change", (e) => {
     const t = e.target, row = t.closest(".srow"); if (!row || !t.dataset.sk) return;
     const s = state.tpl.sections[+row.dataset.i];
@@ -1072,6 +1299,7 @@
       fields_table: { title: "Datos generales" }, photo_grid: { title: "Anexo fotográfico", layout: "2x3" }, static: { title: "Firma", content: "" } };
     const s = Object.assign({ id: "", kind: k, title: "", instructions: "", words: 400, depends_on: [], photos: false, layout: "2x3", content: "" }, defaults[k]);
     ensureSectionId(s);
+    if (k === "static" || k === "photo_grid") s._open = true; // su contenido principal vive en «Más opciones»
     state.tpl.sections.push(s); closeModal("#kindModal"); renderTplSections();
     const rows = $$("#tplSections .srow"), last = rows[rows.length - 1];
     if (last) { last.scrollIntoView({ block: "center", behavior: "smooth" }); const inp = $("[data-sk=title]", last); if (inp && !isTouch) inp.focus(); }
@@ -1145,13 +1373,30 @@
     const pick = t.closest("[data-pick-tpl]"); if (pick) { state.wiz.tpl = tplById(pick.dataset.pickTpl); renderWizard(); return; }
     const unit = t.closest("[data-unit]"); if (unit) { openSection(unit.dataset.unit); return; }
     const etab = t.closest("[data-etab]"); if (etab) { document.body.dataset.etab = etab.dataset.etab; $$(".ed-tabs [data-etab]").forEach((b) => b.classList.toggle("on", b.dataset.etab === etab.dataset.etab)); return; }
-    const modal = t.classList.contains("modal") ? t : null; if (modal && modal.id !== "confirm") modal.classList.add("hidden");
+    const modal = t.classList.contains("modal") ? t : null; if (modal && modal.id !== "confirm") closeModal(modal);
   });
   document.addEventListener("keydown", (e) => {
+    if (e.isComposing) return;
     if (e.key === "Enter" && e.target.matches("[role=button]")) { e.preventDefault(); e.target.click(); }
-    if (e.key === "Escape") { $$(".modal:not(.hidden)").forEach((m) => { if (m.id !== "confirm") m.classList.add("hidden"); }); if (state.unit && !$(".modal:not(.hidden)")) closeSection(); }
-    if ((e.ctrlKey || e.metaKey) && e.key === "s" && state.unit && !$("#secSave").disabled) { e.preventDefault(); $("#secSave").click(); }
+    if (e.key === "Escape") {
+      if ($("#ctxMenu")) { hideMenu(); return; }
+      const m = $$(".modal:not(.hidden)").pop();
+      if (m) { if (m.id === "confirm") $("#confirmNo").click(); else closeModal(m); return; }
+      if (state.unit) { closeSection(); return; }
+      if (e.target.matches("input, textarea")) e.target.blur();
+      return;
+    }
+    const mod = (isMac ? e.metaKey : e.ctrlKey) && !e.altKey;
+    if (mod && e.key === "s" && state.unit && !$("#secSave").disabled) { e.preventDefault(); $("#secSave").click(); return; }
+    if ((mod || e.altKey) && !e.shiftKey && (e.key === "n" || e.key === "N")) { e.preventDefault(); go("#/nuevo"); return; }
+    if (mod && e.key === "Enter" && document.body.dataset.screen === "new" && !$("#wizStep2").classList.contains("hidden")) { e.preventDefault(); $("#wizStep2").requestSubmit(); return; }
+    if (e.altKey && !mod && /^[1-4]$/.test(e.key)) {
+      e.preventDefault();
+      if (e.key === "1") location.href = "/"; else if (e.key === "2") location.href = "/?view=apps"; else if (e.key === "3") go("#/"); else go("#/plantillas");
+    }
   });
+  const isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform) || /Mac/.test(navigator.userAgent);
+  $$(".mod-key").forEach((el) => { el.textContent = isMac ? "⌘" : "Ctrl"; });
   $("#newReportBtn").onclick = () => go("#/nuevo");
   $("#navTheme").onclick = () => { const cur = localGet("theme") || "system"; applyTheme(cur === "system" ? "dark" : cur === "dark" ? "light" : "system"); toast("Tema: " + ({ system: "sistema", dark: "oscuro", light: "claro" }[localGet("theme") || "system"]), 1500); };
   $$(".ed-tabs [data-etab]").forEach((b) => b.classList.toggle("on", b.dataset.etab === document.body.dataset.etab));

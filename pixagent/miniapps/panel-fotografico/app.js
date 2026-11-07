@@ -8,6 +8,12 @@
   var CM = 28.3465;                                  // puntos por cm (igual que reportlab)
   var PAGES = { A4: [595.28, 841.89], A3: [841.89, 1190.55] };
   var LAYOUTS = ["1x1", "1x2", "2x2", "2x3", "3x3", "3x4"];
+  var COMMON_LAYOUTS = ["2x3", "2x2", "1x2"];   // visibles; el resto bajo "Más"
+  var PRIMARY_FIELDS = ["Proyecto", "Fecha"];     // campos a la vista; los demás en "Más datos"
+  var layoutsMore = false;
+  var pz = null, pzFit = 1, lbz = null, lbIndex = -1;
+  var hasZoom = !!(window.PixZoom && typeof window.PixZoom.attach === "function");
+  var COARSE = window.matchMedia("(pointer: coarse)").matches;
   var PRESETS = ["#1f4e79", "#5b5bf7", "#0f766e", "#b45309", "#8b1d2c", "#374151"];
   var STORE = "pixagent.panel.v1";
   var PDF_FONT = '"DejaVu Sans", Verdana, Helvetica, Arial, sans-serif';
@@ -55,6 +61,14 @@
         state.photos.forEach(function (p) { if (!p.id) p.id = uid(); });
       }
     } catch (e) { /* almacenamiento no disponible: seguimos sin borrador */ }
+    ensurePrimaryFields();
+  }
+  function findField(name) {
+    var re = new RegExp("^" + name + "$", "i");
+    return state.fields.filter(function (f) { return re.test(String(f[0] || "").trim()); })[0] || null;
+  }
+  function ensurePrimaryFields() {
+    PRIMARY_FIELDS.forEach(function (n) { if (!findField(n)) state.fields.push([n, n === "Fecha" ? today() : ""]); });
   }
 
   /* ---------------- avisos ---------------- */
@@ -67,7 +81,6 @@
   function notice(kind, title, body, actions) {
     var mobile = window.matchMedia("(max-width: 900px)").matches;
     var box = mobile ? $("#noticesM") : $("#notices");
-    if (!mobile) { var sc = $(".work .scroll"); if (sc) sc.scrollTop = 0; }
     var el = document.createElement("div");
     el.className = "notice " + kind;
     var icon = kind === "ok" ? "i-check" : kind === "err" ? "i-alert" : "i-image";
@@ -79,6 +92,7 @@
     if (actions) actions.forEach(function (a) { el.querySelector(".acts").appendChild(a); });
     box.insertBefore(el, box.firstChild);
     while (box.children.length > (mobile ? 1 : 3)) box.removeChild(box.lastChild);
+    if (!mobile) { try { el.scrollIntoView({ block: "nearest", behavior: "smooth" }); } catch (e) { /* ok */ } }
     return el;
   }
   function mkBtn(label, icon, cls, onClick, href) {
@@ -112,30 +126,72 @@
       var el = document.createElement("article");
       el.className = "ph"; el.dataset.idx = i; el.draggable = true;
       el.innerHTML =
-        '<div class="img"><img alt="" loading="lazy" src="' + thumb(p, 480) + '">' +
+        '<div class="img" role="button" tabindex="0" aria-label="Ver la foto ' + (i + 1) + ' en grande"><img alt="" loading="lazy" src="' + thumb(p, 480) + '">' +
         '<span class="num">' + (i + 1) + "</span>" +
-        '<button class="del" type="button" aria-label="Quitar foto ' + (i + 1) + '"><svg class="i sm"><use href="#i-trash"/></svg></button></div>' +
+        '<button class="del" type="button" aria-label="Quitar foto ' + (i + 1) + '" title="Quitar"><svg class="i sm"><use href="#i-trash"/></svg></button>' +
+        '<button class="grip" type="button" aria-label="Arrastrar para reordenar" title="Arrastrar para reordenar"><svg class="i sm"><use href="#i-grip"/></svg></button></div>' +
         '<textarea class="cap" rows="2" placeholder="Pie de foto…" aria-label="Pie de la foto ' + (i + 1) + '">' + esc(p.caption) + "</textarea>" +
         '<div class="mv"><button type="button" aria-label="Mover a la izquierda"' + (i === 0 ? " disabled" : "") + '><svg class="i"><use href="#i-left"/></svg></button>' +
         '<button type="button" aria-label="Mover a la derecha"' + (i === state.photos.length - 1 ? " disabled" : "") + '><svg class="i"><use href="#i-right"/></svg></button></div>';
       var img = el.querySelector("img");
       img.onerror = function () { img.alt = "No disponible"; img.style.objectFit = "contain"; };
-      el.querySelector(".del").onclick = function () { state.photos.splice(i, 1); changed(true); };
+      el.querySelector(".del").onclick = function (ev) { ev.stopPropagation(); state.photos.splice(i, 1); changed(true); };
+      el.querySelector(".grip").onclick = function (ev) { ev.stopPropagation(); };
+      var imgBox = el.querySelector(".img");
+      imgBox.addEventListener("click", function (ev) { if (ev.target.closest("button")) return; if (lift.suppressClick) { lift.suppressClick = false; return; } openLightbox(i); });
+      imgBox.addEventListener("keydown", function (ev) { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); openLightbox(i); } });
+      // táctil / lápiz: mantener pulsado levanta la foto y se arrastra sin pelear con el scroll
+      imgBox.addEventListener("pointerdown", function (ev) { if (ev.pointerType === "mouse" || ev.target.closest("button")) return; liftStart(ev, i, el); });
       var mv = el.querySelectorAll(".mv button");
       mv[0].onclick = function () { move(i, i - 1); };
       mv[1].onclick = function () { move(i, i + 1); };
       var cap = el.querySelector(".cap");
       cap.addEventListener("input", function () { p.caption = cap.value; schedulePreview(); saveDraft(); });
-      // arrastrar en escritorio
-      el.addEventListener("dragstart", function (ev) { dragFrom = i; el.classList.add("dragging"); try { ev.dataTransfer.setData("text/plain", String(i)); ev.dataTransfer.effectAllowed = "move"; } catch (e) { /* IE */ } });
-      el.addEventListener("dragend", function () { dragFrom = -1; $$(".ph").forEach(function (x) { x.classList.remove("dragging", "over"); }); });
+      // arrastrar en escritorio: solo desde el asa, para que el clic en la imagen la abra en grande
+      el.querySelector(".grip").addEventListener("pointerdown", function (ev) { if (ev.pointerType === "mouse") gripArmed = i; });
+      el.addEventListener("dragstart", function (ev) { if (gripArmed !== i) { ev.preventDefault(); return; } dragFrom = i; el.classList.add("dragging"); try { ev.dataTransfer.setData("text/plain", String(i)); ev.dataTransfer.effectAllowed = "move"; } catch (e) { /* IE */ } });
+      el.addEventListener("dragend", function () { dragFrom = -1; gripArmed = -1; $$(".ph").forEach(function (x) { x.classList.remove("dragging", "over"); }); });
       el.addEventListener("dragover", function (ev) { if (dragFrom < 0) return; ev.preventDefault(); ev.dataTransfer.dropEffect = "move"; el.classList.add("over"); });
       el.addEventListener("dragleave", function () { el.classList.remove("over"); });
       el.addEventListener("drop", function (ev) { if (dragFrom < 0) return; ev.preventDefault(); ev.stopPropagation(); move(dragFrom, i); });
       grid.appendChild(el);
     });
   }
-  var dragFrom = -1;
+  var dragFrom = -1, gripArmed = -1;
+  document.addEventListener("pointerup", function () { gripArmed = -1; });
+  /* pulsación larga (táctil): levantar y arrastrar */
+  var lift = { timer: 0, from: -1, el: null, active: false, x: 0, y: 0, pid: null, suppressClick: false };
+  function liftStart(ev, i, el) {
+    liftCancel(); lift.suppressClick = false;
+    lift.from = i; lift.el = el; lift.x = ev.clientX; lift.y = ev.clientY; lift.pid = ev.pointerId;
+    lift.timer = setTimeout(function () {
+      lift.active = true; el.classList.add("lifted");
+      try { el.setPointerCapture(lift.pid); } catch (e) { /* ok */ }
+      if (navigator.vibrate) { try { navigator.vibrate(12); } catch (e) { /* ok */ } }
+    }, 380);
+  }
+  function liftCancel() { clearTimeout(lift.timer); lift.timer = 0; if (lift.el) lift.el.classList.remove("lifted"); $$(".ph.over").forEach(function (x) { x.classList.remove("over"); }); lift.active = false; lift.from = -1; lift.el = null; }
+  document.addEventListener("pointermove", function (ev) {
+    if (lift.timer && !lift.active && (Math.abs(ev.clientX - lift.x) + Math.abs(ev.clientY - lift.y) > 10)) { liftCancel(); return; }
+    if (!lift.active) return;
+    var under = document.elementFromPoint(ev.clientX, ev.clientY), card = under && under.closest(".ph");
+    $$(".ph.over").forEach(function (x) { if (x !== card) x.classList.remove("over"); });
+    if (card && card !== lift.el) card.classList.add("over");
+  }, { passive: true });
+  document.addEventListener("touchmove", function (ev) { if (lift.active) ev.preventDefault(); }, { passive: false });
+  document.addEventListener("pointerup", function (ev) {
+    if (!lift.timer && !lift.active) return;
+    if (lift.active) {
+      var under = document.elementFromPoint(ev.clientX, ev.clientY), card = under && under.closest(".ph");
+      var from = lift.from, to = card ? +card.dataset.idx : -1;
+      lift.suppressClick = true; setTimeout(function () { lift.suppressClick = false; }, 250);
+      liftCancel();
+      if (to >= 0 && to !== from) move(from, to);
+      return;
+    }
+    liftCancel();
+  });
+  document.addEventListener("pointercancel", liftCancel);
   function move(from, to) {
     if (to < 0 || to >= state.photos.length || from === to) return;
     var it = state.photos.splice(from, 1)[0];
@@ -144,7 +200,7 @@
   }
   function changed(rerenderPhotos) {
     if (rerenderPhotos) renderPhotos();
-    schedulePreview(); saveDraft();
+    updateSummaries(); schedulePreview(); saveDraft();
   }
 
   /* reducción en el cliente: máx. 2400 px, JPEG 0,88 */
@@ -216,9 +272,15 @@
   }
 
   /* ---------------- ajustes ---------------- */
+  function renderPrimaryFields() {
+    var pr = findField("Proyecto"), fe = findField("Fecha");
+    $("#fProyecto").value = pr ? pr[1] : ""; $("#fFecha").value = fe ? fe[1] : "";
+  }
+  function isPrimary(f) { return PRIMARY_FIELDS.some(function (n) { return new RegExp("^" + n + "$", "i").test(String(f[0] || "").trim()); }); }
   function renderFields() {
     var list = $("#fields"); list.innerHTML = "";
     state.fields.forEach(function (f, i) {
+      if (isPrimary(f)) return;
       var row = document.createElement("div"); row.className = "kv";
       row.innerHTML = '<input class="inp" placeholder="Campo" aria-label="Nombre del campo ' + (i + 1) + '" value="' + esc(f[0]) + '">' +
         '<input class="inp" placeholder="Valor" aria-label="Valor del campo ' + (i + 1) + '" value="' + esc(f[1]) + '">' +
@@ -231,9 +293,24 @@
       list.appendChild(row);
     });
   }
+  function updateSummaries() {
+    var extra = state.fields.filter(function (f) { return !isPrimary(f) && f[0] && String(f[1] || "").trim(); }).length;
+    var parts = [];
+    if (state.subtitle) parts.push("Subtítulo");
+    if (extra) parts.push(extra + (extra === 1 ? " campo más" : " campos más"));
+    if (state.logo) parts.push("Logo");
+    $("#sumData").textContent = parts.length ? parts.join(" · ") : "Subtítulo, otros campos y logo";
+    $("#sumDesign").textContent = state.layout.replace("x", "×") + " · " + state.page + " " + (state.orientation === "landscape" ? "apaisado" : "vertical") + " · " + (state.fit === "contain" ? "completa" : "rellenar") + (state.numbering ? " · numerado" : "");
+    var n = state.photos.length, per = (+state.layout.split("x")[0]) * (+state.layout.split("x")[1]);
+    $("#genSum").textContent = n ? n + (n === 1 ? " foto" : " fotos") + " · " + state.layout.replace("x", "×") + " por página · " + Math.ceil(n / per) + (Math.ceil(n / per) === 1 ? " página " : " páginas ") + state.page : "Añade fotos en el paso 1 para maquetar el panel.";
+    $("#photoActs").hidden = !n;
+    $("#btnNext").textContent = TAB === "photos" ? "Siguiente: Datos" : TAB === "data" ? "Siguiente: Generar" : "Generar PDF";
+  }
   function renderLayouts() {
     var box = $("#layouts"); box.innerHTML = "";
-    LAYOUTS.forEach(function (l) {
+    var showAll = layoutsMore || COMMON_LAYOUTS.indexOf(state.layout) < 0;
+    var list = showAll ? LAYOUTS.slice().sort(function (a, b) { var ia = COMMON_LAYOUTS.indexOf(a), ib = COMMON_LAYOUTS.indexOf(b); return (ia < 0 ? 9 : ia) - (ib < 0 ? 9 : ib); }) : COMMON_LAYOUTS;
+    list.forEach(function (l) {
       var c = +l.split("x")[0], r = +l.split("x")[1];
       var b = document.createElement("button"); b.type = "button"; b.setAttribute("aria-pressed", String(state.layout === l));
       var mini = '<span class="mini" style="grid-template-columns:repeat(' + c + ',1fr);grid-template-rows:repeat(' + r + ',1fr)">' + new Array(c * r + 1).join("<i></i>") + "</span>";
@@ -241,6 +318,12 @@
       b.onclick = function () { state.layout = l; renderLayouts(); changed(); };
       box.appendChild(b);
     });
+    if (!showAll) {
+      var m = document.createElement("button"); m.type = "button"; m.className = "more"; m.setAttribute("aria-pressed", "false");
+      m.innerHTML = '<svg class="i sm"><use href="#i-plus"/></svg><span>Más</span>'; m.title = "1×1, 3×3 y 3×4";
+      m.onclick = function () { layoutsMore = true; renderLayouts(); };
+      box.appendChild(m);
+    }
   }
   function renderColors() {
     var box = $("#colors"); box.innerHTML = "";
@@ -268,9 +351,11 @@
     });
   }
   function renderSettings() {
+    ensurePrimaryFields();
     $("#title").value = state.title; $("#subtitle").value = state.subtitle; $("#numbering").checked = !!state.numbering;
-    renderFields(); renderLayouts(); renderColors(); renderLogo();
+    renderPrimaryFields(); renderFields(); renderLayouts(); renderColors(); renderLogo();
     seg("#segPage", "page"); seg("#segOrient", "orientation"); seg("#segFit", "fit");
+    updateSummaries();
   }
 
   /* ---------------- vista previa (geometría idéntica a panel.py) ---------------- */
@@ -290,8 +375,11 @@
   function renderPreview() {
     var host = $("#pages"); host.innerHTML = "";
     var photos = state.photos;
+    updateSummaries();
     if (!photos.length) {
+      $("#canvas").classList.toggle("zoomer", hasZoom && !!pz);
       host.innerHTML = '<div class="nothing"><div class="mark"><svg class="i" style="width:26px;height:26px"><use href="#i-image"/></svg></div><h3>La vista previa aparecerá aquí</h3><p>Añade fotos y verás las páginas tal como saldrán en el PDF: cabecera, rejilla, pies de foto y paginación.</p></div>';
+      if (pz) { pz.zoomTo(1); pzFit = pz.scale; }
       return;
     }
     var dims = PAGES[state.page] || PAGES.A4;
@@ -306,8 +394,10 @@
     var cellW = (PW - 2 * m - (cols - 1) * gap) / cols;
     var cellH = (bottom - top - (rows - 1) * gap) / rows;
     var imgH = cellH - capH;
+    var zoomOn = hasZoom && !!pz;
+    $("#canvas").classList.toggle("zoomer", zoomOn);
     var avail = Math.max(240, host.clientWidth || 600);
-    var scale = Math.min(avail / PW, 1.4);
+    var scale = zoomOn ? 1 : Math.min(avail / PW, 1.4);
     var thumbW = cellW * 2 > 900 ? 1200 : cellW * 2 > 500 ? 800 : 480;
     var title = state.title || "Panel fotográfico";
     var logoShift = state.logo ? 2.6 * CM : 0;
@@ -349,7 +439,30 @@
       lab.textContent = state.page + (state.orientation === "landscape" ? " apaisado" : " vertical") + " · " + state.layout.replace("x", "×") + " · página " + (pg + 1) + " de " + nPages;
       host.appendChild(lab);
     }
+    if (zoomOn) { var wasFit = Math.abs(pz.scale - pzFit) < 0.02; if (wasFit) { pz.fit(); pzFit = pz.scale; } else pz.zoomBy(1); }
   }
+  function setupZoom() {
+    if (!hasZoom) return;
+    try { pz = PixZoom.attach($("#canvas"), $("#pages"), { wheel: "scroll" }); pzFit = pz.scale; } catch (e) { pz = null; }
+  }
+
+  /* ---------------- imagen en grande ---------------- */
+  function openLightbox(i) {
+    if (!state.photos[i]) return;
+    lbIndex = i;
+    var lb = $("#lightbox"), img = $("#lbImg"), p = state.photos[i];
+    lb.hidden = false; document.body.style.overflow = "hidden";
+    img.alt = "Foto " + (i + 1); img.src = PixAgent.thumbUrl(p.path, 1600);
+    $("#lbCap").textContent = "Foto " + (i + 1) + " de " + state.photos.length + (p.caption ? " · " + p.caption : "");
+    $("#lbPrev").disabled = i === 0; $("#lbNext").disabled = i === state.photos.length - 1;
+    if (hasZoom && !lbz) { try { lbz = PixZoom.attach($("#lbBox"), img, { wheel: "zoom" }); } catch (e) { lbz = null; } }
+    if (lbz) { img.onload = function () { lbz.fit(); }; if (img.complete) lbz.fit(); }
+    else { img.style.maxWidth = "100%"; img.style.maxHeight = "100%"; img.style.margin = "auto"; img.style.position = "absolute"; img.style.inset = "0"; img.style.objectFit = "contain"; img.style.width = "100%"; img.style.height = "100%"; }
+    $("#lbClose").focus();
+  }
+  function closeLightbox() { $("#lightbox").hidden = true; document.body.style.overflow = ""; lbIndex = -1; }
+  function openHelp() { var d = $("#helpDlg"); if (d.showModal) { if (!d.open) d.showModal(); } else d.setAttribute("open", ""); }
+  function closeHelp() { var d = $("#helpDlg"); if (d.close) d.close(); else d.removeAttribute("open"); }
 
   /* ---------------- acciones: PDF, IA, PixPin, compartir ---------------- */
   function buildSpec() {
@@ -370,7 +483,7 @@
   var busy = false;
   function setBusy(on) {
     busy = on;
-    ["#btnPDF", "#btnPDFm", "#btnAI", "#btnAIm"].forEach(function (id) { var b = $(id); if (b) b.disabled = on; });
+    ["#btnPDF", "#btnNext", "#btnAI"].forEach(function (id) { var b = $(id); if (b) b.disabled = on; });
   }
   function generatePDF() {
     if (busy) return;
@@ -440,14 +553,17 @@
     }).then(function () { setBusy(false); });
   }
 
-  /* ---------------- pestañas (móvil) ---------------- */
+  /* ---------------- pasos (pestañas en móvil) ---------------- */
+  var TAB = "photos";
   function setTab(t) {
+    TAB = t;
     $("#app").dataset.tab = t;
     $$(".tabs [role=tab]").forEach(function (b) { b.setAttribute("aria-selected", String(b.dataset.tab === t)); });
     $("#panePhotos").hidden = t !== "photos";
-    $("#paneSettings").hidden = t !== "settings";
-    $("#paneLayout").hidden = t !== "settings";
-    if (t === "preview") renderPreview();
+    $("#paneData").hidden = t !== "data";
+    $("#paneGenerate").hidden = t !== "generate";
+    updateSummaries();
+    if (t === "generate") { renderPreview(); $(".main").scrollTop = 0; }
   }
 
   /* ---------------- arranque ---------------- */
@@ -469,7 +585,12 @@
     };
     $("#title").addEventListener("input", function () { state.title = this.value; changed(); });
     $("#subtitle").addEventListener("input", function () { state.subtitle = this.value; changed(); });
+    $("#fProyecto").addEventListener("input", function () { ensurePrimaryFields(); findField("Proyecto")[1] = this.value; changed(); });
+    $("#fFecha").addEventListener("input", function () { ensurePrimaryFields(); findField("Fecha")[1] = this.value; changed(); });
     $("#numbering").addEventListener("change", function () { state.numbering = this.checked; changed(); });
+    // el teclado virtual no debe tapar el campo enfocado
+    if (COARSE) $$(".work input, .work textarea").forEach(function (el) { el.addEventListener("focus", function () { setTimeout(function () { try { el.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (e) { /* ok */ } }, 250); }); });
+    $(".work").addEventListener("focusin", function (e) { if (COARSE && /INPUT|TEXTAREA/.test(e.target.tagName)) setTimeout(function () { try { e.target.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (x) { /* ok */ } }, 250); });
     $("#btnAddField").onclick = function () { state.fields.push(["", ""]); renderFields(); var ins = $$("#fields input"); if (ins.length) ins[ins.length - 2].focus(); changed(); };
     $("#btnLogo").onclick = function () { $("#fileLogo").click(); };
     $("#fileLogo").addEventListener("change", function () {
@@ -481,14 +602,25 @@
     $("#btnLogoDel").onclick = function () { state.logo = null; renderLogo(); changed(); };
     $("#btnReset").onclick = function () {
       var el = notice("err", "¿Restablecer el borrador?", "Se vacían ajustes y fotos del panel (los archivos siguen en el workspace).",
-        [mkBtn("Restablecer", "i-reset", "", function () { state = defaults(); el.remove(); renderSettings(); changed(true); })]);
+        [mkBtn("Restablecer", "i-reset", "", function () { state = defaults(); layoutsMore = false; el.remove(); renderSettings(); changed(true); })]);
     };
-    ["#btnPDF", "#btnPDFm"].forEach(function (id) { $(id).onclick = generatePDF; });
-    ["#btnAI", "#btnAIm"].forEach(function (id) { $(id).onclick = aiCaptions; });
+    $("#btnPDF").onclick = generatePDF;
+    $("#btnAI").onclick = aiCaptions;
+    $("#btnNext").onclick = function () { if (TAB === "photos") setTab("data"); else if (TAB === "data") setTab("generate"); else generatePDF(); };
     $$(".tabs [role=tab]").forEach(function (b) { b.onclick = function () { setTab(b.dataset.tab); }; });
+    ["#moreData", "#designBox"].forEach(function (id) { $(id).addEventListener("toggle", updateSummaries); });
+    $("#lbClose").onclick = closeLightbox;
+    $("#lbPrev").onclick = function () { if (lbIndex > 0) openLightbox(lbIndex - 1); };
+    $("#lbNext").onclick = function () { if (lbIndex < state.photos.length - 1) openLightbox(lbIndex + 1); };
+    $("#lightbox").addEventListener("click", function (e) { if (e.target === this) closeLightbox(); });
+    $("#btnHelp").onclick = openHelp; $("#helpClose").onclick = closeHelp;
+    $("#helpDlg").addEventListener("click", function (e) { if (e.target === this) closeHelp(); });
     var rt; window.addEventListener("resize", function () { clearTimeout(rt); rt = setTimeout(renderPreview, 120); });
     document.addEventListener("keydown", function (e) {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); generatePDF(); }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); generatePDF(); return; }
+      if (e.key === "Escape") { if (lbIndex >= 0) closeLightbox(); closeHelp(); return; }
+      if (lbIndex >= 0) { if (e.key === "ArrowLeft") $("#lbPrev").click(); else if (e.key === "ArrowRight") $("#lbNext").click(); return; }
+      if (e.key === "?" && !/INPUT|TEXTAREA/.test(e.target.tagName)) openHelp();
     });
   }
 
@@ -501,6 +633,7 @@
   }
   loadDraft();
   bind();
+  setupZoom();
   renderSettings();
   renderPhotos();
   setTab("photos");

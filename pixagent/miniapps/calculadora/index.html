@@ -22,6 +22,7 @@
     <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4 2.5 20h19L12 4Z"/><path d="M12 10v4m0 3v.5"/></symbol>
     <symbol id="i-reset" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.5-5.8"/><path d="M4 4v5h5"/></symbol>
     <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
   </defs>
 </svg>
 
@@ -101,7 +102,7 @@
             <button class="btn sm ghost" id="btnHistClear" type="button"><svg class="i sm"><use href="#i-trash"/></svg> Vaciar</button>
             <button class="btn sm" id="btnHistSave" type="button"><svg class="i sm"><use href="#i-save"/></svg> Guardar</button>
           </div>
-          <p class="helpkeys">Teclado: números y operadores, <kbd>^</kbd> potencia, <kbd>Intro</kbd> calcula, <kbd>Esc</kbd> borra, <kbd>↑</kbd> último cálculo. Funciones: sin, cos, tan, asin, acos, atan, sqrt, log, ln, abs, pi, e. Multiplicación implícita: 2π, 3(4+1).</p>
+          <p class="helpkeys">Teclado: números y operadores, <kbd>^</kbd> potencia, <kbd>Intro</kbd> calcula, <kbd>Esc</kbd> borra, <kbd>↑</kbd> último cálculo. En Unidades y Obra, <kbd>↑</kbd>/<kbd>↓</kbd> ajustan el valor del campo (<kbd>Shift</kbd> = paso ×10) y se acepta la coma decimal. Funciones: sin, cos, tan, asin, acos, atan, sqrt, log, ln, abs, pi, e. Multiplicación implícita: 2π, 3(4+1).</p>
         </div>
       </div>
     </section>
@@ -112,7 +113,7 @@
         <div class="chips" id="unitCats" role="tablist"></div>
         <div class="conv">
           <div class="field"><label for="uVal">Valor</label><input class="inp num" id="uVal" inputmode="decimal" value="1"><select class="sel" id="uFrom" aria-label="Unidad de origen" style="margin-top:6px"></select></div>
-          <button class="btn icon swap" id="uSwap" type="button" aria-label="Intercambiar unidades"><svg class="i"><use href="#i-swap"/></svg></button>
+          <button class="btn icon swap" id="uSwap" type="button" aria-label="Intercambiar unidades" title="Intercambiar unidades"><svg class="i"><use href="#i-swap"/></svg></button>
           <div class="field"><span class="lbl">Resultado</span><div class="bigout" id="uOut">—</div><select class="sel" id="uTo" aria-label="Unidad de destino" style="margin-top:6px"></select></div>
         </div>
         <p class="desc" id="uNote" hidden></p>
@@ -126,9 +127,11 @@
 
     <!-- ================= Obra ================= -->
     <section class="pane" id="pane-obra" hidden>
-      <div class="grid2">
-        <div class="card" data-calc="losa">
-          <h2>Losa <span class="k">área · volumen · concreto</span></h2>
+      <p class="obra-hint">Las calculadoras que más usas se muestran abiertas; el resto, plegadas debajo.</p>
+      <div class="grid2" id="obraTop">
+        <details class="card" data-calc="losa">
+          <summary><h2>Losa <span class="k">área · volumen · concreto</span></h2><svg class="i chev"><use href="#i-chevron"/></svg></summary>
+          <div class="card-body">
           <div class="grid3">
             <div class="field"><label for="lo_l">Largo</label><div class="with-unit"><input class="inp num" id="lo_l" inputmode="decimal" value="6"><span class="unit">m</span></div></div>
             <div class="field"><label for="lo_a">Ancho</label><div class="with-unit"><input class="inp num" id="lo_a" inputmode="decimal" value="4"><span class="unit">m</span></div></div>
@@ -140,10 +143,12 @@
           </div>
           <div class="results" id="lo_res"></div>
           <div class="cardacts"><button class="btn sm" data-copy="losa" type="button"><svg class="i sm"><use href="#i-copy"/></svg> Copiar</button><button class="btn sm" data-save="losa" type="button"><svg class="i sm"><use href="#i-save"/></svg> Guardar</button></div>
-        </div>
+          </div>
+        </details>
 
-        <div class="card" data-calc="zapata">
-          <h2>Zapata <span class="k">volumen · concreto</span></h2>
+        <details class="card" data-calc="zapata">
+          <summary><h2>Zapata <span class="k">volumen · concreto</span></h2><svg class="i chev"><use href="#i-chevron"/></svg></summary>
+          <div class="card-body">
           <div class="grid3">
             <div class="field"><label for="za_l">Largo</label><div class="with-unit"><input class="inp num" id="za_l" inputmode="decimal" value="1.5"><span class="unit">m</span></div></div>
             <div class="field"><label for="za_a">Ancho</label><div class="with-unit"><input class="inp num" id="za_a" inputmode="decimal" value="1.5"><span class="unit">m</span></div></div>
@@ -156,10 +161,12 @@
           </div>
           <div class="results" id="za_res"></div>
           <div class="cardacts"><button class="btn sm" data-copy="zapata" type="button"><svg class="i sm"><use href="#i-copy"/></svg> Copiar</button><button class="btn sm" data-save="zapata" type="button"><svg class="i sm"><use href="#i-save"/></svg> Guardar</button></div>
-        </div>
+          </div>
+        </details>
 
-        <div class="card" data-calc="columna">
-          <h2>Columna <span class="k">sección rectangular</span></h2>
+        <details class="card" data-calc="columna">
+          <summary><h2>Columna <span class="k">sección rectangular</span></h2><svg class="i chev"><use href="#i-chevron"/></svg></summary>
+          <div class="card-body">
           <div class="grid3">
             <div class="field"><label for="co_b">Base b</label><div class="with-unit"><input class="inp num" id="co_b" inputmode="decimal" value="25"><span class="unit">cm</span></div></div>
             <div class="field"><label for="co_h">Peralte h</label><div class="with-unit"><input class="inp num" id="co_h" inputmode="decimal" value="40"><span class="unit">cm</span></div></div>
@@ -172,10 +179,12 @@
           </div>
           <div class="results" id="co_res"></div>
           <div class="cardacts"><button class="btn sm" data-copy="columna" type="button"><svg class="i sm"><use href="#i-copy"/></svg> Copiar</button><button class="btn sm" data-save="columna" type="button"><svg class="i sm"><use href="#i-save"/></svg> Guardar</button></div>
-        </div>
+          </div>
+        </details>
 
-        <div class="card" data-calc="concreto">
-          <h2>Concreto por m³ <span class="k">cemento · arena · grava · agua</span></h2>
+        <details class="card" data-calc="concreto">
+          <summary><h2>Concreto por m³ <span class="k">cemento · arena · grava · agua</span></h2><svg class="i chev"><use href="#i-chevron"/></svg></summary>
+          <div class="card-body">
           <div class="grid3">
             <div class="field"><label for="cn_v">Volumen</label><div class="with-unit"><input class="inp num" id="cn_v" inputmode="decimal" value="10"><span class="unit">m³</span></div></div>
             <div class="field"><label for="cn_fc">f'c</label><select class="sel fc" id="cn_fc"></select></div>
@@ -189,10 +198,12 @@
             <div class="cardacts" style="margin-top:8px"><button class="btn sm ghost" id="dosReset" type="button"><svg class="i sm"><use href="#i-reset"/></svg> Restablecer valores</button></div>
           </details>
           <div class="cardacts"><button class="btn sm" data-copy="concreto" type="button"><svg class="i sm"><use href="#i-copy"/></svg> Copiar</button><button class="btn sm" data-save="concreto" type="button"><svg class="i sm"><use href="#i-save"/></svg> Guardar</button></div>
-        </div>
+          </div>
+        </details>
 
-        <div class="card" data-calc="ladrillos">
-          <h2>Ladrillos por m² <span class="k">muro de albañilería</span></h2>
+        <details class="card" data-calc="ladrillos">
+          <summary><h2>Ladrillos por m² <span class="k">muro de albañilería</span></h2><svg class="i chev"><use href="#i-chevron"/></svg></summary>
+          <div class="card-body">
           <div class="grid3">
             <div class="field"><label for="la_l">Largo visto</label><div class="with-unit"><input class="inp num" id="la_l" inputmode="decimal" value="24"><span class="unit">cm</span></div></div>
             <div class="field"><label for="la_h">Alto visto</label><div class="with-unit"><input class="inp num" id="la_h" inputmode="decimal" value="9"><span class="unit">cm</span></div></div>
@@ -205,10 +216,12 @@
           <p class="desc">Aparejo de soga: King Kong 24×13×9 visto 24×9; pandereta 23×11×9 visto 23×9; bloque de concreto 39×19.</p>
           <div class="results" id="la_res"></div>
           <div class="cardacts"><button class="btn sm" data-copy="ladrillos" type="button"><svg class="i sm"><use href="#i-copy"/></svg> Copiar</button><button class="btn sm" data-save="ladrillos" type="button"><svg class="i sm"><use href="#i-save"/></svg> Guardar</button></div>
-        </div>
+          </div>
+        </details>
 
-        <div class="card" data-calc="pendiente">
-          <h2>Pendiente y escalera <span class="k">rampa · peldaños</span></h2>
+        <details class="card" data-calc="pendiente">
+          <summary><h2>Pendiente y escalera <span class="k">rampa · peldaños</span></h2><svg class="i chev"><use href="#i-chevron"/></svg></summary>
+          <div class="card-body">
           <div class="grid2">
             <div class="field"><label for="pe_h">Desnivel</label><div class="with-unit"><input class="inp num" id="pe_h" inputmode="decimal" value="1.2"><span class="unit">m</span></div></div>
             <div class="field"><label for="pe_d">Distancia horizontal</label><div class="with-unit"><input class="inp num" id="pe_d" inputmode="decimal" value="10"><span class="unit">m</span></div></div>
@@ -220,8 +233,10 @@
           </div>
           <div class="results" id="es_res"></div>
           <div class="cardacts"><button class="btn sm" data-copy="pendiente" type="button"><svg class="i sm"><use href="#i-copy"/></svg> Copiar</button><button class="btn sm" data-save="pendiente" type="button"><svg class="i sm"><use href="#i-save"/></svg> Guardar</button></div>
-        </div>
+          </div>
+        </details>
       </div>
+      <div class="obra-more" id="obraMore"></div>
     </section>
   </div>
 </div>

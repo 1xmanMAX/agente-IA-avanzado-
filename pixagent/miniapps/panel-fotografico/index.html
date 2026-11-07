@@ -30,6 +30,9 @@
     <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/></symbol>
     <symbol id="i-grip" viewBox="0 0 24 24"><circle cx="9" cy="6" r="1.2"/><circle cx="15" cy="6" r="1.2"/><circle cx="9" cy="12" r="1.2"/><circle cx="15" cy="12" r="1.2"/><circle cx="9" cy="18" r="1.2"/><circle cx="15" cy="18" r="1.2"/></symbol>
     <symbol id="i-reset" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.5-5.8"/><path d="M4 4v5h5"/></symbol>
+    <symbol id="i-doc" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-zoom" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.4-4.4M11 8.5v5M8.5 11h5"/></symbol>
   </defs>
 </svg>
 
@@ -39,33 +42,26 @@
       <span class="mark"><svg class="i"><use href="#i-image"/></svg></span>
       <div style="min-width:0">
         <h1>Panel fotográfico</h1>
-        <small id="brandSub">Maquetación en el navegador · PDF en un clic</small>
+        <small id="brandSub">Fotos → Datos → Generar · PDF en un clic</small>
       </div>
     </div>
     <div class="actions">
       <span class="savestate" id="saveState">Borrador guardado</span>
-      <button class="btn hide-m" id="btnAI" type="button" title="Redacta los pies de foto con la IA (una sola llamada)">
-        <svg class="i"><use href="#i-sparkle"/></svg> Pies con IA
-      </button>
-      <button class="btn primary hide-m" id="btnPDF" type="button">
-        <svg class="i"><use href="#i-pdf"/></svg> Generar PDF
-      </button>
+      <button class="btn icon ghost" id="btnHelp" type="button" title="Atajos y gestos (?)" aria-label="Ayuda: atajos y gestos"><b style="font-size:15px">?</b></button>
     </div>
   </header>
 
-  <nav class="tabs" role="tablist" aria-label="Secciones">
-    <button role="tab" data-tab="photos" aria-selected="true" type="button"><svg class="i"><use href="#i-photos"/></svg> Fotos</button>
-    <button role="tab" data-tab="settings" aria-selected="false" type="button"><svg class="i"><use href="#i-sliders"/></svg> Ajustes</button>
-    <button role="tab" data-tab="preview" aria-selected="false" type="button"><svg class="i"><use href="#i-eye"/></svg> Vista previa</button>
+  <nav class="tabs" role="tablist" aria-label="Pasos">
+    <button role="tab" data-tab="photos" aria-selected="true" type="button"><i class="n">1</i> Fotos</button>
+    <button role="tab" data-tab="data" aria-selected="false" type="button"><i class="n">2</i> Datos</button>
+    <button role="tab" data-tab="generate" aria-selected="false" type="button"><i class="n">3</i> Generar</button>
   </nav>
 
   <div class="main">
     <aside class="work">
       <div class="scroll">
-        <div id="notices" class="stack" style="gap:8px"></div>
-
-        <section class="block pane" id="panePhotos">
-          <h2>Fotos <span class="count" id="photoCount">0 fotos</span></h2>
+        <section class="block pane step" id="panePhotos">
+          <h2><i class="n">1</i> Fotos <span class="count" id="photoCount">0 fotos</span></h2>
           <div class="drop" id="drop">
             <svg class="i" style="width:26px;height:26px"><use href="#i-upload"/></svg>
             <p><b>Suelta aquí tus fotos</b> o elige del dispositivo. Se reducen en tu equipo antes de subir (máx. 2400 px).</p>
@@ -79,62 +75,80 @@
             <input type="file" id="fileShoot" accept="image/*" capture="environment" class="sr" tabindex="-1">
           </div>
           <div class="photos" id="photos"></div>
-          <p class="empty" id="photosEmpty">Aún no hay fotos. Arrastra para reordenar; en táctil usa las flechas.</p>
-          <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+          <p class="empty" id="photosEmpty">Aún no hay fotos. Para reordenar: arrastra desde el asa, mantén pulsada una foto, o usa las flechas.</p>
+          <div class="photo-acts" id="photoActs" hidden>
+            <button class="btn sm soft" id="btnAI" type="button" title="Redacta los pies de foto con la IA (una sola llamada)"><svg class="i sm"><use href="#i-sparkle"/></svg> Pies con IA</button>
             <button class="btn sm ghost danger" id="btnClearPhotos" type="button"><svg class="i sm"><use href="#i-trash"/></svg> Quitar todas</button>
           </div>
         </section>
 
-        <section class="block pane" id="paneSettings" hidden>
-          <h2>Documento</h2>
+        <section class="block pane step" id="paneData" hidden>
+          <h2><i class="n">2</i> Datos</h2>
           <div class="stack">
-            <div class="field"><label for="title">Título</label><input class="inp" id="title" data-k="title" placeholder="Panel fotográfico"></div>
-            <div class="field"><label for="subtitle">Subtítulo</label><input class="inp" id="subtitle" data-k="subtitle" placeholder="Obra: Vivienda Pérez"></div>
-            <div class="field">
-              <span class="lbl">Campos de cabecera</span>
-              <div class="kvlist" id="fields"></div>
-              <button class="btn sm ghost" id="btnAddField" type="button" style="align-self:flex-start"><svg class="i sm"><use href="#i-plus"/></svg> Añadir campo</button>
-              <p class="hint" style="margin-top:0">Los campos sin valor no se imprimen.</p>
+            <div class="field"><label for="title">Título</label><input class="inp" id="title" data-k="title" placeholder="Panel fotográfico" autocomplete="off"></div>
+            <div class="row">
+              <div class="field"><label for="fProyecto">Proyecto</label><input class="inp" id="fProyecto" placeholder="Vivienda Pérez" autocomplete="off"></div>
+              <div class="field"><label for="fFecha">Fecha</label><input class="inp" id="fFecha" placeholder="2026-01-31" autocomplete="off"></div>
             </div>
-            <div class="field">
-              <span class="lbl">Logo (opcional)</span>
-              <div class="logo-row">
-                <div class="logo-prev" id="logoPrev"><svg class="i"><use href="#i-image"/></svg></div>
-                <button class="btn sm" id="btnLogo" type="button">Elegir logo</button>
-                <button class="btn sm ghost" id="btnLogoDel" type="button" hidden>Quitar</button>
-                <input type="file" id="fileLogo" accept="image/*" class="sr" tabindex="-1">
+            <details class="adv" id="moreData">
+              <summary><span class="adv-head"><b>Más datos</b><span class="sum" id="sumData"></span></span><svg class="i sm chev"><use href="#i-chevron"/></svg></summary>
+              <div class="adv-body stack">
+                <div class="field"><label for="subtitle">Subtítulo</label><input class="inp" id="subtitle" data-k="subtitle" placeholder="Obra: Vivienda Pérez" autocomplete="off"></div>
+                <div class="field">
+                  <span class="lbl">Otros campos de cabecera</span>
+                  <div class="kvlist" id="fields"></div>
+                  <button class="btn sm ghost" id="btnAddField" type="button" style="align-self:flex-start"><svg class="i sm"><use href="#i-plus"/></svg> Añadir campo</button>
+                  <p class="hint" style="margin-top:0">Los campos sin valor no se imprimen.</p>
+                </div>
+                <div class="field">
+                  <span class="lbl">Logo (opcional)</span>
+                  <div class="logo-row">
+                    <div class="logo-prev" id="logoPrev"><svg class="i"><use href="#i-image"/></svg></div>
+                    <button class="btn sm" id="btnLogo" type="button">Elegir logo</button>
+                    <button class="btn sm ghost" id="btnLogoDel" type="button" hidden>Quitar</button>
+                    <input type="file" id="fileLogo" accept="image/*" class="sr" tabindex="-1">
+                  </div>
+                </div>
               </div>
-            </div>
+            </details>
           </div>
         </section>
 
-        <section class="block pane" id="paneLayout" hidden>
-          <h2>Maquetación</h2>
+        <section class="block pane step" id="paneGenerate" hidden>
+          <h2><i class="n">3</i> Generar</h2>
           <div class="stack">
-            <div class="field">
-              <span class="lbl">Fotos por página (columnas × filas)</span>
-              <div class="layouts" id="layouts"></div>
-            </div>
-            <div class="row">
-              <div class="field"><span class="lbl">Papel</span>
-                <div class="seg" id="segPage"><button type="button" data-v="A4" aria-pressed="true">A4</button><button type="button" data-v="A3" aria-pressed="false">A3</button></div>
+            <p class="gen-sum" id="genSum">Añade fotos para maquetar el panel.</p>
+            <details class="adv" id="designBox">
+              <summary><span class="adv-head"><b>Diseño</b><span class="sum" id="sumDesign"></span></span><svg class="i sm chev"><use href="#i-chevron"/></svg></summary>
+              <div class="adv-body stack">
+                <div class="field">
+                  <span class="lbl">Fotos por página (columnas × filas)</span>
+                  <div class="layouts" id="layouts"></div>
+                </div>
+                <div class="row">
+                  <div class="field"><span class="lbl">Papel</span>
+                    <div class="seg" id="segPage"><button type="button" data-v="A4" aria-pressed="true">A4</button><button type="button" data-v="A3" aria-pressed="false">A3</button></div>
+                  </div>
+                  <div class="field"><span class="lbl">Orientación</span>
+                    <div class="seg" id="segOrient"><button type="button" data-v="portrait" aria-pressed="true">Vertical</button><button type="button" data-v="landscape" aria-pressed="false">Apaisado</button></div>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="field"><span class="lbl">Ajuste de la foto</span>
+                    <div class="seg" id="segFit"><button type="button" data-v="cover" aria-pressed="true">Rellenar</button><button type="button" data-v="contain" aria-pressed="false">Completa</button></div>
+                  </div>
+                  <div class="field"><span class="lbl">Numeración</span>
+                    <label class="switch" style="min-height:36px"><span>Foto 1, Foto 2…</span><input type="checkbox" id="numbering" checked><span class="track"></span></label>
+                  </div>
+                </div>
+                <div class="field">
+                  <span class="lbl">Color del tema</span>
+                  <div class="colors" id="colors"></div>
+                </div>
               </div>
-              <div class="field"><span class="lbl">Orientación</span>
-                <div class="seg" id="segOrient"><button type="button" data-v="portrait" aria-pressed="true">Vertical</button><button type="button" data-v="landscape" aria-pressed="false">Apaisado</button></div>
-              </div>
-            </div>
-            <div class="row">
-              <div class="field"><span class="lbl">Ajuste de la foto</span>
-                <div class="seg" id="segFit"><button type="button" data-v="cover" aria-pressed="true">Rellenar</button><button type="button" data-v="contain" aria-pressed="false">Completa</button></div>
-              </div>
-              <div class="field"><span class="lbl">Numeración</span>
-                <label class="switch" style="min-height:36px"><span>Foto 1, Foto 2…</span><input type="checkbox" id="numbering" checked><span class="track"></span></label>
-              </div>
-            </div>
-            <div class="field">
-              <span class="lbl">Color del tema</span>
-              <div class="colors" id="colors"></div>
-            </div>
+            </details>
+            <button class="btn primary block lg" id="btnPDF" type="button"><svg class="i"><use href="#i-pdf"/></svg> Generar PDF</button>
+            <div id="notices" class="stack" style="gap:8px"></div>
             <button class="btn sm ghost" id="btnReset" type="button" style="align-self:flex-start"><svg class="i sm"><use href="#i-reset"/></svg> Restablecer borrador</button>
           </div>
         </section>
@@ -147,14 +161,35 @@
   </div>
 
   <div class="mobilebar">
-    <button class="btn" id="btnAIm" type="button"><svg class="i"><use href="#i-sparkle"/></svg> Pies con IA</button>
-    <button class="btn primary" id="btnPDFm" type="button"><svg class="i"><use href="#i-pdf"/></svg> Generar PDF</button>
+    <button class="btn primary" id="btnNext" type="button">Siguiente: Datos</button>
   </div>
 </div>
 <div id="noticesM" class="notices-m stack" style="gap:8px"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<div class="lightbox" id="lightbox" hidden>
+  <div class="lb-box" id="lbBox"><img id="lbImg" alt=""></div>
+  <div class="lb-bar">
+    <span id="lbCap"></span>
+    <button class="btn light" id="lbPrev" type="button" aria-label="Anterior"><svg class="i"><use href="#i-left"/></svg></button>
+    <button class="btn light" id="lbNext" type="button" aria-label="Siguiente"><svg class="i"><use href="#i-right"/></svg></button>
+    <button class="btn light" id="lbClose" type="button" aria-label="Cerrar"><svg class="i"><use href="#i-x"/></svg></button>
+  </div>
+</div>
+
+<dialog class="help-dlg" id="helpDlg">
+  <div class="dlg-head"><b>Atajos y gestos</b><button class="btn icon ghost" id="helpClose" type="button" aria-label="Cerrar"><svg class="i"><use href="#i-x"/></svg></button></div>
+  <table>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>Generar el PDF</td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>V</kbd></td><td>Pegar imágenes del portapapeles</td></tr>
+    <tr><td>Fotos</td><td>Arrastra desde el asa (ratón) o mantén pulsada la foto (táctil) para reordenar · flechas para mover · clic o toque en la imagen para verla en grande</td></tr>
+    <tr><td>Vista previa</td><td>Rueda: desplazar · <kbd>Ctrl</kbd>+rueda o pellizco: zoom · arrastrar: mover · doble clic o doble toque: ajustar ↔ 2,5×</td></tr>
+    <tr><td>Imagen grande</td><td>Rueda o pellizco: zoom · <kbd>←</kbd> <kbd>→</kbd> cambiar de foto · <kbd>Esc</kbd> cerrar</td></tr>
+  </table>
+</dialog>
+
 <script src="/static/pixagent-sdk.js"></script>
+<script src="/static/zoom.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
