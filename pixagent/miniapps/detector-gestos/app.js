@@ -16,6 +16,11 @@
   var stage = $("#stage"), ov = $("#ov"), ovBox = $("#ovBox");
   var stream = null, recognizer = null, visionMod = null, running = false, raf = 0, lastT = 0, facing = "user";
   var fpsN = 0, fpsT = 0, lastResult = null, captures = [];
+  var PREF = "pixagent.gestos.v1", prefs = { stats: false };
+  try { var raw = localStorage.getItem(PREF); if (raw) prefs = Object.assign(prefs, JSON.parse(raw)); } catch (e) { /* sin almacenamiento */ }
+  function savePrefs() { try { localStorage.setItem(PREF, JSON.stringify(prefs)); } catch (e) { /* ignorar */ } }
+  function applyStats() { $("#stats").hidden = !prefs.stats; $("#hud").hidden = !(prefs.stats && running); }
+  function closeMenu() { $("#settings").open = false; }
 
   /* ---------- utilidades ---------- */
   var toastTimer;
@@ -71,7 +76,7 @@
       throw e;
     }).then(function (s) {
       stream = s; video.srcObject = s;
-      stage.classList.toggle("mirror", facing === "user");
+      stage.classList.toggle("mirror", facing === "user"); $("#optMirror").checked = facing === "user";
       return new Promise(function (res) {
         var done = false, fin = function () { if (!done) { done = true; res(); } };
         video.onloadedmetadata = function () { video.play().then(fin, fin); };
@@ -137,8 +142,8 @@
       return modelP.then(function () {
         overlay(null); running = true; lastT = 0; fpsN = 0; fpsT = performance.now();
         setStatus("live", "Reconociendo");
-        $("#hud").hidden = false; $("#btnSnap").disabled = false;
-        $("#btnStart").innerHTML = '<svg class="i"><use href="#i-stop"/></svg> Detener'; $("#btnStart").disabled = false;
+        applyStats(); $("#btnSnap").disabled = false;
+        $("#btnStart").innerHTML = '<svg class="i"><use href="#i-stop"/></svg><span>Detener</span>'; $("#btnStart").disabled = false;
         $("#gName").textContent = "Muestra la mano"; $("#gName").className = "g none";
         raf = requestAnimationFrame(loop);
       }, function (e) { stopStream(); modelError(e); });
@@ -148,13 +153,14 @@
     running = false; cancelAnimationFrame(raf); stopStream();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     $("#hud").hidden = true; $("#btnSnap").disabled = true; $("#btnSwitch").disabled = true; $("#pill").classList.remove("show");
-    $("#btnStart").innerHTML = '<svg class="i"><use href="#i-play"/></svg> Iniciar cámara';
-    $("#gName").textContent = "Cámara apagada"; $("#gName").className = "g none"; $("#gRaw").textContent = "—"; $("#gBar").style.width = "0";
+    $("#btnStart").innerHTML = '<svg class="i"><use href="#i-play"/></svg><span>Iniciar cámara</span>';
+    $("#gName").textContent = "Cámara apagada"; $("#gName").className = "g none"; $("#gRaw").textContent = ""; $("#gFingers").textContent = "—"; $("#gBar").style.width = "0";
     ["#sConf", "#sFingers", "#sHands"].forEach(function (id) { $(id).textContent = "—"; });
     showIdle();
   }
   $("#btnStart").onclick = function () { if (running || stream) stop(); else start(); };
   $("#btnSwitch").onclick = function () {
+    closeMenu();
     if (!stream) return;
     facing = facing === "user" ? "environment" : "user";
     var was = running; running = false; cancelAnimationFrame(raf);
@@ -219,6 +225,7 @@
     });
     $("#sHands").textContent = hands.length ? String(hands.length) : "0";
     $("#sFingers").textContent = hands.length ? String(fingers) : "—";
+    $("#gFingers").textContent = hands.length ? fingers + (fingers === 1 ? " dedo" : " dedos") + (hands.length > 1 ? " · " + hands.length + " manos" : "") : "—";
     var pill = $("#pill");
     if (best && best.categoryName && best.categoryName !== "None") {
       var name = NAMES[best.categoryName] || best.categoryName, pct = Math.round(best.score * 100);
@@ -250,13 +257,14 @@
   /* ---------- captura ---------- */
   function renderCaps() {
     var box = $("#caps"); box.innerHTML = "";
+    $("#capsBlock").hidden = !captures.length;
     $("#capsEmpty").hidden = captures.length > 0;
     $("#capCount").textContent = captures.length ? "· " + captures.length : "";
     captures.forEach(function (c) {
       var el = document.createElement("div"); el.className = "cap";
       el.innerHTML = '<img alt="' + esc(c.label) + '" src="' + c.url + '"><div class="acts">' +
-        '<a href="' + PixAgent.fileUrl(c.path) + '" target="_blank" rel="noopener" title="Abrir"><svg class="i sm"><use href="#i-open"/></svg></a>' +
-        '<button type="button" title="Fijar en PixPin"><svg class="i sm"><use href="#i-pin"/></svg></button></div>';
+        '<a href="' + PixAgent.fileUrl(c.path) + '" target="_blank" rel="noopener" title="Abrir" aria-label="Abrir la captura"><svg class="i sm"><use href="#i-open"/></svg></a>' +
+        '<button type="button" title="Fijar en PixPin" aria-label="Fijar en PixPin"><svg class="i sm"><use href="#i-pin"/></svg></button></div>';
       el.querySelector("button").onclick = function () {
         var b = this; b.disabled = true;
         PixAgent.pin([c.path]).then(function () { toast("Fijado en PixPin"); }, function (e) { toast("PixPin no respondió: " + ((e && e.message) || e)); }).then(function () { b.disabled = false; });
@@ -282,14 +290,25 @@
       }, function (e) { toast("No se pudo guardar: " + ((e && e.message) || e)); }).then(function () { btn.disabled = false; });
     }, "image/png");
   };
-  document.addEventListener("keydown", function (e) { if (e.key === " " && running && !/INPUT|BUTTON/.test(e.target.tagName)) { e.preventDefault(); $("#btnSnap").click(); } });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") { closeMenu(); return; }
+    if (/INPUT|TEXTAREA|SELECT/.test(e.target.tagName) || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key === " " && running && e.target.tagName !== "BUTTON") { e.preventDefault(); $("#btnSnap").click(); }
+    else if (e.key.toLowerCase() === "c" && stream && !$("#btnSwitch").disabled) { e.preventDefault(); $("#btnSwitch").click(); }
+  });
+  /* ajustes: espejo, estadísticas, cierre del menú al pulsar fuera */
+  $("#optMirror").addEventListener("change", function () { stage.classList.toggle("mirror", this.checked); });
+  $("#optStats").checked = !!prefs.stats;
+  $("#optStats").addEventListener("change", function () { prefs.stats = this.checked; savePrefs(); applyStats(); });
+  document.addEventListener("click", function (e) { var m = $("#settings"); if (m.open && !m.contains(e.target)) m.open = false; });
+  applyStats();
 
   /* el escenario nunca supera la altura disponible en escritorio */
   function fitStage() {
     var wrap = stage.parentNode;
     if (window.matchMedia("(max-width: 900px)").matches) { stage.style.maxWidth = ""; return; }
     var ratio = (canvas.width && canvas.height) ? canvas.width / canvas.height : 4 / 3;
-    var h = wrap.clientHeight - 36;
+    var h = wrap.clientHeight - 28;
     stage.style.maxWidth = h > 0 ? Math.round(h * ratio) + "px" : "";
   }
   window.addEventListener("resize", fitStage);

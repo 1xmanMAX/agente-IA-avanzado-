@@ -77,7 +77,10 @@
       // trackpad: deltas finos y/o horizontales sin ctrl → desplazar; ratón: rueda → zoom (modo "zoom")
       var trackpadPan = !e.ctrlKey && (Math.abs(dx) > 0 || (Math.abs(dy) < 40 && dy % 1 !== 0));
       if (e.ctrlKey || e.metaKey || (mode === "zoom" && !trackpadPan && !e.shiftKey)) {
-        var k = Math.exp(-dy * (e.ctrlKey ? 0.01 : 0.0022));
+        // pellizco de trackpad = ctrl+rueda con deltas pequeños (sensibilidad alta); la rueda de ratón
+        // (con o sin ctrl) llega a saltos de ~100: sensibilidad baja y tope por evento
+        var fine = e.ctrlKey && Math.abs(dy) < 40;
+        var k = Math.exp(-Math.max(-150, Math.min(150, dy)) * (fine ? 0.01 : 0.0022));
         zoomAt(s * k, e.clientX, e.clientY);
       } else {
         if (e.shiftKey && !dx) { dx = dy; dy = 0; }
@@ -134,7 +137,10 @@
       }
       if (last) multi = false;
     }
-    function onDbl(e) { e.preventDefault(); toggle(e.clientX, e.clientY); }
+    function onDbl(e) {
+      if (e.target.closest && e.target.closest(".pz-controls")) return;  // doble clic en los botones
+      e.preventDefault(); toggle(e.clientX, e.clientY);
+    }
 
     // ---- teclado
     function onKey(e) {
@@ -186,6 +192,7 @@
       zoomTo: function (v) { zoomAt(v); },
       zoomBy: function (k) { zoomAt(s * k); },
       get scale() { return s; },
+      get fitScale() { return fitScale; },
       destroy: function () {
         box.removeEventListener("wheel", onWheel); box.removeEventListener("gesturestart", onGestureStart);
         box.removeEventListener("gesturechange", onGestureChange); box.removeEventListener("pointerdown", onDown);
