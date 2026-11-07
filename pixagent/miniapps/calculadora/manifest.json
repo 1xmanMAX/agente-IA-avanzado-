@@ -1,0 +1,9 @@
+{
+  "name": "Calculadora de obra",
+  "description": "Científica con historial, conversor de unidades y cálculos rápidos de concreto, losas, zapatas, ladrillos y pendientes",
+  "icon": "🧮",
+  "category": "Herramientas",
+  "entry": "index.html",
+  "kind": "web",
+  "uses_ai": false
+}

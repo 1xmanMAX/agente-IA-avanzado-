@@ -1,0 +1,9 @@
+{
+  "name": "Panel fotográfico",
+  "description": "Sube tus fotos y obtén un panel fotográfico en PDF maquetado al instante; la IA solo si la pides para los pies de foto",
+  "icon": "🖼️",
+  "category": "Documentos",
+  "entry": "index.html",
+  "kind": "web",
+  "uses_ai": true
+}

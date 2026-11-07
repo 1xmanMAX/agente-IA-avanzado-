@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#5b5bf7">
+<title>Calculadora de obra</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-calc" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h2m2 0h2m2 0h0M8 16h2m2 0h2m2 0h0"/></symbol>
+    <symbol id="i-ruler" viewBox="0 0 24 24"><path d="m3 17 14-14 4 4L7 21z"/><path d="m7 9 2 2m1-5 2 2m1-5 2 2"/></symbol>
+    <symbol id="i-build" viewBox="0 0 24 24"><path d="M3 21h18M5 21V8l7-4 7 4v13"/><path d="M9 21v-6h6v6M9 11h2m2 0h2"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a1 1 0 0 1 1-1h10"/></symbol>
+    <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></symbol>
+    <symbol id="i-swap" viewBox="0 0 24 24"><path d="M4 8h14m0 0-3-3m3 3-3 3M20 16H6m0 0 3-3m-3 3 3 3"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M8 5h12a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H8l-5-7z"/><path d="m12 10 4 4m0-4-4 4"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4 2.5 20h19L12 4Z"/><path d="M12 10v4m0 3v.5"/></symbol>
+    <symbol id="i-reset" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.5-5.8"/><path d="M4 4v5h5"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  </defs>
+</svg>
+
+<div id="app">
+  <header class="topbar">
+    <div class="brand">
+      <span class="mark"><svg class="i"><use href="#i-calc"/></svg></span>
+      <div><h1>Calculadora de obra</h1><small>Científica · unidades · concreto, ladrillos y pendientes</small></div>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Secciones">
+      <button role="tab" data-tab="sci" aria-selected="true" type="button"><svg class="i"><use href="#i-calc"/></svg> Científica</button>
+      <button role="tab" data-tab="units" aria-selected="false" type="button"><svg class="i"><use href="#i-ruler"/></svg> Unidades</button>
+      <button role="tab" data-tab="obra" aria-selected="false" type="button"><svg class="i"><use href="#i-build"/></svg> Obra</button>
+    </nav>
+  </header>
+
+  <div class="content">
+    <!-- ================= Científica ================= -->
+    <section class="pane" id="pane-sci">
+      <div class="sci">
+        <div class="calc">
+          <div class="display">
+            <div class="mode">
+              <div class="seg" id="segAngle"><button type="button" data-v="deg" aria-pressed="true">Grados</button><button type="button" data-v="rad" aria-pressed="false">Radianes</button></div>
+              <span id="ansHint" style="margin-left:auto">Ans = 0</span>
+            </div>
+            <input class="expr" id="expr" inputmode="none" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="0" aria-label="Expresión">
+            <div class="out" id="out" aria-live="polite"></div>
+          </div>
+          <div class="keys" id="keys">
+            <button type="button" class="fn" data-ins="sin(">sin</button>
+            <button type="button" class="fn" data-ins="cos(">cos</button>
+            <button type="button" class="fn" data-ins="tan(">tan</button>
+            <button type="button" class="fn danger" data-act="clear">C</button>
+            <button type="button" class="fn" data-act="back" aria-label="Borrar"><svg class="i"><use href="#i-back"/></svg></button>
+
+            <button type="button" class="fn" data-ins="sqrt(">√</button>
+            <button type="button" class="fn" data-ins="^2">x²</button>
+            <button type="button" class="fn" data-ins="^">xʸ</button>
+            <button type="button" class="fn" data-ins="(">(</button>
+            <button type="button" class="fn" data-ins=")">)</button>
+
+            <button type="button" class="fn" data-ins="log(">log</button>
+            <button type="button" class="mono" data-ins="7">7</button>
+            <button type="button" class="mono" data-ins="8">8</button>
+            <button type="button" class="mono" data-ins="9">9</button>
+            <button type="button" class="op" data-ins="÷">÷</button>
+
+            <button type="button" class="fn" data-ins="ln(">ln</button>
+            <button type="button" class="mono" data-ins="4">4</button>
+            <button type="button" class="mono" data-ins="5">5</button>
+            <button type="button" class="mono" data-ins="6">6</button>
+            <button type="button" class="op" data-ins="×">×</button>
+
+            <button type="button" class="fn" data-ins="π">π</button>
+            <button type="button" class="mono" data-ins="1">1</button>
+            <button type="button" class="mono" data-ins="2">2</button>
+            <button type="button" class="mono" data-ins="3">3</button>
+            <button type="button" class="op" data-ins="−">−</button>
+
+            <button type="button" class="fn" data-ins="e">e</button>
+            <button type="button" class="mono" data-ins="0">0</button>
+            <button type="button" class="mono" data-ins=",">,</button>
+            <button type="button" class="fn" data-ins="%">%</button>
+            <button type="button" class="op" data-ins="+">+</button>
+
+            <button type="button" class="fn" data-ins="Ans">Ans</button>
+            <button type="button" class="fn" data-ins="1/(">1/x</button>
+            <button type="button" class="fn" data-act="neg">±</button>
+            <button type="button" class="eq" data-act="eq" style="grid-column: span 2; grid-row: auto" aria-label="Igual">=</button>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Historial <span class="k" id="histCount"></span></h2>
+          <div class="hist" id="hist"></div>
+          <div class="cardacts">
+            <button class="btn sm ghost" id="btnHistClear" type="button"><svg class="i sm"><use href="#i-trash"/></svg> Vaciar</button>
+            <button class="btn sm" id="btnHistSave" type="button"><svg class="i sm"><use href="#i-save"/></svg> Guardar</button>
+          </div>
+          <p class="helpkeys">Teclado: números y operadores, <kbd>^</kbd> potencia, <kbd>Intro</kbd> calcula, <kbd>Esc</kbd> borra, <kbd>↑</kbd> último cálculo. Funciones: sin, cos, tan, asin, acos, atan, sqrt, log, ln, abs, pi, e. Multiplicación implícita: 2π, 3(4+1).</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= Unidades ================= -->
+    <section class="pane" id="pane-units" hidden>
+      <div class="card">
+        <div class="chips" id="unitCats" role="tablist"></div>
+        <div class="conv">
+          <div class="field"><label for="uVal">Valor</label><input class="inp num" id="uVal" inputmode="decimal" value="1"><select class="sel" id="uFrom" aria-label="Unidad de origen" style="margin-top:6px"></select></div>
+          <button class="btn icon swap" id="uSwap" type="button" aria-label="Intercambiar unidades"><svg class="i"><use href="#i-swap"/></svg></button>
+          <div class="field"><span class="lbl">Resultado</span><div class="bigout" id="uOut">—</div><select class="sel" id="uTo" aria-label="Unidad de destino" style="margin-top:6px"></select></div>
+        </div>
+        <p class="desc" id="uNote" hidden></p>
+        <div class="tablewrap"><table class="all" id="uAll"></table></div>
+        <div class="cardacts">
+          <button class="btn sm" id="uCopy" type="button"><svg class="i sm"><use href="#i-copy"/></svg> Copiar</button>
+          <button class="btn sm" id="uSave" type="button"><svg class="i sm"><use href="#i-save"/></svg> Guardar</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= Obra ================= -->
+    <section class="pane" id="pane-obra" hidden>
+      <div class="grid2">
+        <div class="card" data-calc="losa">
+          <h2>Losa <span class="k">área · volumen · concreto</span></h2>
+          <div class="grid3">
+            <div class="field"><label for="lo_l">Largo</label><div class="with-unit"><input class="inp num" id="lo_l" inputmode="decimal" value="6"><span class="unit">m</span></div></div>
+            <div class="field"><label for="lo_a">Ancho</label><div class="with-unit"><input class="inp num" id="lo_a" inputmode="decimal" value="4"><span class="unit">m</span></div></div>
+            <div class="field"><label for="lo_e">Espesor</label><div class="with-unit"><input class="inp num" id="lo_e" inputmode="decimal" value="15"><span class="unit">cm</span></div></div>
+          </div>
+          <div class="grid2">
+            <div class="field"><label for="lo_fc">Resistencia f'c</label><select class="sel fc" id="lo_fc"></select></div>
+            <div class="field"><label for="lo_w">Desperdicio</label><div class="with-unit"><input class="inp num" id="lo_w" inputmode="decimal" value="5"><span class="unit">%</span></div></div>
+          </div>
+          <div class="results" id="lo_res"></div>
+          <div class="cardacts"><button class="btn sm" data-copy="losa" type="button"><svg class="i sm"><use href="#i-copy"/></svg> Copiar</button><button class="btn sm" data-save="losa" type="button"><svg class="i sm"><use href="#i-save"/></svg> Guardar</button></div>
+        </div>
+
+        <div class="card" data-calc="zapata">
+          <h2>Zapata <span class="k">volumen · concreto</span></h2>
+          <div class="grid3">
+            <div class="field"><label for="za_l">Largo</label><div class="with-unit"><input class="inp num" id="za_l" inputmode="decimal" value="1.5"><span class="unit">m</span></div></div>
+            <div class="field"><label for="za_a">Ancho</label><div class="with-unit"><input class="inp num" id="za_a" inputmode="decimal" value="1.5"><span class="unit">m</span></div></div>
+            <div class="field"><label for="za_h">Altura</label><div class="with-unit"><input class="inp num" id="za_h" inputmode="decimal" value="60"><span class="unit">cm</span></div></div>
+          </div>
+          <div class="grid3">
+            <div class="field"><label for="za_n">Cantidad</label><input class="inp num" id="za_n" inputmode="numeric" value="8"></div>
+            <div class="field"><label for="za_fc">f'c</label><select class="sel fc" id="za_fc"></select></div>
+            <div class="field"><label for="za_w">Desperdicio</label><div class="with-unit"><input class="inp num" id="za_w" inputmode="decimal" value="5"><span class="unit">%</span></div></div>
+          </div>
+          <div class="results" id="za_res"></div>
+          <div class="cardacts"><button class="btn sm" data-copy="zapata" type="button"><svg class="i sm"><use href="#i-copy"/></svg> Copiar</button><button class="btn sm" data-save="zapata" type="button"><svg class="i sm"><use href="#i-save"/></svg> Guardar</button></div>
+        </div>
+
+        <div class="card" data-calc="columna">
+          <h2>Columna <span class="k">sección rectangular</span></h2>
+          <div class="grid3">
+            <div class="field"><label for="co_b">Base b</label><div class="with-unit"><input class="inp num" id="co_b" inputmode="decimal" value="25"><span class="unit">cm</span></div></div>
+            <div class="field"><label for="co_h">Peralte h</label><div class="with-unit"><input class="inp num" id="co_h" inputmode="decimal" value="40"><span class="unit">cm</span></div></div>
+            <div class="field"><label for="co_alt">Altura</label><div class="with-unit"><input class="inp num" id="co_alt" inputmode="decimal" value="3"><span class="unit">m</span></div></div>
+          </div>
+          <div class="grid3">
+            <div class="field"><label for="co_n">Cantidad</label><input class="inp num" id="co_n" inputmode="numeric" value="12"></div>
+            <div class="field"><label for="co_fc">f'c</label><select class="sel fc" id="co_fc"></select></div>
+            <div class="field"><label for="co_w">Desperdicio</label><div class="with-unit"><input class="inp num" id="co_w" inputmode="decimal" value="5"><span class="unit">%</span></div></div>
+          </div>
+          <div class="results" id="co_res"></div>
+          <div class="cardacts"><button class="btn sm" data-copy="columna" type="button"><svg class="i sm"><use href="#i-copy"/></svg> Copiar</button><button class="btn sm" data-save="columna" type="button"><svg class="i sm"><use href="#i-save"/></svg> Guardar</button></div>
+        </div>
+
+        <div class="card" data-calc="concreto">
+          <h2>Concreto por m³ <span class="k">cemento · arena · grava · agua</span></h2>
+          <div class="grid3">
+            <div class="field"><label for="cn_v">Volumen</label><div class="with-unit"><input class="inp num" id="cn_v" inputmode="decimal" value="10"><span class="unit">m³</span></div></div>
+            <div class="field"><label for="cn_fc">f'c</label><select class="sel fc" id="cn_fc"></select></div>
+            <div class="field"><label for="cn_w">Desperdicio</label><div class="with-unit"><input class="inp num" id="cn_w" inputmode="decimal" value="5"><span class="unit">%</span></div></div>
+          </div>
+          <div class="results" id="cn_res"></div>
+          <details>
+            <summary style="cursor:pointer;color:var(--text-2);font-size:13px">Dosificación de referencia por m³ (editable)</summary>
+            <p class="desc" style="margin:8px 0">Valores típicos para mezcla en obra con cemento Portland (bolsa de 42,5 kg) y agregados húmedos. Son una referencia: ajústalos a tu diseño de mezcla.</p>
+            <div class="tablewrap"><table class="dos" id="dosTable"></table></div>
+            <div class="cardacts" style="margin-top:8px"><button class="btn sm ghost" id="dosReset" type="button"><svg class="i sm"><use href="#i-reset"/></svg> Restablecer valores</button></div>
+          </details>
+          <div class="cardacts"><button class="btn sm" data-copy="concreto" type="button"><svg class="i sm"><use href="#i-copy"/></svg> Copiar</button><button class="btn sm" data-save="concreto" type="button"><svg class="i sm"><use href="#i-save"/></svg> Guardar</button></div>
+        </div>
+
+        <div class="card" data-calc="ladrillos">
+          <h2>Ladrillos por m² <span class="k">muro de albañilería</span></h2>
+          <div class="grid3">
+            <div class="field"><label for="la_l">Largo visto</label><div class="with-unit"><input class="inp num" id="la_l" inputmode="decimal" value="24"><span class="unit">cm</span></div></div>
+            <div class="field"><label for="la_h">Alto visto</label><div class="with-unit"><input class="inp num" id="la_h" inputmode="decimal" value="9"><span class="unit">cm</span></div></div>
+            <div class="field"><label for="la_j">Junta</label><div class="with-unit"><input class="inp num" id="la_j" inputmode="decimal" value="1.5"><span class="unit">cm</span></div></div>
+          </div>
+          <div class="grid2">
+            <div class="field"><label for="la_area">Área de muro</label><div class="with-unit"><input class="inp num" id="la_area" inputmode="decimal" value="45"><span class="unit">m²</span></div></div>
+            <div class="field"><label for="la_w">Desperdicio</label><div class="with-unit"><input class="inp num" id="la_w" inputmode="decimal" value="5"><span class="unit">%</span></div></div>
+          </div>
+          <p class="desc">Aparejo de soga: King Kong 24×13×9 visto 24×9; pandereta 23×11×9 visto 23×9; bloque de concreto 39×19.</p>
+          <div class="results" id="la_res"></div>
+          <div class="cardacts"><button class="btn sm" data-copy="ladrillos" type="button"><svg class="i sm"><use href="#i-copy"/></svg> Copiar</button><button class="btn sm" data-save="ladrillos" type="button"><svg class="i sm"><use href="#i-save"/></svg> Guardar</button></div>
+        </div>
+
+        <div class="card" data-calc="pendiente">
+          <h2>Pendiente y escalera <span class="k">rampa · peldaños</span></h2>
+          <div class="grid2">
+            <div class="field"><label for="pe_h">Desnivel</label><div class="with-unit"><input class="inp num" id="pe_h" inputmode="decimal" value="1.2"><span class="unit">m</span></div></div>
+            <div class="field"><label for="pe_d">Distancia horizontal</label><div class="with-unit"><input class="inp num" id="pe_d" inputmode="decimal" value="10"><span class="unit">m</span></div></div>
+          </div>
+          <div class="results" id="pe_res"></div>
+          <div class="grid2">
+            <div class="field"><label for="es_h">Altura a salvar (escalera)</label><div class="with-unit"><input class="inp num" id="es_h" inputmode="decimal" value="2.8"><span class="unit">m</span></div></div>
+            <div class="field"><label for="es_ch">Contrahuella deseada</label><div class="with-unit"><input class="inp num" id="es_ch" inputmode="decimal" value="17.5"><span class="unit">cm</span></div></div>
+          </div>
+          <div class="results" id="es_res"></div>
+          <div class="cardacts"><button class="btn sm" data-copy="pendiente" type="button"><svg class="i sm"><use href="#i-copy"/></svg> Copiar</button><button class="btn sm" data-save="pendiente" type="button"><svg class="i sm"><use href="#i-save"/></svg> Guardar</button></div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="/static/pixagent-sdk.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

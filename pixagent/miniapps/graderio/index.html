@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="format-detection" content="telephone=no">
+<title>Escaleras y graderías</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-stairs" viewBox="0 0 24 24"><path d="M3 19h4v-4h4v-4h4V7h4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-bleacher" viewBox="0 0 24 24"><path d="M3 20h18M3 20v-4h5v-4h5V8h5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="13.5" r="1" fill="currentColor"/><circle cx="11" cy="9.5" r="1" fill="currentColor"/><circle cx="16" cy="5.5" r="1" fill="currentColor"/></symbol>
+    <symbol id="i-print" viewBox="0 0 24 24"><path d="M7 9V4h10v5M7 18H4v-7h16v7h-3M7 15h10v5H7z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5zM8 4v5h7V4M8 20v-6h8v6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21v-6M8 15h8l-1.5-4V5h1V3h-7v2h1v6z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-ai" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></symbol>
+    <symbol id="i-section" viewBox="0 0 24 24"><path d="M3 20h18M3 20V9l6 2 6-5 6 3v11" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></symbol>
+    <symbol id="i-plan" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M9 4v16M14 4v16" stroke="currentColor" stroke-width="1.75"/></symbol>
+    <symbol id="i-iso" viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9zM12 12l8-4.5M12 12v9M12 12L4 7.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></symbol>
+    <symbol id="i-cube" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-table" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M3 10h18M9 10v9M15 10v9" stroke="currentColor" stroke-width="1.75"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.75"/><rect x="13" y="3" width="8" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.75"/><rect x="3" y="13" width="8" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.75"/><rect x="13" y="13" width="8" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.75"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 4l9 16H3zM12 10v4M12 17.5v.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8M4 12h16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><circle cx="15.5" cy="7" r="2" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="9.5" cy="17" r="2" fill="none" stroke="currentColor" stroke-width="1.75"/></symbol>
+  </defs>
+</svg>
+
+<div id="app">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-icon"><svg width="20" height="20"><use href="#i-stairs"/></svg></span>
+      <div>
+        <h1>Escaleras y graderías</h1>
+        <p class="sub">Diseño geométrico desde la altura y la distancia</p>
+      </div>
+    </div>
+    <div class="seg" role="tablist" aria-label="Modo">
+      <button class="seg-btn is-on" data-mode="stair" role="tab" aria-selected="true"><svg width="18" height="18"><use href="#i-stairs"/></svg><span>Escalera</span></button>
+      <button class="seg-btn" data-mode="bleacher" role="tab" aria-selected="false"><svg width="18" height="18"><use href="#i-bleacher"/></svg><span>Graderío</span></button>
+    </div>
+    <div class="actions">
+      <button class="btn" id="btnPrint" title="Hoja de plano A3/A4 apaisada"><svg width="18" height="18"><use href="#i-print"/></svg><span>PDF / Imprimir</span></button>
+      <button class="btn needs-sdk" id="btnSave"><svg width="18" height="18"><use href="#i-save"/></svg><span>Guardar en PixAgent</span></button>
+      <button class="btn needs-sdk" id="btnPin"><svg width="18" height="18"><use href="#i-pin"/></svg><span>Fijar en PixPin</span></button>
+      <button class="btn accent needs-sdk" id="btnAI"><svg width="18" height="18"><use href="#i-ai"/></svg><span>Revisar con IA</span></button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="params" id="params">
+      <button class="params-toggle" id="paramsToggle" aria-expanded="true">
+        <svg width="18" height="18"><use href="#i-sliders"/></svg><span>Parámetros</span>
+        <span class="params-summary" id="paramsSummary"></span>
+        <svg class="chev" width="18" height="18"><use href="#i-chevron"/></svg>
+      </button>
+      <div class="params-body" id="paramsBody">
+
+        <section class="group">
+          <h2>Geometría general</h2>
+          <div class="fields">
+            <label class="field"><span>Desnivel H</span><div class="inp"><input type="number" id="H" step="0.01" min="0.1" value="3.00"><em>m</em></div></label>
+            <label class="field"><span id="lblL">Distancia horizontal L</span><div class="inp"><input type="number" id="L" step="0.01" min="0.1" value="4.20"><em>m</em></div></label>
+            <label class="field"><span id="lblB">Ancho B</span><div class="inp"><input type="number" id="B" step="0.05" min="0.3" value="1.20"><em>m</em></div></label>
+            <label class="field"><span>Espesor de losa (garganta)</span><div class="inp"><input type="number" id="t" step="0.01" min="0.05" value="0.15"><em>m</em></div></label>
+          </div>
+          <p class="hint" id="hintGeneral">H es el desnivel a salvar; L la distancia horizontal disponible entre el arranque y la llegada. Las medidas se usan en metros.</p>
+        </section>
+
+        <section class="group mode-stair">
+          <h2>Escalones</h2>
+          <div class="fields">
+            <div class="field range"><span>Contrahuella c</span><div class="pair"><div class="inp"><input type="number" id="cmin" step="0.005" value="0.15"><em>mín</em></div><div class="inp"><input type="number" id="cmax" step="0.005" value="0.18"><em>máx</em></div></div></div>
+            <div class="field range"><span>Huella h</span><div class="pair"><div class="inp"><input type="number" id="hmin" step="0.005" value="0.25"><em>mín</em></div><div class="inp"><input type="number" id="hmax" step="0.005" value="0.30"><em>máx</em></div></div></div>
+            <label class="field"><span>Máx. contrahuellas por tramo</span><div class="inp"><input type="number" id="nmax" step="1" min="2" value="18"><em>ud</em></div></label>
+            <label class="field"><span>Longitud de descanso</span><div class="inp"><input type="number" id="Ld" step="0.05" min="0.3" value="" placeholder="auto"><em>m</em></div></label>
+          </div>
+          <p class="hint">Regla de Blondel: 2c + h entre 0.60 y 0.64 m (paso cómodo). Si el nº de contrahuellas supera el máximo por tramo se intercala un descanso; por defecto mide max(B, 1.00 m). Las huellas son n − 1 por tramo: la última contrahuella llega al nivel superior o al descanso.</p>
+        </section>
+
+        <section class="group mode-bleacher" hidden>
+          <h2>Gradas</h2>
+          <div class="fields">
+            <div class="field range"><span>Peralte por grada N</span><div class="pair"><div class="inp"><input type="number" id="Nmin" step="0.01" value="0.40"><em>mín</em></div><div class="inp"><input type="number" id="Nmax" step="0.01" value="0.45"><em>máx</em></div></div></div>
+            <div class="field range"><span>Profundidad de grada T</span><div class="pair"><div class="inp"><input type="number" id="Tmin" step="0.01" value="0.70"><em>mín</em></div><div class="inp"><input type="number" id="Tmax" step="0.01" value="0.90"><em>máx</em></div></div></div>
+          </div>
+          <label class="switch"><input type="checkbox" id="accessStair" checked><span class="sw"></span><span>Escalera de acceso intercalada</span></label>
+          <div class="fields sub" id="accessFields">
+            <label class="field"><span>Ancho de la escalera</span><div class="inp"><input type="number" id="Be" step="0.05" min="0.6" value="1.20"><em>m</em></div></label>
+            <label class="field"><span>Escalones por grada</span><div class="inp"><select id="stepsPerRow"><option value="2" selected>2</option><option value="3">3</option></select></div></label>
+          </div>
+          <label class="switch"><input type="checkbox" id="aisle"><span class="sw"></span><span>Pasillo de circulación</span></label>
+          <div class="fields sub" id="aisleFields" hidden>
+            <label class="field"><span>Ancho del pasillo</span><div class="inp"><input type="number" id="Wp" step="0.05" min="0.6" value="1.20"><em>m</em></div></label>
+            <label class="field"><span>Posición</span><div class="inp"><select id="aislePos"><option value="top" selected>Superior (detrás de la última grada)</option><option value="bottom">Inferior (al pie, a nivel de suelo)</option></select></div></label>
+          </div>
+          <p class="hint">Cada grada es un escalón de peralte N y profundidad T (asiento). La escalera de acceso divide cada grada en escalones iguales de c = N/k y h = T/k dentro de una franja central. El pasillo descuenta su ancho de L.</p>
+        </section>
+
+        <section class="group mode-bleacher" hidden>
+          <details id="visDetails">
+            <summary><h2>Visibilidad (valor C)</h2><svg class="chev" width="16" height="16"><use href="#i-chevron"/></svg></summary>
+            <div class="fields">
+              <label class="field"><span>Distancia al punto focal desde la 1.ª fila</span><div class="inp"><input type="number" id="Df" step="0.1" min="0" value="6.0"><em>m</em></div></label>
+              <label class="field"><span>Altura del punto focal</span><div class="inp"><input type="number" id="hf" step="0.05" value="0.00"><em>m</em></div></label>
+              <label class="field"><span>Altura del ojo sentado</span><div class="inp"><input type="number" id="eyeH" step="0.01" value="1.15"><em>m</em></div></label>
+            </div>
+            <p class="hint">C = D·(N + R)/(D + T) − R, con D la distancia horizontal del ojo del espectador de delante al punto focal, R la altura de ese ojo sobre el punto focal, N el peralte y T la profundidad. Supuestos: ojo a 1.15 m sobre la grada (sentado), en el centro de la fila. Objetivo C ≥ 0.06 m (mínimo) y ≥ 0.09 m (bueno). Con peralte constante C decrece hacia atrás; en recintos grandes se usan peraltes crecientes.</p>
+          </details>
+        </section>
+
+        <section class="group">
+          <h2>Plano</h2>
+          <div class="fields">
+            <label class="field"><span>Título del proyecto</span><div class="inp"><input type="text" id="title" value="Proyecto" maxlength="60"></div></label>
+            <label class="field"><span>Hoja de impresión</span><div class="inp"><select id="paper"><option value="A3">A3 apaisada</option><option value="A4">A4 apaisada</option></select></div></label>
+          </div>
+        </section>
+      </div>
+    </aside>
+
+    <main class="work">
+      <section class="status" id="status" aria-live="polite"></section>
+      <section class="kpis" id="kpis"></section>
+
+      <nav class="tabs" role="tablist">
+        <button class="tab is-on" data-view="section"><svg width="18" height="18"><use href="#i-section"/></svg><span>Corte</span></button>
+        <button class="tab" data-view="plan"><svg width="18" height="18"><use href="#i-plan"/></svg><span>Planta</span></button>
+        <button class="tab" data-view="iso"><svg width="18" height="18"><use href="#i-iso"/></svg><span>Isométrico</span></button>
+        <button class="tab" data-view="three"><svg width="18" height="18"><use href="#i-cube"/></svg><span>3D</span></button>
+        <button class="tab" data-view="table"><svg width="18" height="18"><use href="#i-table"/></svg><span>Tabla y cómputos</span></button>
+        <button class="tab" data-view="grid"><svg width="18" height="18"><use href="#i-grid"/></svg><span>Rejilla</span></button>
+      </nav>
+
+      <div class="views">
+        <div class="view is-on" data-view="section"><div class="sheet" id="vSection"></div></div>
+        <div class="view" data-view="plan"><div class="sheet" id="vPlan"></div></div>
+        <div class="view" data-view="iso"><div class="sheet" id="vIso"></div></div>
+        <div class="view" data-view="three">
+          <div class="sheet three-wrap">
+            <canvas id="c3d" aria-label="Modelo 3D interactivo"></canvas>
+            <div class="three-tools">
+              <button class="btn sm" id="btnResetView"><svg width="16" height="16"><use href="#i-cube"/></svg><span>Restablecer vista</span></button>
+              <span class="three-hint">Arrastra para girar · rueda o pellizco para acercar</span>
+            </div>
+          </div>
+        </div>
+        <div class="view" data-view="table">
+          <div class="two-col">
+            <div class="card"><h3>Tabla de escalones</h3><div class="tbl-wrap" id="vTable"></div></div>
+            <div class="card"><h3>Cómputos</h3><div id="vQty"></div></div>
+          </div>
+        </div>
+        <div class="view" data-view="grid">
+          <div class="grid4">
+            <div class="sheet" id="gSection"></div>
+            <div class="sheet" id="gPlan"></div>
+            <div class="sheet" id="gIso"></div>
+            <div class="card"><h3>Cómputos</h3><div id="gQty"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <section class="panel" id="aiPanel" hidden>
+        <div class="panel-head"><svg width="18" height="18"><use href="#i-ai"/></svg><h3>Revisión con IA</h3><button class="icon-btn" id="aiClose" aria-label="Cerrar"><svg width="18" height="18"><use href="#i-x"/></svg></button></div>
+        <div class="panel-body" id="aiBody"></div>
+      </section>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+</div>
+
+<div id="printSheet" class="print-sheet" aria-hidden="true"></div>
+<style id="pageStyle">@page { size: A3 landscape; margin: 10mm; }</style>
+
+<script src="/static/pixagent-sdk.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

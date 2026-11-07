@@ -1,0 +1,9 @@
+{
+  "name": "Detector de gestos",
+  "description": "Reconoce gestos de la mano con la cámara en tiempo real (MediaPipe) y captura el fotograma",
+  "icon": "✋",
+  "category": "Experimentos",
+  "entry": "index.html",
+  "kind": "web",
+  "uses_ai": false
+}

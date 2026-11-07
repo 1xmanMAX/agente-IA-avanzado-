@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#5b5bf7">
+<title>Panel fotográfico</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4m0 0 4 4m-4-4L8 8"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a1 1 0 0 1 1-1Z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></symbol>
+    <symbol id="i-left" viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></symbol>
+    <symbol id="i-right" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3v4m0 10v4M3 12h4m10 0h4M6.3 6.3l2.8 2.8m5.8 5.8 2.8 2.8M6.3 17.7l2.8-2.8m5.8-5.8 2.8-2.8"/></symbol>
+    <symbol id="i-pdf" viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/><path d="M9.5 17v-5h1.6a1.5 1.5 0 0 1 0 3H9.5"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M9 4h6l-1 6 3 3v2H7v-2l3-3z"/><path d="M12 15v6"/></symbol>
+    <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 15V4m0 0L8 8m4-4 4 4"/><path d="M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></symbol>
+    <symbol id="i-open" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9"/><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4 2.5 20h19L12 4Z"/><path d="M12 10v4m0 3v.5"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-8 8"/></symbol>
+    <symbol id="i-photos" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h10m4 0h2M4 17h4m4 0h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-grip" viewBox="0 0 24 24"><circle cx="9" cy="6" r="1.2"/><circle cx="15" cy="6" r="1.2"/><circle cx="9" cy="12" r="1.2"/><circle cx="15" cy="12" r="1.2"/><circle cx="9" cy="18" r="1.2"/><circle cx="15" cy="18" r="1.2"/></symbol>
+    <symbol id="i-reset" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.5-5.8"/><path d="M4 4v5h5"/></symbol>
+  </defs>
+</svg>
+
+<div id="app" data-tab="photos">
+  <header class="topbar">
+    <div class="brand">
+      <span class="mark"><svg class="i"><use href="#i-image"/></svg></span>
+      <div style="min-width:0">
+        <h1>Panel fotográfico</h1>
+        <small id="brandSub">Maquetación en el navegador · PDF en un clic</small>
+      </div>
+    </div>
+    <div class="actions">
+      <span class="savestate" id="saveState">Borrador guardado</span>
+      <button class="btn hide-m" id="btnAI" type="button" title="Redacta los pies de foto con la IA (una sola llamada)">
+        <svg class="i"><use href="#i-sparkle"/></svg> Pies con IA
+      </button>
+      <button class="btn primary hide-m" id="btnPDF" type="button">
+        <svg class="i"><use href="#i-pdf"/></svg> Generar PDF
+      </button>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Secciones">
+    <button role="tab" data-tab="photos" aria-selected="true" type="button"><svg class="i"><use href="#i-photos"/></svg> Fotos</button>
+    <button role="tab" data-tab="settings" aria-selected="false" type="button"><svg class="i"><use href="#i-sliders"/></svg> Ajustes</button>
+    <button role="tab" data-tab="preview" aria-selected="false" type="button"><svg class="i"><use href="#i-eye"/></svg> Vista previa</button>
+  </nav>
+
+  <div class="main">
+    <aside class="work">
+      <div class="scroll">
+        <div id="notices" class="stack" style="gap:8px"></div>
+
+        <section class="block pane" id="panePhotos">
+          <h2>Fotos <span class="count" id="photoCount">0 fotos</span></h2>
+          <div class="drop" id="drop">
+            <svg class="i" style="width:26px;height:26px"><use href="#i-upload"/></svg>
+            <p><b>Suelta aquí tus fotos</b> o elige del dispositivo. Se reducen en tu equipo antes de subir (máx. 2400 px).</p>
+            <div class="btns">
+              <button class="btn soft" id="btnPick" type="button"><svg class="i"><use href="#i-upload"/></svg> Elegir fotos</button>
+              <button class="btn" id="btnShoot" type="button"><svg class="i"><use href="#i-camera"/></svg> Tomar foto</button>
+            </div>
+            <div class="progress" id="progress" hidden><i></i></div>
+            <p class="hint" id="progressText" hidden></p>
+            <input type="file" id="filePick" accept="image/*" multiple class="sr" tabindex="-1">
+            <input type="file" id="fileShoot" accept="image/*" capture="environment" class="sr" tabindex="-1">
+          </div>
+          <div class="photos" id="photos"></div>
+          <p class="empty" id="photosEmpty">Aún no hay fotos. Arrastra para reordenar; en táctil usa las flechas.</p>
+          <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+            <button class="btn sm ghost danger" id="btnClearPhotos" type="button"><svg class="i sm"><use href="#i-trash"/></svg> Quitar todas</button>
+          </div>
+        </section>
+
+        <section class="block pane" id="paneSettings" hidden>
+          <h2>Documento</h2>
+          <div class="stack">
+            <div class="field"><label for="title">Título</label><input class="inp" id="title" data-k="title" placeholder="Panel fotográfico"></div>
+            <div class="field"><label for="subtitle">Subtítulo</label><input class="inp" id="subtitle" data-k="subtitle" placeholder="Obra: Vivienda Pérez"></div>
+            <div class="field">
+              <span class="lbl">Campos de cabecera</span>
+              <div class="kvlist" id="fields"></div>
+              <button class="btn sm ghost" id="btnAddField" type="button" style="align-self:flex-start"><svg class="i sm"><use href="#i-plus"/></svg> Añadir campo</button>
+              <p class="hint" style="margin-top:0">Los campos sin valor no se imprimen.</p>
+            </div>
+            <div class="field">
+              <span class="lbl">Logo (opcional)</span>
+              <div class="logo-row">
+                <div class="logo-prev" id="logoPrev"><svg class="i"><use href="#i-image"/></svg></div>
+                <button class="btn sm" id="btnLogo" type="button">Elegir logo</button>
+                <button class="btn sm ghost" id="btnLogoDel" type="button" hidden>Quitar</button>
+                <input type="file" id="fileLogo" accept="image/*" class="sr" tabindex="-1">
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="block pane" id="paneLayout" hidden>
+          <h2>Maquetación</h2>
+          <div class="stack">
+            <div class="field">
+              <span class="lbl">Fotos por página (columnas × filas)</span>
+              <div class="layouts" id="layouts"></div>
+            </div>
+            <div class="row">
+              <div class="field"><span class="lbl">Papel</span>
+                <div class="seg" id="segPage"><button type="button" data-v="A4" aria-pressed="true">A4</button><button type="button" data-v="A3" aria-pressed="false">A3</button></div>
+              </div>
+              <div class="field"><span class="lbl">Orientación</span>
+                <div class="seg" id="segOrient"><button type="button" data-v="portrait" aria-pressed="true">Vertical</button><button type="button" data-v="landscape" aria-pressed="false">Apaisado</button></div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="field"><span class="lbl">Ajuste de la foto</span>
+                <div class="seg" id="segFit"><button type="button" data-v="cover" aria-pressed="true">Rellenar</button><button type="button" data-v="contain" aria-pressed="false">Completa</button></div>
+              </div>
+              <div class="field"><span class="lbl">Numeración</span>
+                <label class="switch" style="min-height:36px"><span>Foto 1, Foto 2…</span><input type="checkbox" id="numbering" checked><span class="track"></span></label>
+              </div>
+            </div>
+            <div class="field">
+              <span class="lbl">Color del tema</span>
+              <div class="colors" id="colors"></div>
+            </div>
+            <button class="btn sm ghost" id="btnReset" type="button" style="align-self:flex-start"><svg class="i sm"><use href="#i-reset"/></svg> Restablecer borrador</button>
+          </div>
+        </section>
+      </div>
+    </aside>
+
+    <main class="canvas" id="canvas">
+      <div class="canvas-inner" id="pages"></div>
+    </main>
+  </div>
+
+  <div class="mobilebar">
+    <button class="btn" id="btnAIm" type="button"><svg class="i"><use href="#i-sparkle"/></svg> Pies con IA</button>
+    <button class="btn primary" id="btnPDFm" type="button"><svg class="i"><use href="#i-pdf"/></svg> Generar PDF</button>
+  </div>
+</div>
+<div id="noticesM" class="notices-m stack" style="gap:8px"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="/static/pixagent-sdk.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
