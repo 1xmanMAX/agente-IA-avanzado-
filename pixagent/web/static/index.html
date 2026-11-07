@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#4f46e5" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f4f5f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d0e13" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -15,103 +15,237 @@
 <link rel="icon" type="image/png" href="/static/icon-192.png">
 <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
 <title>PixAgent</title>
+<script>try{var t=localStorage.getItem("theme");if(t==="dark"||t==="light")document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
+<link rel="stylesheet" href="/static/theme.css?v={{V}}">
 <link rel="stylesheet" href="/static/style.css?v={{V}}">
 </head>
-<body data-pane="chat">
+<body data-view="agent" data-pane="chat">
+
+<!-- Iconos (trazo 1.75, 24 px) -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 12.5a8 8 0 0 1-8 8H6l-3 3V12.5a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8z"/></symbol>
+  <symbol id="i-apps" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></symbol>
+  <symbol id="i-report" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></symbol>
+  <symbol id="i-clip" viewBox="0 0 24 24"><path d="M21 11.5l-8.5 8.5a5.5 5.5 0 0 1-7.8-7.8l9-9a3.5 3.5 0 0 1 5 5l-9 9a1.5 1.5 0 0 1-2.1-2.1l8.3-8.3"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3.5l9.5 16.5h-19z"/><path d="M12 10v4.5M12 17.5v.5"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9.5C7.5 20 4 17 4 12V6z"/><path d="M9 12l2 2 4-4"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.75"/><path d="M20.5 16l-4.5-4.5L7 20"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M15 3l6 6-3.5 1-3 3L15 18l-9-9 4.5.5 3-3z"/><path d="M9.5 14.5L3 21"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 13v6a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-6"/></symbol>
+  <symbol id="i-external" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9"/><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2.5"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 3L4 14h7l-1 7 9-11h-7z"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8M4 12h2M10 12h10"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/><circle cx="8" cy="12" r="2"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M8 11l4 4 4-4"/><path d="M5 17v2a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2"/></symbol>
+  <symbol id="i-plan" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="2"/><path d="M3.5 10h8V3.5M11.5 10v10.5M11.5 15h9"/><circle cx="7" cy="15.5" r="1.5"/></symbol>
+  <symbol id="i-flow" viewBox="0 0 24 24"><rect x="3" y="4" width="7" height="5" rx="1.5"/><rect x="14" y="15" width="7" height="5" rx="1.5"/><rect x="14" y="4" width="7" height="5" rx="1.5"/><path d="M10 6.5h4M6.5 9v8.5a1 1 0 0 0 1 1H14"/></symbol>
+  <symbol id="i-panel" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="2"/><path d="M3.5 12h17M12 3.5v17"/><path d="M6 9l2-2 1.5 1.5M15 17l2-2 1.5 1.5"/></symbol>
+  <symbol id="i-terminal" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M7 9l3 3-3 3M12 15h5"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-window" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M3 9h18M6.5 6.8h.01M9.5 6.8h.01"/></symbol>
+  <symbol id="i-crop" viewBox="0 0 24 24"><path d="M7 3v14a1 1 0 0 0 1 1h13M3 7h14a1 1 0 0 1 1 1v13"/></symbol>
+  <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 17l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.5-4M4 13a8 8 0 0 0 14.5 4"/><path d="M20 4v7h-7M4 20v-7h7"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></symbol>
+  <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></symbol>
+  <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M3.5 13h5l1.5 2.5h4L15.5 13h5"/><path d="M5.5 5.5h13l2 7.5v6a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1v-6z"/></symbol>
+</svg>
+
 <div id="app">
-  <!-- Menú / barra lateral -->
+  <!-- ================= Barra lateral / Menú ================= -->
   <aside id="sidebar" class="pane">
-    <div class="brand">
-      <img class="logo" src="/static/icon-192.png" alt="" width="34" height="34">
-      <div><b>PixAgent</b><small>IA avanzada para PixPin</small></div>
-    </div>
-    <button id="newSession" class="btn primary wide">+ Nueva sesión</button>
-    <div class="section-title">Sesiones</div>
-    <ul id="sessions"></ul>
-    <div class="section-title">PixPin</div>
-    <div class="pixpin-box">
-      <div id="pixpinStatus" class="muted small">Comprobando…</div>
-      <div id="pixpinButtons">
-        <button class="btn wide" data-capture="last">Capturar última zona</button>
-        <button class="btn wide" data-capture="window">Capturar ventana activa</button>
-        <button class="btn wide" id="installScripts">Generar scripts para PixPin</button>
+    <div class="side-head">
+      <img class="logo" src="/static/icon-192.png" alt="" width="36" height="36">
+      <div class="grow">
+        <b>PixAgent</b>
+        <small class="faint">IA avanzada · PixPin</small>
       </div>
+      <span id="conn" class="conn" title="Conexión"><i></i></span>
     </div>
-    <div class="section-title">Ajustes</div>
-    <div class="settings">
-      <label>Esfuerzo
-        <select id="effort">
-          <option value="low">Bajo (rápido)</option><option value="medium">Medio</option>
-          <option value="high">Alto</option><option value="xhigh">Muy alto</option><option value="max">Máximo</option>
-        </select>
-      </label>
-      <label>Permisos
-        <select id="perm">
-          <option value="auto">Automático (pregunta solo shell)</option>
-          <option value="ask">Preguntar (shell, Python, PixPin)</option>
-          <option value="full">Total (sin preguntas)</option>
-        </select>
-      </label>
-      <label class="check"><input type="checkbox" id="saveData"> Ahorro de datos (miniaturas pequeñas)</label>
-      <button class="btn wide hidden" id="installApp">📲 Instalar como app</button>
-      <div id="wsInfo" class="muted small"></div>
-      <div id="usage" class="muted small"></div>
+
+    <button id="newSession" class="btn btn-primary btn-block">
+      <svg class="icon"><use href="#i-plus"/></svg>Nueva sesión
+    </button>
+
+    <nav class="side-nav" aria-label="Secciones">
+      <button class="nav-item on" data-view="agent"><svg class="icon"><use href="#i-chat"/></svg>Agente</button>
+      <button class="nav-item" data-view="apps"><svg class="icon"><use href="#i-apps"/></svg>Mini apps<span id="appsCount" class="nav-count hidden"></span></button>
+      <a class="nav-item" href="/reports"><svg class="icon"><use href="#i-report"/></svg>Informes<svg class="icon icon-sm nav-ext"><use href="#i-external"/></svg></a>
+    </nav>
+
+    <div class="side-section side-sessions">
+      <div class="side-title">Sesiones</div>
+      <ul id="sessions" class="scroll-y"></ul>
+    </div>
+
+    <details class="side-fold" id="pixpinFold" open>
+      <summary><svg class="icon"><use href="#i-zap"/></svg><span class="grow">PixPin</span><span id="pixpinDot" class="dot dot-muted"></span><svg class="icon icon-sm fold-chev"><use href="#i-chevron"/></svg></summary>
+      <div class="fold-body">
+        <div id="pixpinStatus" class="small muted">Comprobando…</div>
+        <div id="pixpinButtons" class="stack gap-1">
+          <button class="btn btn-sm" data-capture="last"><svg class="icon"><use href="#i-crop"/></svg>Capturar última zona</button>
+          <button class="btn btn-sm" data-capture="window"><svg class="icon"><use href="#i-window"/></svg>Capturar ventana activa</button>
+          <button class="btn btn-sm btn-ghost" id="installScripts"><svg class="icon"><use href="#i-code"/></svg>Generar scripts para PixPin</button>
+        </div>
+      </div>
+    </details>
+
+    <details class="side-fold" id="settingsFold">
+      <summary><svg class="icon"><use href="#i-sliders"/></svg><span class="grow">Ajustes</span><svg class="icon icon-sm fold-chev"><use href="#i-chevron"/></svg></summary>
+      <div class="fold-body stack gap-3">
+        <label class="field">Esfuerzo
+          <span class="select"><select id="effort">
+            <option value="low">Bajo (rápido)</option><option value="medium">Medio</option>
+            <option value="high">Alto</option><option value="xhigh">Muy alto</option><option value="max">Máximo</option>
+          </select></span>
+        </label>
+        <label class="field">Permisos
+          <span class="select"><select id="perm">
+            <option value="auto">Automático (pregunta solo shell)</option>
+            <option value="ask">Preguntar (shell, Python, PixPin)</option>
+            <option value="full">Total (sin preguntas)</option>
+          </select></span>
+        </label>
+        <label class="switch"><input type="checkbox" id="saveData"><i></i><span class="small">Ahorro de datos<br><span class="faint xs">Miniaturas más pequeñas</span></span></label>
+        <div class="field">Tema
+          <div class="segmented" id="themeSeg">
+            <button type="button" data-theme="system" class="on">Sistema</button>
+            <button type="button" data-theme="light">Claro</button>
+            <button type="button" data-theme="dark">Oscuro</button>
+          </div>
+        </div>
+        <button class="btn btn-sm btn-block hidden" id="installApp"><svg class="icon"><use href="#i-download"/></svg>Instalar como app</button>
+      </div>
+    </details>
+
+    <div class="side-foot">
+      <div id="wsInfo" class="xs faint truncate"></div>
+      <div id="usage" class="xs faint tabular"></div>
     </div>
   </aside>
 
-  <!-- Chat -->
+  <!-- ================= Agente (chat) ================= -->
   <main id="chat" class="pane">
     <header class="chat-head">
-      <div id="sessionTitle">Nueva sesión</div>
-      <span id="conn" class="conn" title="Conexión"></span>
-      <div class="chips">
-        <button class="chip" data-tpl="plan">📐 Plano con fotos</button>
-        <button class="chip" data-tpl="diagram">🔀 Diagrama</button>
-        <button class="chip" data-tpl="report">📄 Informe PDF</button>
-        <button class="chip" data-tpl="app">🧩 Mini app</button>
-        <button class="chip" data-tpl="python">🐍 Python</button>
-      </div>
+      <div id="sessionTitle" class="truncate">Nueva sesión</div>
+      <span id="connPill" class="chip chip-warn hidden"><span class="spinner"></span>Reconectando…</span>
     </header>
-    <div id="todos" class="hidden"></div>
-    <div id="messages">
+
+    <details id="todos" class="plan hidden" open>
+      <summary>
+        <svg class="icon"><use href="#i-list"/></svg>
+        <span class="plan-title">Plan</span>
+        <span id="planCount" class="plan-count tabular"></span>
+        <span class="progress plan-bar"><i id="planBar"></i></span>
+        <svg class="icon icon-sm fold-chev"><use href="#i-chevron"/></svg>
+      </summary>
+      <div id="planList" class="plan-list"></div>
+    </details>
+
+    <div id="messages"></div>
+
+    <template id="welcomeTpl">
       <div class="welcome">
-        <h2>¿Qué hacemos hoy?</h2>
-        <p>Toma o adjunta fotos y planos, pega una captura o envíala desde PixPin. Ubico fotos en planos
-          con flechas, creo diagramas, informes PDF y mini apps, y ejecuto Python.</p>
+        <img class="welcome-mark" src="/static/icon-192.png" alt="" width="56" height="56">
+        <h1>¿Qué hacemos hoy?</h1>
+        <p class="welcome-sub">Adjunta fotos y planos, pega una captura o envíala desde PixPin. Elige un punto de partida o describe la tarea con tus palabras.</p>
+        <div class="quick">
+          <button class="quick-card" data-tpl="plan"><span class="qc-icon"><svg class="icon"><use href="#i-plan"/></svg></span><b>Plano con fotos</b><small>Ubica cada foto en el plano con flechas, numeración y leyenda</small></button>
+          <button class="quick-card" data-tpl="diagram"><span class="qc-icon"><svg class="icon"><use href="#i-flow"/></svg></span><b>Diagrama</b><small>Flujos, organigramas y esquemas de proceso</small></button>
+          <button class="quick-card" data-tpl="report"><span class="qc-icon"><svg class="icon"><use href="#i-report"/></svg></span><b>Informe</b><small>PDF profesional con portada, índice y tablas</small></button>
+          <button class="quick-card" data-tpl="panel"><span class="qc-icon"><svg class="icon"><use href="#i-panel"/></svg></span><b>Panel fotográfico</b><small>Fotos numeradas con pies de foto y cajetín</small></button>
+          <button class="quick-card" data-tpl="app"><span class="qc-icon"><svg class="icon"><use href="#i-apps"/></svg></span><b>Mini app</b><small>Una herramienta a medida para repetir una tarea</small></button>
+          <button class="quick-card" data-tpl="python"><span class="qc-icon"><svg class="icon"><use href="#i-terminal"/></svg></span><b>Python</b><small>Cálculos, tablas y conversiones ejecutadas aquí</small></button>
+        </div>
+        <p class="welcome-hint faint small no-touch">Arrastra archivos al chat o pega una captura con <span class="kbd">Ctrl</span> <span class="kbd">V</span></p>
       </div>
+    </template>
+
+    <div id="statusLine" class="hidden">
+      <span class="spinner"></span>
+      <span id="statusText" class="truncate">Pensando…</span>
+      <button id="cancelBtn" type="button" class="btn btn-sm btn-ghost"><svg class="icon"><use href="#i-stop"/></svg>Detener</button>
     </div>
-    <div id="statusLine" class="hidden"><span class="spinner"></span><span id="statusText">Pensando…</span>
-      <button id="cancelBtn" class="btn small">Detener</button></div>
+
     <form id="composer">
-      <div id="pending"></div>
-      <div class="composer-row">
-        <label class="btn icon" title="Adjuntar archivos">📎<input id="fileInput" type="file" multiple hidden
-               accept="image/*,application/pdf,.txt,.md,.csv,.json,.xlsx,.docx,.html,.py"></label>
-        <label class="btn icon only-touch" title="Cámara">📷<input id="camInput" type="file" accept="image/*" capture="environment" hidden></label>
-        <textarea id="input" rows="1" enterkeyhint="send" placeholder="Describe lo que necesitas…"></textarea>
-        <button class="btn primary" id="sendBtn" type="submit" aria-label="Enviar">➤</button>
+      <div class="composer-box">
+        <div id="pending" class="scroll-x"></div>
+        <textarea id="input" rows="1" enterkeyhint="send" placeholder="Describe lo que necesitas…" aria-label="Mensaje"></textarea>
+        <div class="composer-tools">
+          <label class="btn btn-ghost btn-icon btn-round" title="Adjuntar archivos"><svg class="icon"><use href="#i-clip"/></svg>
+            <input id="fileInput" type="file" multiple hidden accept="image/*,application/pdf,.txt,.md,.csv,.json,.xlsx,.docx,.html,.py"></label>
+          <label class="btn btn-ghost btn-icon btn-round only-touch" title="Cámara"><svg class="icon"><use href="#i-camera"/></svg>
+            <input id="camInput" type="file" accept="image/*" capture="environment" hidden></label>
+          <button type="button" class="btn btn-ghost btn-icon btn-round hidden" id="capBtn" data-capture="last" title="Capturar con PixPin"><svg class="icon"><use href="#i-zap"/></svg></button>
+          <span class="grow"></span>
+          <span class="composer-hint no-touch xs faint"><span class="kbd">Intro</span> enviar · <span class="kbd">Mayús</span>+<span class="kbd">Intro</span> salto de línea</span>
+          <button class="btn btn-primary btn-icon btn-round" id="sendBtn" type="submit" aria-label="Enviar"><svg class="icon"><use href="#i-send"/></svg></button>
+        </div>
       </div>
     </form>
-    <div id="dropHint" class="hidden">Suelta aquí los archivos</div>
+    <div id="dropHint" class="hidden"><div class="drop-card"><svg class="icon icon-lg"><use href="#i-drop"/></svg><b>Suelta aquí los archivos</b><span class="small">Fotos, planos, PDF…</span></div></div>
   </main>
 
-  <!-- Visor + biblioteca -->
+  <!-- ================= Mini apps ================= -->
+  <section id="apps" class="pane">
+    <div id="appsGallery" class="apps-gallery scroll-y">
+      <header class="apps-head">
+        <div class="grow">
+          <h2>Mini apps</h2>
+          <p class="muted small">Herramientas rápidas que trabajan sobre tu workspace. Pídele al agente una nueva cuando repitas una tarea.</p>
+        </div>
+        <button id="appsRefresh" class="btn btn-ghost btn-icon" title="Actualizar"><svg class="icon"><use href="#i-refresh"/></svg></button>
+      </header>
+      <div id="appsGrid" class="apps-grid"></div>
+    </div>
+    <div id="appFrame" class="app-frame hidden">
+      <div class="appbar">
+        <button id="appBack" class="btn btn-ghost btn-icon" title="Volver a la galería"><svg class="icon"><use href="#i-back"/></svg></button>
+        <span id="appIcon" class="app-ico"></span>
+        <b id="appName" class="truncate grow"></b>
+        <a id="appOpen" class="btn btn-ghost btn-sm" target="_blank" rel="noopener"><svg class="icon"><use href="#i-external"/></svg><span class="no-touch">Abrir en pestaña nueva</span></a>
+      </div>
+      <iframe id="appIframe" title="Mini app"></iframe>
+    </div>
+  </section>
+
+  <!-- ================= Visor + biblioteca ================= -->
   <section id="viewer" class="pane">
-    <div class="tabs desktop-only">
-      <button class="tab active" data-tab="view">Vista</button>
-      <button class="tab" data-tab="library">Biblioteca</button>
+    <div class="viewer-tabs">
+      <div class="segmented" role="tablist">
+        <button class="on" data-tab="view" role="tab"><svg class="icon icon-sm"><use href="#i-eye"/></svg>Vista</button>
+        <button data-tab="library" role="tab"><svg class="icon icon-sm"><use href="#i-folder"/></svg>Biblioteca</button>
+      </div>
     </div>
     <div id="tab-view" class="tabpane">
       <div class="viewer-actions hidden" id="viewerActions">
-        <span id="viewerName" class="small"></span>
+        <span id="viewerName" class="mono xs truncate"></span>
         <div class="va-btns">
-          <button class="btn small" id="pinBtn">📌 PixPin</button>
-          <button class="btn small hidden" id="shareBtn">📤 Compartir</button>
-          <button class="btn small" id="attachBtn">＋ Adjuntar</button>
-          <a class="btn small" id="openBtn" target="_blank" rel="noopener">Abrir</a>
+          <button class="btn btn-ghost btn-icon btn-sm" id="pinBtn" title="Fijar en PixPin"><svg class="icon"><use href="#i-pin"/></svg></button>
+          <button class="btn btn-ghost btn-icon btn-sm hidden" id="shareBtn" title="Compartir"><svg class="icon"><use href="#i-share"/></svg></button>
+          <button class="btn btn-ghost btn-icon btn-sm" id="attachBtn" title="Añadir como adjunto"><svg class="icon"><use href="#i-clip"/></svg></button>
+          <a class="btn btn-ghost btn-icon btn-sm" id="openBtn" target="_blank" rel="noopener" title="Abrir en pestaña nueva"><svg class="icon"><use href="#i-external"/></svg></a>
         </div>
       </div>
-      <div id="viewerBody" class="viewer-empty">Aquí verás planos, diagramas, PDFs y mini apps.</div>
+      <div id="viewerBody">
+        <div class="empty">
+          <span class="empty-icon"><svg class="icon"><use href="#i-image"/></svg></span>
+          <div class="empty-title">Sin resultado todavía</div>
+          <div class="empty-text">Aquí verás planos, diagramas, PDF y mini apps en cuanto el agente los genere.</div>
+        </div>
+      </div>
     </div>
     <div id="tab-library" class="tabpane hidden">
       <div id="library"></div>
@@ -120,25 +254,46 @@
 </div>
 
 <!-- Navegación inferior (móvil) -->
-<nav id="bottomNav">
-  <button data-pane="chat" class="active"><span>💬</span>Chat</button>
-  <button data-pane="viewer"><span>🖼️</span>Resultado<i id="viewBadge" class="hidden"></i></button>
-  <button data-pane="library"><span>🗂️</span>Biblioteca</button>
-  <button data-pane="sidebar"><span>☰</span>Menú</button>
+<nav id="bottomNav" aria-label="Navegación">
+  <button data-pane="chat" class="on"><svg class="icon"><use href="#i-chat"/></svg><span>Agente</span></button>
+  <button data-pane="viewer"><svg class="icon"><use href="#i-image"/></svg><span>Resultado</span><i id="viewBadge" class="nav-badge hidden"></i></button>
+  <button data-pane="apps"><svg class="icon"><use href="#i-apps"/></svg><span>Mini apps</span></button>
+  <a href="/reports"><svg class="icon"><use href="#i-report"/></svg><span>Informes</span></a>
+  <button data-pane="sidebar"><svg class="icon"><use href="#i-menu"/></svg><span>Menú</span></button>
 </nav>
 
-<div id="approval" class="modal hidden" role="dialog" aria-modal="true">
+<!-- Aprobación de acciones -->
+<div id="approval" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="approvalTitle">
   <div class="modal-card">
-    <h3>¿Permitir esta acción?</h3>
-    <div id="approvalName" class="muted"></div>
-    <pre id="approvalBody"></pre>
+    <div class="modal-head">
+      <span class="modal-icon"><svg class="icon"><use href="#i-shield"/></svg></span>
+      <h3 id="approvalTitle">¿Permitir esta acción?</h3>
+      <span id="approvalName" class="badge badge-accent"></span>
+    </div>
+    <div class="modal-body">
+      <p class="muted small">El agente quiere ejecutar lo siguiente en el equipo anfitrión. Revísalo antes de continuar.</p>
+      <pre id="approvalBody" class="approval-code"></pre>
+    </div>
     <div class="modal-actions">
       <button class="btn" id="denyBtn">Rechazar</button>
-      <button class="btn primary" id="allowBtn">Permitir</button>
+      <button class="btn btn-primary" id="allowBtn"><svg class="icon"><use href="#i-check"/></svg>Permitir</button>
     </div>
   </div>
 </div>
-<div id="toast" class="hidden" role="status"></div>
+
+<!-- Confirmación genérica -->
+<div id="confirm" class="modal hidden" role="dialog" aria-modal="true">
+  <div class="modal-card modal-sm">
+    <div class="modal-head"><span class="modal-icon danger"><svg class="icon"><use href="#i-trash"/></svg></span><h3 id="confirmTitle"></h3></div>
+    <div class="modal-body"><p id="confirmText" class="muted"></p></div>
+    <div class="modal-actions">
+      <button class="btn" id="confirmNo">Cancelar</button>
+      <button class="btn btn-danger" id="confirmYes">Borrar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts" class="toast-stack" role="status" aria-live="polite"></div>
 <script src="/static/app.js?v={{V}}" defer></script>
 </body>
 </html>

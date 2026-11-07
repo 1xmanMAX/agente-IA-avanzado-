@@ -1,7 +1,7 @@
 /* Service worker de PixAgent: guarda la interfaz en caché para que abra al instante (y sin red
    muestre al menos la app). Nunca guarda en caché la API, los archivos ni el WebSocket. */
 const CACHE = "pixagent-{{V}}";
-const SHELL = ["/", "/static/style.css?v={{V}}", "/static/app.js?v={{V}}", "/static/icon-192.png", "/manifest.webmanifest"];
+const SHELL = ["/", "/static/theme.css?v={{V}}", "/static/style.css?v={{V}}", "/static/app.js?v={{V}}", "/static/icon-192.png", "/manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
