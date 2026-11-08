@@ -362,8 +362,13 @@
     state.zoom = z;
     // Al ampliar una miniatura más de 1,5× se carga el original (nítido), una sola vez
     if (content.tagName === "IMG" && content.dataset.full) {
-      const check = () => { if (state.zoom === z && z.scale > 1.5 && content.src.indexOf("/thumb/") >= 0) content.src = content.dataset.full; };
+      let timer = 0;
+      const check = () => {
+        if (state.zoom !== z) { clearInterval(timer); return; }
+        if (z.scale > 1.5 && content.src.indexOf("/thumb/") >= 0) { content.src = content.dataset.full; clearInterval(timer); }
+      };
       ["wheel", "pointerup", "keyup", "click", "gesturechange", "dblclick"].forEach((ev) => box.addEventListener(ev, check, { passive: true }));
+      timer = setInterval(check, 400); // red de seguridad (gestos del sistema, botones)
     }
     return z;
   }

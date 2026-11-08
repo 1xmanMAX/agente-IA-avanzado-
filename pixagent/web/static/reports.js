@@ -1082,11 +1082,12 @@
       doc.innerHTML = '<div class="pdfpages"><div class="loading"><span class="spinner spinner-lg"></span></div></div>';
       const rid = state.rid;
       api("/api/pdfinfo/" + enc(pdf)).then((j) => {
-        if (state.rid !== rid) return;
+        if (state.rid !== rid || !doc.isConnected) return; // la vista previa se repintó mientras tanto
         const n = Math.min(j.pages || 0, 120), w = Math.min(900, doc.clientWidth || 600);
         if (!n) { doc.innerHTML = `<iframe src="${url}" title="PDF"></iframe>`; return; }
         doc.innerHTML = '<div class="zoombox" id="pvZoom"><div class="pdfpages">' + Array.from({ length: n }, (_, i) => `<img loading="lazy" decoding="async" src="${thumbUrl(pdf, w, i)}&t=${Math.round(p.outputs.built || 0)}" alt="Página ${i + 1}">`).join("") + "</div></div>";
-        if (window.PixZoom) state.zoom = PixZoom.attach($("#pvZoom"), $("#pvZoom .pdfpages"), { wheel: "scroll" });
+        const zb = doc.querySelector(".zoombox");
+        if (window.PixZoom && zb) state.zoom = PixZoom.attach(zb, zb.firstElementChild, { wheel: "scroll" });
       });
     } else doc.innerHTML = `<iframe src="${url}" title="PDF"></iframe>`;
   }
