@@ -1,0 +1,9 @@
+{
+  "name": "OCR rápido",
+  "description": "Lee el texto de varias imágenes o capturas con la IA local, una tras otra; corrige, copia, descarga o envíalo al agente",
+  "icon": "🔤",
+  "category": "IA local",
+  "entry": "index.html",
+  "kind": "web",
+  "uses_ai": false
+}

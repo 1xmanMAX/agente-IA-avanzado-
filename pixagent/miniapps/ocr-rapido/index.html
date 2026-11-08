@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#5b5bf7">
+<title>OCR rápido</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-text" viewBox="0 0 24 24"><path d="M5 6h14M5 12h14M5 18h9"/></symbol>
+    <symbol id="i-scan" viewBox="0 0 24 24"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M8 12h8"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4m0 0 4 4m-4-4L8 8"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a1 1 0 0 1 1-1Z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+    <symbol id="i-paste" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="16" rx="2"/><path d="M9 5V3h6v2M9 12h6M9 16h4"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4 2.5 20h19L12 4Z"/><path d="M12 10v4m0 3v.5"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8v.5"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/></symbol>
+    <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="m4 12 16-8-5 16-3-6z"/><path d="m12 14 8-10"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.5-5.8"/><path d="M4 4v5h5"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+    <symbol id="i-brain" viewBox="0 0 24 24"><path d="M9.5 4.5A2.5 2.5 0 0 0 7 7v.3A3 3 0 0 0 5 10v.5A3 3 0 0 0 4.5 16 3 3 0 0 0 8 19.5h1.5V4.5Z"/><path d="M14.5 4.5A2.5 2.5 0 0 1 17 7v.3a3 3 0 0 1 2 2.7v.5a3 3 0 0 1 .5 5.5A3 3 0 0 1 16 19.5h-1.5V4.5Z"/></symbol>
+    <symbol id="i-zoom" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.4-4.4M11 8.5v5M8.5 11h5"/></symbol>
+    <symbol id="i-doc" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7"/></symbol>
+  </defs>
+</svg>
+
+<div id="app">
+  <header class="topbar">
+    <div class="brand">
+      <span class="mark"><svg class="i"><use href="#i-scan"/></svg></span>
+      <div style="min-width:0">
+        <h1>OCR rápido</h1>
+        <small>Lee el texto de imágenes y capturas con la IA local</small>
+      </div>
+    </div>
+    <div class="actions">
+      <span class="pill" id="statusPill"><i class="dot"></i><span>Comprobando…</span></span>
+    </div>
+  </header>
+
+  <main class="page" id="page">
+    <div class="col">
+      <div id="notices" class="stack" style="gap:8px"></div>
+
+      <div class="drop" id="drop">
+        <svg class="i" style="width:26px;height:26px"><use href="#i-upload"/></svg>
+        <p><b>Suelta aquí imágenes o capturas</b>, pégalas con <kbd>Ctrl</kbd>+<kbd>V</kbd> o elígelas del dispositivo. Se leen una tras otra.</p>
+        <div class="btns">
+          <button class="btn soft" id="btnPick" type="button"><svg class="i"><use href="#i-upload"/></svg> Elegir imágenes</button>
+          <button class="btn" id="btnShoot" type="button"><svg class="i"><use href="#i-camera"/></svg> Fotografiar</button>
+        </div>
+        <input type="file" id="filePick" accept="image/*" multiple class="sr" tabindex="-1">
+        <input type="file" id="fileShoot" accept="image/*" capture="environment" class="sr" tabindex="-1">
+      </div>
+
+      <div class="toolbar" id="toolbar" hidden>
+        <div class="tb-left">
+          <span class="pill" id="queuePill"><i class="dot"></i><span id="queueText"></span></span>
+          <div class="progress qp" id="queueProgress"><i></i></div>
+        </div>
+        <div class="tb-right">
+          <button class="btn sm" id="btnCopyAll" type="button"><svg class="i sm"><use href="#i-copy"/></svg> Copiar todo</button>
+          <button class="btn sm" id="btnTxt" type="button"><svg class="i sm"><use href="#i-download"/></svg> .txt</button>
+          <button class="btn sm" id="btnMd" type="button"><svg class="i sm"><use href="#i-download"/></svg> .md</button>
+          <button class="btn sm" id="btnSave" type="button"><svg class="i sm"><use href="#i-save"/></svg> Guardar</button>
+          <button class="btn sm primary" id="btnAgent" type="button"><svg class="i sm"><use href="#i-send"/></svg> Enviar al agente</button>
+          <button class="btn sm ghost danger" id="btnClear" type="button" title="Quitar todas"><svg class="i sm"><use href="#i-trash"/></svg> <span class="hide-m">Limpiar</span></button>
+        </div>
+      </div>
+
+      <ol class="queue" id="queue"></ol>
+
+      <details class="adv" id="advBox">
+        <summary><span class="adv-head"><b>Opciones</b><span class="sum" id="advSum">Modelo automático</span></span><svg class="i sm chev"><use href="#i-chevron"/></svg></summary>
+        <div class="adv-body stack">
+          <div class="row">
+            <div class="field"><label for="modelSel">Modelo de OCR</label><select class="sel" id="modelSel"><option value="">Automático</option></select></div>
+            <div class="field"><label for="fmtSel">Formato del resultado</label>
+              <select class="sel" id="fmtSel"><option value="md">Tablas en Markdown (recomendado)</option><option value="plain">Solo texto plano</option></select></div>
+          </div>
+          <p class="hint">El texto se lee en el equipo anfitrión con el modelo local; las imágenes no salen de tu red. Las imágenes se suben al espacio de trabajo de PixAgent (uploads/).</p>
+        </div>
+      </details>
+    </div>
+  </main>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div class="lightbox" id="lightbox" hidden>
+  <div class="lb-box" id="lbBox"><img id="lbImg" alt=""></div>
+  <div class="lb-bar">
+    <span id="lbCap"></span>
+    <button class="btn light" id="lbClose" type="button" aria-label="Cerrar"><svg class="i"><use href="#i-x"/></svg></button>
+  </div>
+</div>
+
+<script src="/static/pixagent-sdk.js"></script>
+<script src="/static/zoom.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

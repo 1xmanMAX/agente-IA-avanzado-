@@ -304,11 +304,11 @@ kbd { font: 12px var(--mono); background: var(--surface-2); border: 1px solid va
 .catalog td.id { font-family: var(--mono); white-space: nowrap; }
 .catalog td.n { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .catalog td .btn { min-height: 28px; padding: 2px 8px; font-size: 12px; }
-.deps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.deps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr; gap: 6px; }
 .deps li { display: flex; align-items: center; gap: 8px; font-size: 12.5px; padding: 6px 8px; border-radius: 8px; background: var(--surface-2); }
 .deps li .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-3); flex: none; }
 .deps li.on .dot { background: var(--ok); }
-.deps li code { color: var(--text-3); margin-left: auto; font-size: 11.5px; }
+.deps li code { color: var(--text-3); margin-left: auto; font-size: 11.5px; white-space: nowrap; }
 
 @media (max-width: 900px) {
   .page { padding: 12px max(12px, var(--safe-r)) calc(32px + var(--safe-b)) max(12px, var(--safe-l)); }
@@ -317,7 +317,6 @@ kbd { font: 12px var(--mono); background: var(--surface-2); border: 1px solid va
   .try { grid-template-columns: 1fr; }
   .try-acts, .results { grid-column: 1; grid-row: auto; }
   .custom-add { grid-template-columns: 1fr 1fr; }
-  .deps { grid-template-columns: 1fr; }
   .engine .st { display: none; }
   .platforms { width: 100%; }
   .topbar .pill { max-width: 150px; }

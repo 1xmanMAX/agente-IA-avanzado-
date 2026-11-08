@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#5b5bf7">
+<title>Analizador de vídeo</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-film" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4m0 0 4 4m-4-4L8 8"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a1 1 0 0 1 1-1Z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+    <symbol id="i-screen" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 5v14l11-7z"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4 2.5 20h19L12 4Z"/><path d="M12 10v4m0 3v.5"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8v.5"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/></symbol>
+    <symbol id="i-open" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9"/><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></symbol>
+    <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="m4 12 16-8-5 16-3-6z"/><path d="m12 14 8-10"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+    <symbol id="i-doc" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7"/></symbol>
+    <symbol id="i-brain" viewBox="0 0 24 24"><path d="M9.5 4.5A2.5 2.5 0 0 0 7 7v.3A3 3 0 0 0 5 10v.5A3 3 0 0 0 4.5 16 3 3 0 0 0 8 19.5h1.5V4.5Z"/><path d="M14.5 4.5A2.5 2.5 0 0 1 17 7v.3a3 3 0 0 1 2 2.7v.5a3 3 0 0 1 .5 5.5A3 3 0 0 1 16 19.5h-1.5V4.5Z"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h10m4 0h2M4 17h4m4 0h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></symbol>
+    <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.5-5.8"/><path d="M4 4v5h5"/></symbol>
+  </defs>
+</svg>
+
+<div id="app" data-tab="source" data-src="file">
+  <header class="topbar">
+    <div class="brand">
+      <span class="mark"><svg class="i"><use href="#i-film"/></svg></span>
+      <div style="min-width:0">
+        <h1>Analizador de vídeo</h1>
+        <small>Describe un vídeo fotograma a fotograma con la IA local</small>
+      </div>
+    </div>
+    <div class="actions">
+      <span class="pill" id="statusPill"><i class="dot"></i><span>Comprobando…</span></span>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Secciones">
+    <button role="tab" data-tab="source" aria-selected="true" type="button">Fuente y opciones</button>
+    <button role="tab" data-tab="results" aria-selected="false" type="button">Resultados <span class="badge" id="tabBadge" hidden></span></button>
+  </nav>
+
+  <div class="main">
+    <aside class="work">
+      <div class="scroll">
+        <div id="notices" class="stack" style="gap:8px"></div>
+
+        <section class="block">
+          <h2>Fuente</h2>
+          <div class="subtabs" id="srcTabs" role="tablist" aria-label="Fuente del vídeo">
+            <button type="button" data-src="file" role="tab" aria-selected="true"><svg class="i sm"><use href="#i-upload"/></svg> Archivo</button>
+            <button type="button" data-src="url" role="tab" aria-selected="false"><svg class="i sm"><use href="#i-link"/></svg> Enlace</button>
+            <button type="button" data-src="live" role="tab" aria-selected="false"><svg class="i sm"><use href="#i-camera"/></svg> En directo</button>
+          </div>
+
+          <!-- Archivo -->
+          <div class="src" id="srcFile">
+            <div class="drop" id="drop">
+              <svg class="i" style="width:26px;height:26px"><use href="#i-film"/></svg>
+              <p><b>Suelta aquí un vídeo</b> o elígelo del dispositivo (MP4, MOV, WebM…)</p>
+              <div class="btns"><button class="btn soft" id="btnPick" type="button"><svg class="i"><use href="#i-upload"/></svg> Elegir vídeo</button></div>
+              <div class="progress" id="upProgress" hidden><i></i></div>
+              <p class="hint" id="upText" hidden></p>
+              <input type="file" id="filePick" accept="video/*" class="sr" tabindex="-1">
+            </div>
+            <div class="filecard" id="fileCard" hidden>
+              <svg class="i" style="color:var(--accent-text)"><use href="#i-film"/></svg>
+              <div class="fc-body"><b id="fcName"></b><span id="fcMeta"></span></div>
+              <button class="btn sm ghost" id="btnChangeFile" type="button">Cambiar</button>
+            </div>
+          </div>
+
+          <!-- Enlace -->
+          <div class="src" id="srcUrl" hidden>
+            <div class="field">
+              <label for="urlInp">Dirección del vídeo</label>
+              <input class="inp" id="urlInp" inputmode="url" placeholder="https://…" autocomplete="off">
+            </div>
+            <p class="hint tight"><svg class="i sm" style="vertical-align:-3px"><use href="#i-info"/></svg> Solo contenido propio o con permiso; respeta los términos del sitio.</p>
+            <div class="notice warn" id="ytWarn" hidden><svg class="i"><use href="#i-alert"/></svg><div class="body"><b>Falta yt-dlp en el equipo anfitrión</b><span>Para analizar vídeos por enlace instala <code>pip install yt-dlp</code> y reinicia PixAgent. Mientras tanto, descarga el vídeo y súbelo como archivo.</span></div></div>
+          </div>
+
+          <!-- En directo -->
+          <div class="src" id="srcLive" hidden>
+            <div class="live-pick" id="livePick">
+              <button class="btn" id="btnCam" type="button"><svg class="i"><use href="#i-camera"/></svg> Cámara</button>
+              <button class="btn" id="btnScreen" type="button"><svg class="i"><use href="#i-screen"/></svg> Pantalla</button>
+            </div>
+            <div class="live-box" id="liveBox" hidden>
+              <video id="liveVideo" muted playsinline autoplay></video>
+              <span class="live-tag" id="liveTag"><i></i> En directo</span>
+            </div>
+            <div class="live-last" id="liveLast" hidden><span class="t num" id="liveLastT"></span><span id="liveLastTx"></span></div>
+            <p class="hint" id="liveHint">Cada pocos segundos se envía un fotograma al modelo local y aparece su descripción. Si la imagen no cambia, no se envía nada.</p>
+            <div class="row" id="liveOpts" hidden>
+              <div class="field"><label for="liveEvery">Enviar un fotograma</label>
+                <select class="sel" id="liveEvery"><option value="2">cada 2 s</option><option value="5" selected>cada 5 s</option><option value="10">cada 10 s</option></select></div>
+              <div class="field"><label for="livePrompt">Qué mirar (opcional)</label><input class="inp" id="livePrompt" placeholder="¿Qué hace la máquina?" autocomplete="off"></div>
+            </div>
+            <div class="live-acts" id="liveActs" hidden>
+              <button class="btn primary" id="btnLiveToggle" type="button"><svg class="i"><use href="#i-pause"/></svg> Pausar</button>
+              <button class="btn ghost" id="btnLiveStop" type="button"><svg class="i"><use href="#i-stop"/></svg> Terminar</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="block" id="optsBlock">
+          <h2>Opciones</h2>
+          <div class="stack">
+            <div class="field">
+              <span class="lbl">Fotogramas</span>
+              <div class="seg" id="segEvery">
+                <button type="button" data-v="2" aria-pressed="false">Cada 2 s</button>
+                <button type="button" data-v="5" aria-pressed="true">Cada 5 s</button>
+                <button type="button" data-v="10" aria-pressed="false">Cada 10 s</button>
+                <button type="button" data-v="scene" aria-pressed="false">Cambios de escena</button>
+              </div>
+            </div>
+            <label class="switch" for="transcribe"><span><b style="font-weight:500">Transcribir el audio</b><small class="hint" id="asrHint" style="display:block;margin:0"></small></span><input type="checkbox" id="transcribe"><span class="track"></span></label>
+            <details class="adv" id="advBox">
+              <summary><span class="adv-head"><b>Avanzado</b><span class="sum" id="advSum">Máx. 120 fotogramas · prompt estándar · modelo automático</span></span><svg class="i sm chev"><use href="#i-chevron"/></svg></summary>
+              <div class="adv-body stack">
+                <div class="row">
+                  <div class="field"><label for="maxFrames">Máx. fotogramas</label><input class="inp" id="maxFrames" type="number" min="1" max="2000" step="1" value="120" inputmode="numeric"></div>
+                  <div class="field"><label for="modelSel">Modelo de visión</label><select class="sel" id="modelSel"><option value="">Automático</option></select></div>
+                </div>
+                <div class="field"><label for="promptInp">Prompt propio por fotograma</label><textarea class="inp" id="promptInp" rows="2" placeholder="Por defecto: describe solo lo que se ve, en una o dos frases."></textarea></div>
+                <label class="switch" for="summary"><span>Resumen final con el modelo de texto</span><input type="checkbox" id="summary" checked><span class="track"></span></label>
+              </div>
+            </details>
+          </div>
+        </section>
+
+        <section class="block" id="goBlock">
+          <button class="btn primary block lg" id="btnStart" type="button"><svg class="i"><use href="#i-play"/></svg> Analizar vídeo</button>
+          <p class="hint" id="goHint" style="text-align:center"></p>
+        </section>
+      </div>
+    </aside>
+
+    <main class="canvas" id="canvas">
+      <div class="empty-big" id="emptyState">
+        <div class="mark"><svg class="i" style="width:26px;height:26px"><use href="#i-film"/></svg></div>
+        <h3>Los resultados aparecen aquí</h3>
+        <p>Una línea de tiempo con cada fotograma y su descripción, a medida que el modelo los procesa. Al final, el resumen y la transcripción.</p>
+      </div>
+
+      <div class="run" id="run" hidden>
+        <header class="run-head">
+          <div class="rh-top">
+            <div class="rh-title"><b id="runTitle">Análisis</b><span id="runSource" class="muted"></span></div>
+            <span class="pill busy" id="runPill"><i class="dot"></i><span id="runStage">Preparando…</span></span>
+            <button class="btn sm ghost danger" id="btnCancel" type="button"><svg class="i sm"><use href="#i-x"/></svg> Cancelar</button>
+          </div>
+          <div class="progress" id="runProgress"><i></i></div>
+          <div class="rh-meta"><span id="runCount" class="num"></span><span id="runElapsed" class="num"></span></div>
+        </header>
+
+        <div class="notice err" id="runError" hidden><svg class="i"><use href="#i-alert"/></svg><div class="body"><b>No se pudo completar el análisis</b><span id="runErrorText"></span></div></div>
+
+        <section class="card" id="summaryCard" hidden>
+          <div class="card-head"><svg class="i" style="color:var(--accent-text)"><use href="#i-doc"/></svg><h3>Resumen</h3></div>
+          <div class="card-body"><div class="summary" id="summaryText"></div></div>
+        </section>
+
+        <ol class="timeline" id="timeline" aria-live="polite"></ol>
+
+        <details class="adv" id="transcriptBox" hidden>
+          <summary><span class="adv-head"><b>Transcripción</b><span class="sum" id="transcriptSum"></span></span><svg class="i sm chev"><use href="#i-chevron"/></svg></summary>
+          <div class="adv-body"><ol class="transcript" id="transcript"></ol></div>
+        </details>
+
+        <footer class="export" id="exportBar" hidden>
+          <a class="btn sm" id="btnOpenMd" target="_blank" rel="noopener" hidden><svg class="i sm"><use href="#i-open"/></svg> Abrir informe (.md)</a>
+          <button class="btn sm" id="btnCopy" type="button"><svg class="i sm"><use href="#i-copy"/></svg> Copiar texto</button>
+          <button class="btn sm" id="btnDownload" type="button"><svg class="i sm"><use href="#i-download"/></svg> Descargar .md</button>
+          <button class="btn sm" id="btnSave" type="button"><svg class="i sm"><use href="#i-save"/></svg> Guardar en PixAgent</button>
+          <button class="btn sm primary" id="btnAgent" type="button"><svg class="i sm"><use href="#i-send"/></svg> Enviar al agente</button>
+        </footer>
+      </div>
+    </main>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div class="lightbox" id="lightbox" hidden>
+  <div class="lb-box" id="lbBox"><img id="lbImg" alt=""></div>
+  <div class="lb-bar">
+    <span id="lbCap"></span>
+    <button class="btn light" id="lbPrev" type="button" aria-label="Anterior"><svg class="i" style="transform:rotate(90deg)"><use href="#i-chevron"/></svg></button>
+    <button class="btn light" id="lbNext" type="button" aria-label="Siguiente"><svg class="i" style="transform:rotate(-90deg)"><use href="#i-chevron"/></svg></button>
+    <button class="btn light" id="lbClose" type="button" aria-label="Cerrar"><svg class="i"><use href="#i-x"/></svg></button>
+  </div>
+</div>
+
+<script src="/static/pixagent-sdk.js"></script>
+<script src="/static/zoom.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -66,6 +66,7 @@ class LocalAI:
                          "version": e.version, "models": len(e._models)} for e in engines],
             "installed": installed,
             "assigned": {task: self.pick(task, quiet=True) for task in ("vision", "ocr", "text")},
+            "preferred": dict(getattr(self.s, "local_models", {}) or {}),
             "catalog": catalog.CATALOG,
             "profiles": catalog.PROFILES,
             "asr": asr_available(),

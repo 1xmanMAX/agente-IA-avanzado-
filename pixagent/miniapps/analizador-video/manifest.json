@@ -1,0 +1,9 @@
+{
+  "name": "Analizador de vídeo",
+  "description": "Describe un vídeo fotograma a fotograma con la IA local: archivo, enlace o cámara/pantalla en directo, con resumen y transcripción",
+  "icon": "🎬",
+  "category": "IA local",
+  "entry": "index.html",
+  "kind": "web",
+  "uses_ai": false
+}
