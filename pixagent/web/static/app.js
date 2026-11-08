@@ -13,6 +13,7 @@
     tab: "view", view: "agent", pane: "chat", apps: null, app: null, lastDeliverable: null, pixpin: false, undone: false, appsQuery: "",
     saveData: (navigator.connection && navigator.connection.saveData) || localGet("saveData") === "1",
     question: null, apiKey: null, replay: null,
+    mode: "normal", commands: null, subs: {}, subText: "",
   };
 
   // Único arranque guiado que queda: «Pedir una mini app» desde la galería vacía
@@ -33,7 +34,7 @@
     html_to_pdf: "HTML a PDF", image_tools: "Imagen", view_image: "Ver imagen", todo_write: "Plan", run_python: "Python",
     run_shell: "Terminal", read_file: "Leer archivo", write_file: "Escribir archivo", edit_file: "Editar archivo",
     list_files: "Listar archivos", search_files: "Buscar", pdf_tools: "PDF", photo_panel: "Panel fotográfico",
-    pixpin: "PixPin", preview_page: "Vista previa",
+    pixpin: "PixPin", preview_page: "Vista previa", delegate: "Subagente", load_skill: "Habilidad", remember: "Recordar", local_ai: "IA local",
   };
 
   // ---------------------------------------------------------------- utilidades
@@ -159,19 +160,25 @@
       case "session":
         if (!state.session && ev.client === clientId) { state.session = ev.session; rememberSession(); loadSessions(); }
         break;
+      case "user": { // número de turno del mensaje (para «Volver a este punto»); otros dispositivos lo pintan aquí
+        const mine = $$("#messages .msg.user").reverse().find((m) => !m.dataset.turn);
+        if (mine) { mine.dataset.turn = ev.turn; if (mine._text == null) mine._text = ev.text || ""; }
+        else addUser(ev.text, ev.attachments, ev.turn);
+        break;
+      }
       case "question": addQuestion(ev, true); break;
       case "answer": resolveQuestion(ev.id, ev.text === "(sin respuesta)" ? null : ev.text); break;
       case "question_resolved": resolveQuestion(ev.id, null); setStatus("Pensando…"); break;
-      case "turn_start": setStatus("Pensando…"); endStream(); break;
+      case "turn_start": clearSubs(); setStatus("Pensando…"); endStream(); break;
       case "text_delta":
         if (!state.streamEl) { state.streamEl = addMsg("assistant", ""); state.streamEl.classList.add("streaming"); }
         state.streamText += ev.text; scheduleRender(); break;
       case "thinking_delta": setStatus("Razonando: " + ev.text.slice(-160).replace(/\s+/g, " ")); break;
       case "assistant": renderStream(); endStream(); break;
-      case "status": setStatus(ev.text); break;
+      case "status": if (/^Subagente «/.test(ev.text || "")) subStatus(ev.text); else setStatus(ev.text); break;
       case "tool_preparing": setStatus("Preparando " + toolLabel(ev.name) + "…"); break;
-      case "tool_start": addTool(ev); setStatus("Ejecutando " + toolLabel(ev.name) + "…"); break;
-      case "tool_end": finishTool(ev, true); break;
+      case "tool_start": addTool(ev); if (ev.name === "delegate") subStart(ev); setStatus("Ejecutando " + toolLabel(ev.name) + "…"); break;
+      case "tool_end": finishTool(ev, true); if (ev.name === "delegate") subEnd(ev); break;
       case "todos": renderTodos(ev.todos); break;
       case "error": addError(ev.text); break;
       case "done":
@@ -321,8 +328,10 @@
     const keyErr = /clave de API/i.test(text || "");
     addMsg("error", ico("alert") + `<div class="grow">${esc(text)}</div>` + (keyErr ? `<button type="button" class="btn btn-sm err-action" data-addkey>${ico("key")}Añadir clave</button>` : ""));
   }
-  function addUser(text, atts) {
-    const d = addMsg("user", `<div class="bubble">${md(text || "")}</div>`);
+  function addUser(text, atts, turn) {
+    const d = addMsg("user", `<button type="button" class="msg-act" data-rewind title="Volver a este punto" aria-label="Volver a este punto">${ico("undo")}</button><div class="bubble">${md(text || "")}</div>`);
+    d._text = text || ""; d._atts = (atts || []).slice();
+    if (turn != null) d.dataset.turn = turn;
     if (atts && atts.length) {
       const a = document.createElement("div"); a.className = "atts";
       a.innerHTML = atts.map((f) => kindOf(f) === "image" ? imgTag(f, 72) : fileChip(f, baseName(f))).join("");
@@ -335,7 +344,7 @@
     clearWelcome();
     const d = document.createElement("details"); d.className = "tool";
     const i = ev.input || {};
-    const hint = i.output || i.path || i.target || i.name || i.command || i.action || "";
+    const hint = i.output || i.path || i.target || i.name || i.command || i.action || (ev.name === "delegate" ? subLabel(i.task) : "") || "";
     d.innerHTML = `<summary><span class="tool-state"><span class="spinner"></span></span><span class="tool-name" title="${esc(ev.name)}">${esc(toolLabel(ev.name))}</span><span class="tool-hint">${esc(hint)}</span><span class="tool-meta">en curso</span></summary><div class="tool-body"></div>`;
     d._input = ev.input;
     d.addEventListener("toggle", () => { // contenido pesado solo al abrir
@@ -384,7 +393,26 @@
     }).join("");
   }
   function setStatus(text) { if (state.question && text !== "Esperando tu respuesta") return; $("#statusText").textContent = text; }
-  function setRunning(on) { state.running = on; $("#statusLine").classList.toggle("hidden", !on); $("#sendBtn").disabled = on && !state.question; updateUndo(); }
+  // Subagentes (delegate): varios en paralelo no hacen parpadear la línea de estado. Se muestra el último
+  // aviso (como mucho cada 450 ms) y, si hay más de uno trabajando, el recuento.
+  const subLabel = (task) => String(task || "").trim().split("\n")[0].slice(0, 60);
+  let subTimer = 0;
+  function subStart(ev) { state.subs[ev.id] = subLabel(ev.input && ev.input.task) || "subtarea"; }
+  function subEnd(ev) { delete state.subs[ev.id]; if (!Object.keys(state.subs).length) { clearTimeout(subTimer); subTimer = 0; state.subText = ""; } }
+  function clearSubs() { state.subs = {}; state.subText = ""; clearTimeout(subTimer); subTimer = 0; }
+  function subStatus(text) {
+    state.subText = text;
+    if (subTimer) return; // ya hay un repintado programado: se mostrará el último texto recibido
+    const paint = () => {
+      subTimer = 0;
+      if (!state.subText) return;
+      const n = Object.keys(state.subs).length;
+      setStatus((n > 1 ? n + " subagentes trabajando · " : "") + state.subText);
+    };
+    paint();
+    subTimer = setTimeout(paint, 450);
+  }
+  function setRunning(on) { state.running = on; $("#statusLine").classList.toggle("hidden", !on); $("#sendBtn").disabled = on && !state.question; $("#runPlanBtn").disabled = on; updateUndo(); }
   // «Deshacer cambios» bajo el último mensaje del asistente, solo con la sesión en reposo
   function updateUndo() {
     $$("#messages .undo-row").forEach((r) => r.remove());
@@ -654,7 +682,7 @@
     const answered = {};
     d.transcript.forEach((ev) => { if (ev.type === "answer") answered[ev.id] = ev.text || ""; });
     d.transcript.forEach((ev) => {
-      if (ev.type === "user") addUser(ev.text, ev.attachments);
+      if (ev.type === "user") addUser(ev.text, ev.attachments, ev.turn);
       else if (ev.type === "assistant") addMsg("assistant", md(ev.text));
       else if (ev.type === "tool_end") { if (ev.name === "ask_user") return; addTool({ id: ev.id, name: ev.name, input: {} }); finishTool(ev, false); }
       else if (ev.type === "error") addError(ev.text);
@@ -669,7 +697,7 @@
     // si lo último que pasó fue un deshacer, no ofrecerlo otra vez hasta el próximo turno
     const lastEv = d.transcript[d.transcript.length - 1];
     state.undone = !!(lastEv && lastEv.type === "status" && /^Cambios deshechos/.test(lastEv.text || ""));
-    renderTodos(d.todos); setRunning(!!d.running); if (state.question) setWaiting(true); loadSessions();
+    renderTodos(d.todos); setMode(d.mode); setRunning(!!d.running); if (state.question) setWaiting(true); loadSessions();
     if (state.lastDeliverable) openFile(state.lastDeliverable, true); // último resultado en el visor
     if (isMobile()) setPane("chat"); else setView("agent");
     $("#messages").scrollTop = $("#messages").scrollHeight;
@@ -677,8 +705,14 @@
   }
   function newSession() {
     state.session = null; state.lastDeliverable = null; state.undone = false; state.question = null; endStream(); setWaiting(false); rememberSession();
-    showWelcome(); renderTodos([]); setRunning(false); loadSessions();
+    showWelcome(); renderTodos([]); setMode("normal"); clearSubs(); setRunning(false); loadSessions();
     if (isMobile()) setPane("chat"); else setView("agent");
+  }
+  // Modo plan (/plan ↔ /ejecutar): chip discreto sobre el compositor; el servidor es la fuente de verdad al abrir la sesión
+  function setMode(m) {
+    state.mode = m === "plan" ? "plan" : "normal";
+    $("#modeChip").classList.toggle("hidden", state.mode !== "plan");
+    $("#runPlanBtn").disabled = state.running;
   }
 
   // ---------------------------------------------------------------- capas y botón «atrás» (Android, gesto atrás, Alt+←)
@@ -764,6 +798,50 @@
     });
   }
 
+  // ---------------------------------------------------------------- volver a un punto (rebobinar: patrón «editar mensaje» de Cline)
+  function askRewind(el) {
+    const turn = +el.dataset.turn;
+    if (!state.session || !turn) return;
+    if (state.running) { toast("Espera a que el agente termine", 2200, "warn"); return; }
+    const m = $("#rewind");
+    $("#rewindQuote").textContent = el._text || "(sin texto)";
+    const both = $("#rewindBoth"), chat = $("#rewindChat");
+    both.disabled = chat.disabled = false; both.classList.remove("busy"); chat.classList.remove("busy");
+    let busy = false;
+    const go = async (files, btn) => {
+      if (busy) return; busy = true;
+      both.disabled = chat.disabled = true; btn.classList.add("busy");
+      el.classList.add("rewinding");
+      let j;
+      try {
+        const r = await fetch("/api/sessions/" + state.session + "/rewind", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ turn: turn, files: files }) });
+        j = await r.json();
+      } catch (e) { j = { ok: false, error: "Sin conexión con el servidor" }; }
+      if (!j.ok) {
+        busy = false; both.disabled = chat.disabled = false; btn.classList.remove("busy"); el.classList.remove("rewinding");
+        toast(j.error || "No se pudo volver a ese punto", 4500, "err"); return;
+      }
+      closeModal(m);
+      const text = el._text || "", atts = el._atts || [];
+      await openSession(state.session);
+      state.undone = true; updateUndo(); // los archivos ya están como antes: no ofrecer «deshacer» del turno anterior
+      if (!$("#messages .msg")) showWelcome();
+      composeFrom(text, atts);
+      const list = j.restored || [];
+      toast(files ? (list.length ? "Conversación y " + (list.length === 1 ? "1 archivo restaurados" : list.length + " archivos restaurados") : "Conversación restaurada; no había archivos que cambiar")
+        : "Conversación restaurada; los archivos se mantienen", 3600, "ok");
+      refreshLibrary();
+      if (state.current && list.some((s) => s.indexOf("borrado ") === 0 && s.slice(8) === state.current)) {
+        state.current = null; $("#viewerActions").classList.add("hidden");
+        $("#viewerBody").innerHTML = `<div class="empty"><span class="empty-icon">${ico("undo")}</span><div class="empty-title">Archivo deshecho</div><div class="empty-text">Se creó después del punto al que has vuelto y se ha eliminado.</div></div>`;
+      } else if (state.current) openFile(state.current, true);
+    };
+    both.onclick = () => go(true, both); chat.onclick = () => go(false, chat);
+    $("#rewindNo").onclick = () => closeModal(m);
+    m.onclick = (e) => { if (e.target === m && !busy) closeModal(m); };
+    openModal(m);
+  }
+
   // ---------------------------------------------------------------- menú contextual (clic derecho · pulsación larga)
   function showMenu(items, x, y) {
     hideMenu();
@@ -817,8 +895,14 @@
         } } },
     ];
   }
+  function userMsgMenuItems(el) {
+    const items = [{ label: "Volver a este punto", icon: "undo", onClick: () => askRewind(el) }];
+    if (navigator.clipboard && navigator.clipboard.writeText) items.push({ label: "Copiar texto", icon: "file", onClick: () => { navigator.clipboard.writeText(el._text || "").then(() => toast("Texto copiado", 1800, "ok"), () => toast("No se pudo copiar", 2500, "err")); } });
+    return items;
+  }
   function contextFor(target) {
     const li = target.closest("#sessions li[data-sid]"); if (li) return sessionMenuItems(li);
+    const um = target.closest("#messages .msg.user[data-turn]"); if (um && !target.closest("[data-open]")) return userMsgMenuItems(um);
     const f = target.closest("[data-open]"); if (f && !target.closest("#viewerBody")) return fileMenuItems(f.dataset.open);
     if (target.closest("#viewerBody") && state.current) return fileMenuItems(state.current);
     return null;
@@ -854,7 +938,7 @@
   const inField = (el) => el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable);
   state.enterSend = localGet("enterSend") == null ? !isTouch : localGet("enterSend") === "1";
   const SHORTCUTS = [
-    ["Mensajes", [[MOD + " K", "Buscar o cambiar de sesión"], [MOD + " N", "Nueva sesión"], ["Intro", "Enviar (si está activado en «Más ajustes»)"], [MOD + " Intro", "Enviar siempre"], ["Mayús Intro", "Salto de línea"], [MOD + " U", "Adjuntar archivos"], ["/", "Escribir en el mensaje"], ["Esc", "Cerrar menú o ventana · detener el agente"]]],
+    ["Mensajes", [[MOD + " K", "Buscar o cambiar de sesión"], [MOD + " N", "Nueva sesión"], ["Intro", "Enviar (si está activado en «Más ajustes»)"], [MOD + " Intro", "Enviar siempre"], ["Mayús Intro", "Salto de línea"], [MOD + " U", "Adjuntar archivos"], ["/", "Escribir en el mensaje · comandos y recetas"], ["Esc", "Cerrar menú o ventana · detener el agente"]]],
     ["Navegación", [["Alt 1", "Agente"], ["Alt 2", "Mini apps"], ["Alt 3", "Resultado / Biblioteca"], ["Alt 4", "Informes"], ["?", "Esta ayuda"]]],
     ["Visor", [["Rueda · pellizco", "Zoom hacia el cursor"], ["Arrastrar", "Mover la imagen"], ["Doble clic", "Ajustar ↔ ampliar"], ["+ − 0 1", "Acercar · alejar · ajustar · tamaño real"], ["Flechas", "Desplazar"]]],
   ];
@@ -972,6 +1056,8 @@
   const clientId = Math.random().toString(36).slice(2);
   $("#composer").addEventListener("submit", (e) => {
     e.preventDefault();
+    if (slashOpen() && !slashExact()) { pickSlash(); return; } // con la lista abierta, Intro elige; si ya está escrito el nombre exacto, envía
+    closeSlash();
     const text = $("#input").value.trim();
     if (state.question) { // lo que se escribe mientras el agente pregunta es la respuesta
       if (!text) { if (state.question.multi) sendSelection(); return; }
@@ -979,18 +1065,97 @@
       return;
     }
     if (!text && !state.pending.length) return;
-    if (state.running) { toast("El agente está trabajando…", 2200, "warn"); return; }
-    if (!send({ type: "chat", session: state.session, text: text, attachments: state.pending, client: clientId })) { toast("Sin conexión; reintentando…", 3000, "warn"); connect(); return; }
-    try { sessionStorage.setItem("pix:turnseq", String(state.lastSeq)); } catch (e) { /* modo privado */ }
-    addUser(text, state.pending);
-    state.pending = []; renderPending(); $("#input").value = ""; fitInput(); setRunning(true); setStatus("Enviando…");
-    if (isTouch) $("#input").blur(); // cerrar el teclado para ver la respuesta
+    sendChat(text, state.pending);
   });
+  // Envía un mensaje (o comando con barra) como turno nuevo. Los comandos /plan y /ejecutar cambian el modo
+  // de forma optimista; al reabrir la sesión manda lo que diga el servidor.
+  function sendChat(text, atts) {
+    if (state.running) { toast("El agente está trabajando…", 2200, "warn"); return false; }
+    if (!send({ type: "chat", session: state.session, text: text, attachments: atts || [], client: clientId })) { toast("Sin conexión; reintentando…", 3000, "warn"); connect(); return false; }
+    try { sessionStorage.setItem("pix:turnseq", String(state.lastSeq)); } catch (e) { /* modo privado */ }
+    addUser(text, atts || []);
+    if (/^\/plan(\s|$)/i.test(text)) setMode("plan");
+    else if (/^\/(ejecutar|act|actuar)(\s|$)/i.test(text)) setMode("normal");
+    state.pending = []; renderPending(); $("#input").value = ""; fitInput(); closeSlash(); setRunning(true); setStatus("Enviando…");
+    if (isTouch) $("#input").blur(); // cerrar el teclado para ver la respuesta
+    return true;
+  }
+  $("#runPlanBtn").onclick = () => { if (!state.running) sendChat("/ejecutar", []); };
   $("#input").addEventListener("keydown", (e) => {
-    if (e.key !== "Enter" || e.isComposing) return;
+    if (e.isComposing) return;
+    if (slashOpen()) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); moveSlash(e.key === "ArrowDown" ? 1 : -1); return; }
+      if (e.key === "Tab") { e.preventDefault(); pickSlash(); return; }
+      if (e.key === "Enter" && !e.shiftKey && !slashExact()) { e.preventDefault(); pickSlash(); return; }
+      if (e.key === "Enter" && !e.shiftKey && slashExact() && isTouch) { e.preventDefault(); $("#composer").requestSubmit(); return; }
+      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); closeSlash(true); return; }
+    }
+    if (e.key !== "Enter") return;
     const modEnter = e.ctrlKey || e.metaKey;
     if (modEnter || (state.enterSend && !e.shiftKey && !isTouch)) { e.preventDefault(); $("#composer").requestSubmit(); }
   });
+
+  // ---------------------------------------------------------------- comandos con barra («/»): lista filtrable sobre el compositor
+  const slash = { items: [], idx: 0, dismissed: "" };
+  const slashOpen = () => !$("#slashMenu").classList.contains("hidden");
+  const slashExact = () => { const c = slash.items[slash.idx], q = slashQuery(); return !!(c && q && norm(c.name) === norm(q)); };
+  function slashQuery() { // «/» al inicio y sin espacio aún: lo que se está escribiendo es el nombre del comando
+    const v = $("#input").value;
+    const m = v.match(/^\/([\w\-áéíóúñÁÉÍÓÚÑ]*)$/);
+    return m && !state.question ? m[1] : null;
+  }
+  async function loadCommands() {
+    if (state.commands) return state.commands;
+    try { const j = await api("/api/commands"); state.commands = (j && j.commands) || []; } catch (e) { state.commands = []; }
+    return state.commands;
+  }
+  const norm = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  async function updateSlash() {
+    const q = slashQuery();
+    if (q == null) { closeSlash(); return; }
+    if (slash.dismissed === $("#input").value) return; // cerrada con Esc para este mismo texto
+    const cmds = await loadCommands();
+    if (slashQuery() !== q) return; // el usuario siguió escribiendo mientras cargaba
+    const nq = norm(q);
+    const items = cmds.filter((c) => !nq || norm(c.name).indexOf(nq) >= 0 || norm(c.description).indexOf(nq) >= 0)
+      .sort((a, b) => (norm(b.name).indexOf(nq) === 0) - (norm(a.name).indexOf(nq) === 0));
+    slash.items = items; slash.idx = 0;
+    renderSlash(q);
+  }
+  function renderSlash(q) {
+    const m = $("#slashMenu");
+    const mark = (name) => { const i = norm(name).indexOf(norm(q)); return q && i >= 0 ? esc(name.slice(0, i)) + "<b>" + esc(name.slice(i, i + q.length)) + "</b>" + esc(name.slice(i + q.length)) : esc(name); };
+    const params = (c) => (c.params || []).length ? `<span class="slash-params" title="Parámetros (* obligatorio)">${(c.params || []).map((p) => /\*$/.test(p) ? "<b>" + esc(p) + "</b>" : esc(p)).join(", ")}</span>` : "";
+    m.innerHTML = `<div class="slash-head"><span>Comandos y recetas</span><span><span class="kbd">↑↓</span> <span class="kbd">Tab</span> <span class="kbd">Esc</span></span></div>` +
+      (slash.items.length ? slash.items.map((c, i) => `<button type="button" class="slash-item${i === slash.idx ? " on" : ""}" role="option" aria-selected="${i === slash.idx}" data-slash="${i}">
+        <span class="slash-name">/${mark(c.name)}</span><span class="slash-desc">${esc(c.description || "")}</span>${params(c)}${c.kind === "receta" ? '<span class="badge badge-accent slash-badge">Receta</span>' : ""}</button>`).join("")
+        : `<div class="slash-empty">Ningún comando coincide con «/${esc(q)}». Escribe <span class="kbd">/ayuda</span> para ver la lista completa.</div>`);
+    m.classList.remove("hidden"); m.scrollTop = 0;
+    $("#input").setAttribute("aria-expanded", "true");
+  }
+  function closeSlash(dismiss) {
+    const m = $("#slashMenu"); if (m.classList.contains("hidden")) return;
+    m.classList.add("hidden"); m.innerHTML = "";
+    $("#input").setAttribute("aria-expanded", "false");
+    slash.dismissed = dismiss ? $("#input").value : "";
+  }
+  function moveSlash(d) {
+    if (!slash.items.length) return;
+    slash.idx = (slash.idx + d + slash.items.length) % slash.items.length;
+    $$("#slashMenu .slash-item").forEach((b, i) => { b.classList.toggle("on", i === slash.idx); b.setAttribute("aria-selected", i === slash.idx ? "true" : "false"); if (i === slash.idx) b.scrollIntoView({ block: "nearest" }); });
+  }
+  function pickSlash(i) {
+    const c = slash.items[i == null ? slash.idx : i];
+    if (!c) { closeSlash(true); return; }
+    const inp = $("#input");
+    inp.value = "/" + c.name + " "; closeSlash(); fitInput();
+    inp.focus(); inp.selectionStart = inp.selectionEnd = inp.value.length;
+  }
+  $("#slashMenu").addEventListener("pointerdown", (e) => { if (e.target.closest("[data-slash]")) e.preventDefault(); }); // no robar el foco al textarea
+  $("#slashMenu").addEventListener("click", (e) => { const b = e.target.closest("[data-slash]"); if (b) pickSlash(+b.dataset.slash); });
+  $("#input").addEventListener("input", updateSlash);
+  $("#input").addEventListener("blur", () => setTimeout(() => { const a = document.activeElement; if (a !== $("#input") && !(a && a.closest && a.closest("#slashMenu"))) closeSlash(); }, 120));
+  $("#input").setAttribute("aria-autocomplete", "list"); $("#input").setAttribute("aria-controls", "slashMenu"); $("#input").setAttribute("aria-expanded", "false");
   // El compositor crece con el texto (y con el placeholder largo, para que no se corte)
   function fitInput() { const t = $("#input"); t.style.height = "auto"; t.style.height = Math.min(200, t.scrollHeight) + "px"; }
   $("#input").addEventListener("input", fitInput);
@@ -1025,6 +1190,7 @@
     }
     const li = t.closest("[data-sid]"); if (li) { openSession(li.dataset.sid); return; }
     if (t.closest("#undoBtn")) { undoLast(); return; }
+    const rw = t.closest("[data-rewind]"); if (rw) { const um = rw.closest(".msg.user"); if (um && um.dataset.turn) askRewind(um); else toast("Este mensaje aún no tiene punto de retorno", 2500, "warn"); return; }
     const opt = t.closest(".ask-opt"); if (opt && !opt.disabled) { pickOption(+opt.dataset.i); return; }
     if (t.closest(".ask-send")) { sendSelection(); return; }
     if (t.closest("[data-addkey]")) { openKeySettings(); return; }

@@ -211,6 +211,7 @@
           <p class="keycard-foot xs faint">Las mini apps funcionan sin clave. Abre <button type="button" class="linkish" data-view-apps>Mini apps</button> en el menú.</p>
         </section>
         <p class="welcome-hint faint small no-touch">Arrastra archivos al chat o pega una captura con <span class="kbd">Ctrl</span> <span class="kbd">V</span></p>
+        <p class="welcome-hint welcome-slash faint small">Escribe <span class="kbd">/</span> para ver comandos y tus recetas</p>
       </div>
     </template>
 
@@ -237,7 +238,13 @@
       <button id="cancelBtn" type="button" class="btn btn-sm btn-ghost"><svg class="icon"><use href="#i-stop"/></svg>Detener</button>
     </div>
 
+    <div id="modeChip" class="mode-chip hidden" role="status">
+      <svg class="icon icon-sm"><use href="#i-plan"/></svg>
+      <span class="mode-chip-text"><b>Modo plan</b><span class="mode-chip-sep"> · </span><span class="mode-chip-sub">solo investiga y propone</span></span>
+      <button type="button" class="linkish mode-chip-act" id="runPlanBtn">Ejecutar plan</button>
+    </div>
     <form id="composer">
+      <div id="slashMenu" class="slash-menu hidden" role="listbox" aria-label="Comandos y recetas"></div>
       <div class="composer-box">
         <div id="pending" class="scroll-x"></div>
         <textarea id="input" rows="1" enterkeyhint="send" placeholder="Cuéntame qué necesitas: puedes adjuntar fotos, planos o documentos…" aria-label="Mensaje"></textarea>
@@ -349,6 +356,26 @@
       <button class="btn" id="confirmNo">Cancelar</button>
       <button class="btn btn-danger" id="confirmYes">Borrar</button>
     </div>
+  </div>
+</div>
+
+<!-- Volver a un punto de la conversación (rebobinar) -->
+<div id="rewind" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="rewindTitle">
+  <div class="modal-card modal-sm">
+    <div class="modal-head"><span class="modal-icon"><svg class="icon"><use href="#i-undo"/></svg></span>
+      <div class="grow"><h3 id="rewindTitle">¿Volver a este punto?</h3><p class="small muted rewind-sub">Se quitará este mensaje y todo lo posterior. Luego podrás editarlo y reenviarlo.</p></div></div>
+    <div class="modal-body">
+      <blockquote id="rewindQuote" class="rewind-quote"></blockquote>
+      <div class="rewind-opts">
+        <button type="button" class="ask-opt rec" id="rewindBoth">
+          <span class="ask-body"><b>Restaurar conversación y archivos <span class="ask-rec">Recomendado</span></b><small>Los archivos del workspace vuelven a como estaban antes de ese mensaje.</small></span>
+          <span class="ask-check"><svg class="icon"><use href="#i-check"/></svg></span></button>
+        <button type="button" class="ask-opt" id="rewindChat">
+          <span class="ask-body"><b>Solo la conversación</b><small>Los archivos se quedan como están ahora.</small></span>
+          <span class="ask-check"><svg class="icon"><use href="#i-check"/></svg></span></button>
+      </div>
+    </div>
+    <div class="modal-actions"><button class="btn" type="button" id="rewindNo">Cancelar</button></div>
   </div>
 </div>
 

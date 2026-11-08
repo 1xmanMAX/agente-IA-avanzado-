@@ -181,7 +181,8 @@ class Agent:
         if not self.title:
             self.title = (text or "Nueva sesión").strip().splitlines()[0][:60]
         marks = self.ctx.state.setdefault("marks", [])
-        marks.append({"turn": self.ctx.state["turn"], "msg": len(self.messages), "tr": len(self.transcript)})
+        marks.append({"turn": self.ctx.state["turn"], "msg": len(self.messages), "tr": len(self.transcript),
+                      "mode": self.ctx.state.get("mode", "normal")})
         self._emit({"type": "user", "text": text, "turn": self.ctx.state["turn"],
                     "attachments": [self.ctx.rel(Path(p)) for p in attachments or []]})
         handled = self._local_command(text)
@@ -329,6 +330,7 @@ class Agent:
         self.transcript = self.transcript[:m["tr"]]
         self.ctx.state["marks"] = [mm for mm in self.ctx.state["marks"] if mm["turn"] < turn]
         self.ctx.state["turn"] = turn - 1
+        self.ctx.state["mode"] = m.get("mode", "normal")   # el modo que había en ese momento
         self.save()
         return {"restored": restored, "messages": len(self.messages)}
 
