@@ -83,7 +83,7 @@ class Agent:
     # ------------------------------------------------------------------ utilidades
     def _emit(self, ev: dict) -> None:
         ev.setdefault("session", self.session_id)
-        if ev["type"] in ("user", "assistant", "tool_end", "error", "todos"):
+        if ev["type"] in ("user", "assistant", "tool_end", "error", "todos", "question", "answer", "status"):
             self.transcript.append({k: v for k, v in ev.items() if k != "session"})
         try:
             self.emit(ev)
@@ -162,7 +162,13 @@ class Agent:
             self.title = (text or "Nueva sesión").strip().splitlines()[0][:60]
         self._emit({"type": "user", "text": text,
                     "attachments": [self.ctx.rel(Path(p)) for p in attachments or []]})
-        self.messages.append({"role": "user", "content": self.build_user_content(text, attachments)})
+        content = self.build_user_content(text, attachments)
+        if self.messages and self.messages[-1]["role"] == "user":
+            # p. ej. tras un error que dejó resultados de herramientas: un único turno de usuario
+            prev = self.messages[-1]["content"]
+            self.messages[-1]["content"] = (prev if isinstance(prev, list) else [{"type": "text", "text": prev}]) + content
+        else:
+            self.messages.append({"role": "user", "content": content})
         final_text = ""
         tools = self.tool_specs()
         try:
@@ -200,7 +206,7 @@ class Agent:
             else:
                 self._emit({"type": "status", "text": f"Límite de {self.s.max_steps} pasos alcanzado."})
         except anthropic.AuthenticationError:
-            self._emit({"type": "error", "text": "Falta o no es válida la clave de API (ANTHROPIC_API_KEY)."})
+            self._emit({"type": "error", "text": "Falta o no es válida la clave de API. Añádela en Ajustes → Clave de API."})
         except anthropic.RateLimitError:
             self._emit({"type": "error", "text": "Límite de uso de la API alcanzado; espera un momento y reintenta."})
         except anthropic.BadRequestError as e:
@@ -210,7 +216,10 @@ class Agent:
         except anthropic.APIConnectionError:
             self._emit({"type": "error", "text": "No hay conexión con la API de Anthropic."})
         except Exception as e:  # noqa: BLE001  (p.ej. sin credenciales configuradas)
-            self._emit({"type": "error", "text": f"Error: {e}"})
+            msg = str(e)
+            if "authentication" in msg.lower() or "api_key" in msg.lower():
+                msg = "No hay clave de API configurada. Añádela en Ajustes → Clave de API."
+            self._emit({"type": "error", "text": msg if msg.startswith("No hay") else f"Error: {msg}"})
         finally:
             self._repair_tail()
             self.save()

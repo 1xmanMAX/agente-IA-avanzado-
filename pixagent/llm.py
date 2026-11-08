@@ -28,7 +28,8 @@ class ClaudeLLM:
     @property
     def client(self) -> anthropic.Anthropic:
         if self._client is None:  # se crea al primer uso: la UI arranca aunque falte la clave
-            self._client = anthropic.Anthropic()
+            from .anthropic_client import make_client
+            self._client = make_client(self.s)
         return self._client
 
     def _params(self, messages: list, tools: list[dict]) -> dict:

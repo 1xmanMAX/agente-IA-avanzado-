@@ -591,3 +591,58 @@ def test_local_ai_engine_tasks_and_video(settings, fake_openai_server):
     described = [it for it in job.items if not it.get("same")]
     assert len(described) == 2          # rojo y azul; los fotogramas idénticos no llaman al modelo
     assert (settings.ws / "outputs" / "video" / job.id / "analisis.md").exists()
+
+
+# ----------------------------------------------------------------- preguntas al usuario y clave de API
+def test_ask_user_tool_and_web_flow(settings):
+    from fastapi.testclient import TestClient
+    from pixagent.web.server import create_app
+    script = [([txt("Necesito saber el formato."),
+                tu("q1", "ask_user", {"question": "¿En qué formato lo quieres?",
+                                      "options": [{"label": "Mini app (recomendado)"}, {"label": "PDF"}]})], "tool_use"),
+              ([txt("Perfecto, haré un PDF.")], "end_turn")]
+    llm = FakeLLM(script)
+    app = create_app(settings, llm_factory=lambda s: llm)
+    with TestClient(app) as c:
+        with c.websocket_connect("/ws") as ws:
+            ws.send_json({"type": "chat", "text": "hazme algo para escaleras", "client": "x"})
+            q = None
+            for _ in range(60):
+                ev = ws.receive_json()
+                if ev["type"] == "question":
+                    q = ev
+                    break
+            assert q and q["options"][0]["label"].startswith("Mini app")
+            # escribir en el chat mientras hay pregunta pendiente = responder
+            ws.send_json({"type": "chat", "session": q["session"], "text": "PDF"})
+            types = []
+            for _ in range(60):
+                ev = ws.receive_json()
+                types.append(ev["type"])
+                if ev["type"] == "done":
+                    break
+            assert "answer" in types and "question_resolved" in types
+        res = llm.calls[-1]["content"][0]
+        assert res["tool_use_id"] == "q1" and "Respuesta del usuario: PDF" in res["content"][0]["text"]
+        tr = c.get(f"/api/sessions/{q['session']}").json()["transcript"]
+        assert any(e["type"] == "question" for e in tr) and any(e["type"] == "answer" for e in tr)
+
+
+def test_api_key_settings(settings, monkeypatch):
+    from fastapi.testclient import TestClient
+    from pixagent import anthropic_client
+    from pixagent.web.server import create_app
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.setattr(anthropic_client, "verify_key", lambda k: (k.endswith("buena"), "La clave no es válida."))
+    app = create_app(settings, llm_factory=lambda s: FakeLLM([]))
+    with TestClient(app) as c:
+        assert c.get("/api/status").json()["api_key"]["configured"] is False
+        assert c.post("/api/apikey", json={"key": "hola"}).status_code == 400
+        r = c.post("/api/apikey", json={"key": "sk-ant-api03-" + "x" * 30 + "mala"})
+        assert r.status_code == 400 and "no es válida" in r.json()["error"]
+        r = c.post("/api/apikey", json={"key": "sk-ant-api03-" + "x" * 30 + "buena"}).json()
+        assert r["ok"] and r["source"] == "ajustes" and "xxxx" not in r["masked"][10:-4]
+        st = c.get("/api/status").json()
+        assert st["api_key"]["configured"] and "sk-ant-api03-" + "x" * 30 not in json.dumps(st)
+        assert settings.anthropic_api_key.endswith("buena")
+        assert c.delete("/api/apikey").json()["configured"] is False

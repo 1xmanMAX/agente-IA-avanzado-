@@ -36,7 +36,8 @@ def quick_ai(settings, body: dict) -> dict:
     system = QUICK_SYSTEM + ("\n" + body["system"] if body.get("system") else "")
     params = dict(model=model, max_tokens=max_tokens, system=system,
                   messages=[{"role": "user", "content": content}], output_config={"effort": "low"})
-    client = anthropic.Anthropic()
+    from .anthropic_client import make_client
+    client = make_client(settings)
     if best and settings.server_fallbacks and model.startswith(("claude-opus-5", "claude-fable-5", "claude-sonnet-5-5")):
         resp = client.beta.messages.create(**params, fallbacks="default", betas=["server-side-fallback-2026-07-01"])
     else:

@@ -52,6 +52,16 @@ def _console_approve(name: str, inp: dict) -> bool:
     return input("  [s/N] ").strip().lower() in ("s", "si", "sí", "y", "yes")
 
 
+def _console_ask(question: str, options: list, multi: bool) -> str | None:
+    print(f"\n  ? {question}")
+    for i, o in enumerate(options, 1):
+        print(f"    {i}. {o.get('label')}" + (f" — {o['description']}" if o.get("description") else ""))
+    ans = input("  Elige un número o escribe tu respuesta: ").strip()
+    if ans.isdigit() and 1 <= int(ans) <= len(options):
+        return options[int(ans) - 1]["label"]
+    return ans or None
+
+
 def _copy_to_inbox(settings, paths: list[Path]) -> list[Path]:
     out = []
     for p in paths:
@@ -106,6 +116,8 @@ def main(argv: list[str] | None = None) -> int:
     s_send.add_argument("files", nargs="+")
     sub.add_parser("send-clipboard", help="Envía el portapapeles a la bandeja del agente")
     sub.add_parser("install-pixpin", help="Genera scripts de integración para PixPin")
+    s_key = sub.add_parser("apikey", help="Guardar la clave de API de Anthropic")
+    s_key.add_argument("key", nargs="?")
     s_cfg = sub.add_parser("config", help="Ver o cambiar la configuración")
     s_cfg.add_argument("pairs", nargs="*")
     a = ap.parse_args(argv)
@@ -128,6 +140,7 @@ def main(argv: list[str] | None = None) -> int:
         from .agent import Agent
         kw = dict(emit=_console_emit, approve=_console_approve)
         agent = Agent.load(settings, a.session, **kw) if cmd == "chat" and a.session else Agent(settings, **kw)
+        agent.ctx.ask = _console_ask
         if cmd == "run":
             agent.run(a.task, _stage_attachments(settings, a.attach))
             print()
@@ -189,9 +202,26 @@ def main(argv: list[str] | None = None) -> int:
         print(install_scripts(Agent(settings, llm=object()).ctx).text)
         return 0
 
+    if cmd == "apikey":
+        import getpass
+        from .anthropic_client import verify_key
+        key = (a.key or getpass.getpass("Pega tu clave de API (no se mostrará): ")).strip()
+        ok, err = verify_key(key)
+        if not ok:
+            print(err)
+            return 1
+        settings.anthropic_api_key = key
+        settings.save()
+        print("Clave guardada y verificada.")
+        return 0
+
     if cmd == "config":
         if not a.pairs:
-            print(json.dumps(asdict(settings), indent=2, ensure_ascii=False))
+            from .anthropic_client import mask
+            d = asdict(settings)
+            d["anthropic_api_key"] = mask(d.get("anthropic_api_key", ""))
+            d["access_token"] = mask(d.get("access_token", ""))
+            print(json.dumps(d, indent=2, ensure_ascii=False))
             return 0
         for pair in a.pairs:
             k, _, v = pair.partition("=")

@@ -148,6 +148,28 @@ def create_app(settings: Settings, llm_factory=None, report_writer_factory=None)
             raise HTTPException(403, "Ruta fuera del workspace")
         return p
 
+    questions: dict[str, dict] = {}   # id -> {event, answer, session}
+
+    def make_asker(session_id: str):
+        def ask(question: str, options: list, multi: bool):
+            qid = uuid.uuid4().hex[:10]
+            evt = threading.Event()
+            questions[qid] = {"event": evt, "answer": None, "session": session_id}
+            agent = agents.get(session_id)
+            ev = {"type": "question", "id": qid, "session": session_id, "question": question,
+                  "options": options, "multi": multi}
+            if agent:
+                agent._emit(dict(ev))   # también queda en el historial de la sesión
+            else:
+                hub.publish_threadsafe(ev)
+            evt.wait(timeout=1800)
+            ans = questions.pop(qid, {}).get("answer")
+            if agent:
+                agent._emit({"type": "answer", "id": qid, "session": session_id, "text": ans or "(sin respuesta)"})
+            hub.publish_threadsafe({"type": "question_resolved", "id": qid, "session": session_id})
+            return ans
+        return ask
+
     def make_approver(session_id: str):
         def approve(name: str, inp: dict) -> bool:
             aid = uuid.uuid4().hex[:10]
@@ -175,6 +197,7 @@ def create_app(settings: Settings, llm_factory=None, report_writer_factory=None)
         else:
             a = Agent(settings, session_id=sid or None, **kw)
         a.ctx.approve = make_approver(a.session_id)
+        a.ctx.ask = make_asker(a.session_id)
         agents[a.session_id] = a
         # liberar memoria de sesiones inactivas (máx. 8 en RAM)
         if len(agents) > 8:
@@ -279,7 +302,44 @@ def create_app(settings: Settings, llm_factory=None, report_writer_factory=None)
         return {"workspace": str(ws_root), "model": settings.model, "effort": settings.effort,
                 "pixpin": pix, "permission_mode": settings.permission_mode, "seq": hub.seq,
                 "version": __version__, "upload_max_px": settings.upload_max_px,
-                "is_host": request.client is not None and request.client.host in ("127.0.0.1", "::1")}
+                "is_host": request.client is not None and request.client.host in ("127.0.0.1", "::1"),
+                "api_key": api_key_info()}
+
+    def api_key_info():
+        from ..anthropic_client import key_source, mask
+        src = key_source(settings)
+        return {"configured": bool(src), "source": src,
+                "masked": mask(settings.anthropic_api_key) if src == "ajustes" else ("variable de entorno" if src else "")}
+
+    @app.get("/api/apikey")
+    async def apikey_get(request: Request):
+        return api_key_info()
+
+    @app.post("/api/apikey")
+    async def apikey_set(request: Request, body: dict):
+        key = str(body.get("key") or "").strip()
+        if not key.startswith("sk-ant-") or len(key) < 30:
+            return JSONResponse({"ok": False, "error": "Eso no parece una clave de Anthropic (empieza por sk-ant-)."},
+                                status_code=400)
+        from ..anthropic_client import verify_key
+        ok, err = await asyncio.to_thread(verify_key, key)
+        if not ok:
+            return JSONResponse({"ok": False, "error": err}, status_code=400)
+        settings.anthropic_api_key = key
+        settings.save()
+        for a in agents.values():   # los agentes abiertos usarán la nueva clave
+            if hasattr(a.llm, "_client"):
+                a.llm._client = None
+        return {"ok": True, **api_key_info()}
+
+    @app.delete("/api/apikey")
+    async def apikey_delete():
+        settings.anthropic_api_key = ""
+        settings.save()
+        for a in agents.values():
+            if hasattr(a.llm, "_client"):
+                a.llm._client = None
+        return {"ok": True, **api_key_info()}
 
     @app.post("/api/settings")
     async def update_settings(body: dict):
@@ -736,10 +796,18 @@ def create_app(settings: Settings, llm_factory=None, report_writer_factory=None)
                     for ev in hub.since(int(msg.get("after") or 0)):
                         if ev["type"] == "approval_request" and ev["id"] not in approvals:
                             continue
+                        if ev["type"] == "question" and ev["id"] not in questions:
+                            continue
                         q.put_nowait(ev)
                     q.put_nowait({"type": "hello_ok", "seq": hub.seq})
                 elif t == "chat":
                     a = get_agent(msg.get("session"))
+                    pending = next((k for k, v in questions.items() if v["session"] == a.session_id), None)
+                    if pending and msg.get("text", "").strip():
+                        # lo que el usuario escribe mientras el agente espera una respuesta ES la respuesta
+                        questions[pending]["answer"] = msg["text"].strip()
+                        questions[pending]["event"].set()
+                        continue
                     if a.session_id in running and running[a.session_id].is_alive():
                         q.put_nowait({"type": "error", "session": a.session_id,
                                       "text": "El agente sigue trabajando en esta sesión."})
@@ -753,6 +821,11 @@ def create_app(settings: Settings, llm_factory=None, report_writer_factory=None)
                     th = threading.Thread(target=a.run, args=(msg.get("text", ""), atts), daemon=True)
                     running[a.session_id] = th
                     th.start()
+                elif t == "answer":
+                    qq = questions.get(msg.get("id"))
+                    if qq:
+                        qq["answer"] = str(msg.get("text") or "").strip() or None
+                        qq["event"].set()
                 elif t == "approve":
                     ap = approvals.get(msg.get("id"))
                     if ap:

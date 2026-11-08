@@ -147,7 +147,8 @@ class ClaudeWriter:
     def client(self):
         if self._client is None:
             import anthropic
-            self._client = anthropic.Anthropic()
+            from ..anthropic_client import make_client
+            self._client = make_client(self.s)
         return self._client
 
     def write(self, system: str, content: list[dict], max_tokens: int) -> tuple[str, dict]:

@@ -38,6 +38,9 @@ class ToolContext:
     settings: Any                                  # config.Settings
     emit: Callable[[dict], None] = lambda e: None  # eventos hacia la UI
     approve: Callable[[str, dict], bool] = lambda name, inp: True
+    # Pregunta al usuario y espera su respuesta (la UI muestra opciones + texto libre). Devuelve el texto
+    # de la respuesta o None si no hay interfaz/no respondió.
+    ask: Callable[[str, list, bool], str | None] = lambda question, options, multi: None
     session_id: str = "default"
     state: dict[str, Any] = field(default_factory=dict)  # estado por sesión (todos, etc.)
 

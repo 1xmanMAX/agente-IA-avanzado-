@@ -19,6 +19,8 @@ class Settings:
     workspace: str = str(Path.home() / "PixAgent")
     # Modelo de Claude y esfuerzo de razonamiento (low|medium|high|xhigh|max)
     model: str = "claude-opus-5-5"
+    # Clave de API de Anthropic introducida desde la app (si está vacía se usa ANTHROPIC_API_KEY)
+    anthropic_api_key: str = ""
     effort: str = "high"
     # Modelo económico para la IA rápida de las mini apps (pies de foto, revisiones cortas...)
     quick_model: str = "claude-haiku-5-5"
@@ -73,6 +75,10 @@ class Settings:
     def save(self) -> None:
         CONFIG_DIR.mkdir(parents=True, exist_ok=True)
         CONFIG_FILE.write_text(json.dumps(asdict(self), indent=2, ensure_ascii=False), "utf-8")
+        try:  # la clave de API vive aquí: solo legible por el usuario (en Windows no aplica)
+            os.chmod(CONFIG_FILE, 0o600)
+        except OSError:
+            pass
 
 
 _ENV_MAP = {
