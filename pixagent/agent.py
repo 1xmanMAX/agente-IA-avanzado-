@@ -201,7 +201,7 @@ class Agent:
                     if stop == "max_tokens":
                         self._emit({"type": "status", "text": "Respuesta cortada por longitud."})
                     break
-                results = [self._run_tool(b, truncated=(stop == "max_tokens")) for b in tool_uses]
+                results = self._run_tools(tool_uses, truncated=(stop == "max_tokens"))
                 self.messages.append({"role": "user", "content": results})
                 self.save()
             else:
@@ -308,6 +308,18 @@ class Agent:
             self.usage["usd"] = round(self.usage.get("usd", 0.0) + usd, 4)
 
     # ------------------------------------------------------------------ ejecución de herramientas
+    # Herramientas sin efectos secundarios: si TODAS las de un turno lo son, se ejecutan en paralelo
+    # (patrón de Codex CLI / Gemini CLI / opencode). Las que escriben se ejecutan en orden.
+    PARALLEL_SAFE = {"read_file", "list_files", "search_files", "view_image", "preview_page"}
+
+    def _run_tools(self, tool_uses: list, truncated: bool = False) -> list[dict]:
+        names = [_attr(b, "name") for b in tool_uses]
+        if len(tool_uses) > 1 and not truncated and all(n in self.PARALLEL_SAFE for n in names):
+            from concurrent.futures import ThreadPoolExecutor
+            with ThreadPoolExecutor(max_workers=min(6, len(tool_uses))) as ex:
+                return list(ex.map(self._run_tool, tool_uses))   # map conserva el orden
+        return [self._run_tool(b, truncated=truncated) for b in tool_uses]
+
     def _run_tool(self, block, truncated: bool = False) -> dict:
         name, tid, inp = _attr(block, "name"), _attr(block, "id"), _attr(block, "input")
         self._emit({"type": "tool_start", "id": tid, "name": name, "input": _preview_input(inp)})

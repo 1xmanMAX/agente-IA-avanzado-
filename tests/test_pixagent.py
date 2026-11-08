@@ -646,3 +646,17 @@ def test_api_key_settings(settings, monkeypatch):
         assert st["api_key"]["configured"] and "sk-ant-api03-" + "x" * 30 not in json.dumps(st)
         assert settings.anthropic_api_key.endswith("buena")
         assert c.delete("/api/apikey").json()["configured"] is False
+
+
+def test_parallel_read_only_tools_keep_order(settings):
+    import time as _t
+    from pixagent.agent import Agent
+    for i in range(4):
+        (settings.ws / "outputs" / f"f{i}.txt").write_text(f"contenido {i}", "utf-8")
+    calls = [tu(f"r{i}", "read_file", {"path": f"outputs/f{i}.txt"}) for i in range(4)]
+    a = Agent(settings, llm=FakeLLM([(calls, "tool_use"), ([txt("ok")], "end_turn")]))
+    t0 = _t.time()
+    a.run("lee")
+    res = a.messages[2]["content"]
+    assert [r["tool_use_id"] for r in res] == ["r0", "r1", "r2", "r3"]
+    assert all(f"contenido {i}" in res[i]["content"][0]["text"] for i in range(4))
