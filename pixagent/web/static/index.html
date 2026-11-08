@@ -65,6 +65,9 @@
   <symbol id="i-more" viewBox="0 0 24 24"><path d="M6 12h.01M12 12h.01M18 12h.01"/></symbol>
   <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></symbol>
   <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1.1 5.9L12 16.9l-5.3 2.8 1.1-5.9-4.3-4.1 5.9-.8z"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4.5"/><path d="M11.5 11.5L20 3M16 7l3 3M13.5 9.5l2.5 2.5"/></symbol>
+  <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M10.6 5.9A10.6 10.6 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a16.6 16.6 0 0 1-3.2 3.9M6.6 6.6C4 8.5 2.5 12 2.5 12S6 18.5 12 18.5a9 9 0 0 0 3.6-.7"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></symbol>
+  <symbol id="i-question" viewBox="0 0 24 24"><path d="M21 12.5a8 8 0 0 1-8 8H6l-3 3V12.5a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8z"/><path d="M10.2 10.3a2 2 0 1 1 2.6 2.1c-.6.3-.8.7-.8 1.3M12 16.5v.1"/></symbol>
 </svg>
 
 <div id="app">
@@ -109,6 +112,17 @@
     <details class="side-fold" id="settingsFold">
       <summary><svg class="icon"><use href="#i-sliders"/></svg><span class="grow">Ajustes</span><svg class="icon icon-sm fold-chev"><use href="#i-chevron"/></svg></summary>
       <div class="fold-body stack gap-3">
+        <div class="field" id="keySetting">Clave de API
+          <div class="key-status">
+            <span class="dot dot-muted" id="keyDot"></span>
+            <span class="grow small" id="keyStatus">Comprobando…</span>
+          </div>
+          <div class="row key-btns" id="keyBtns">
+            <button type="button" class="btn btn-sm" id="keyChange"><svg class="icon"><use href="#i-key"/></svg><span>Añadir clave</span></button>
+            <button type="button" class="btn btn-sm btn-ghost hidden" id="keyRemove"><svg class="icon"><use href="#i-trash"/></svg>Quitar</button>
+          </div>
+          <div id="keySettingForm" class="hidden"></div>
+        </div>
         <div class="field">Velocidad de respuesta
           <div class="segmented seg-block" id="effortSeg" role="radiogroup" aria-label="Velocidad de respuesta">
             <button type="button" data-effort="low" title="Respuestas rápidas y breves">Rápido</button>
@@ -178,24 +192,47 @@
 
     <template id="welcomeTpl">
       <div class="welcome">
-        <img class="welcome-mark" src="/static/icon-192.png" alt="" width="56" height="56">
-        <h1>¿Qué hacemos hoy?</h1>
-        <p class="welcome-sub">Adjunta fotos o planos y describe la tarea con tus palabras, o empieza por una de estas.</p>
-        <div class="quick" id="quickMain">
-          <button class="quick-card" data-tpl="plan"><span class="qc-icon"><svg class="icon"><use href="#i-plan"/></svg></span><b>Plano con fotos</b><small>Cada foto ubicada en el plano, con flechas y leyenda</small></button>
-          <button class="quick-card" data-tpl="report"><span class="qc-icon"><svg class="icon"><use href="#i-report"/></svg></span><b>Informe</b><small>PDF con portada, índice y tablas</small></button>
-          <button class="quick-card" data-tpl="panel"><span class="qc-icon"><svg class="icon"><use href="#i-panel"/></svg></span><b>Panel fotográfico</b><small>Fotos numeradas con pies de foto y cajetín</small></button>
-          <button class="quick-card" data-tpl="app"><span class="qc-icon"><svg class="icon"><use href="#i-apps"/></svg></span><b>Mini app</b><small>Una herramienta a medida para una tarea repetida</small></button>
-          <button class="quick-card" data-tpl="diagram"><span class="qc-icon"><svg class="icon"><use href="#i-flow"/></svg></span><b>Diagrama</b><small>Flujos, organigramas y esquemas</small></button>
-          <button class="quick-card" data-tpl="python"><span class="qc-icon"><svg class="icon"><use href="#i-terminal"/></svg></span><b>Python</b><small>Cálculos, tablas y conversiones</small></button>
+        <div class="welcome-greet">
+          <img class="welcome-mark" src="/static/icon-192.png" alt="" width="56" height="56">
+          <h1>¿Qué hacemos hoy?</h1>
+          <p class="welcome-sub">Explícamelo con tus palabras y adjunta lo que tengas. Si algo no queda claro, te lo preguntaré antes de empezar.</p>
+          <p class="welcome-ex faint small" id="welcomeEx" aria-live="off"><span class="welcome-ex-label">Por ejemplo:</span> <span id="welcomeExText"></span></p>
         </div>
-        <button type="button" class="btn btn-ghost btn-sm quick-more" id="quickMore"><span>Más…</span><svg class="icon icon-sm fold-chev"><use href="#i-chevron"/></svg></button>
+        <!-- Primer uso: todavía no hay clave de API -->
+        <section class="keycard hidden" id="keyCard" aria-labelledby="keyCardTitle">
+          <div class="keycard-head">
+            <span class="keycard-icon"><svg class="icon"><use href="#i-key"/></svg></span>
+            <div class="grow">
+              <h2 id="keyCardTitle">Conecta tu clave de API para empezar</h2>
+              <p class="small muted">PixAgent usa los modelos de Anthropic (Claude) con tu propia cuenta. Pegas la clave una vez y ya puedes trabajar.</p>
+            </div>
+          </div>
+          <div class="keycard-body" id="keyCardForm"></div>
+          <p class="keycard-foot xs faint">Las mini apps funcionan sin clave. Abre <button type="button" class="linkish" data-view-apps>Mini apps</button> en el menú.</p>
+        </section>
         <p class="welcome-hint faint small no-touch">Arrastra archivos al chat o pega una captura con <span class="kbd">Ctrl</span> <span class="kbd">V</span></p>
       </div>
     </template>
 
+    <template id="keyFormTpl">
+      <form class="key-form" autocomplete="off">
+        <label class="key-field">
+          <span class="sr-only">Clave de API</span>
+          <input class="input key-input" type="password" inputmode="text" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="sk-ant-api03-…" aria-label="Clave de API">
+          <button type="button" class="btn btn-ghost btn-icon key-eye" aria-label="Mostrar clave" aria-pressed="false"><svg class="icon"><use href="#i-eye"/></svg></button>
+        </label>
+        <div class="key-actions">
+          <button type="submit" class="btn btn-primary key-save"><svg class="icon"><use href="#i-check"/></svg><span>Guardar y comprobar</span></button>
+          <a class="btn btn-ghost key-link" href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener"><svg class="icon"><use href="#i-external"/></svg>Crear una clave</a>
+        </div>
+        <div class="key-msg xs" role="status" aria-live="polite"></div>
+        <p class="key-note xs faint"><svg class="icon icon-sm"><use href="#i-shield"/></svg>Se guarda solo en este equipo. Nunca se envía a terceros.</p>
+      </form>
+    </template>
+
     <div id="statusLine" class="hidden">
       <span class="spinner"></span>
+      <span class="wait-dot" aria-hidden="true"></span>
       <span id="statusText" class="truncate">Pensando…</span>
       <button id="cancelBtn" type="button" class="btn btn-sm btn-ghost"><svg class="icon"><use href="#i-stop"/></svg>Detener</button>
     </div>
@@ -203,7 +240,7 @@
     <form id="composer">
       <div class="composer-box">
         <div id="pending" class="scroll-x"></div>
-        <textarea id="input" rows="1" enterkeyhint="send" placeholder="Describe lo que necesitas…" aria-label="Mensaje"></textarea>
+        <textarea id="input" rows="1" enterkeyhint="send" placeholder="Cuéntame qué necesitas: puedes adjuntar fotos, planos o documentos…" aria-label="Mensaje"></textarea>
         <div class="composer-tools">
           <label class="btn btn-ghost btn-icon btn-round" title="Adjuntar archivos"><svg class="icon"><use href="#i-clip"/></svg>
             <input id="fileInput" type="file" multiple hidden accept="image/*,application/pdf,.txt,.md,.csv,.json,.xlsx,.docx,.html,.py"></label>
@@ -225,7 +262,7 @@
       <header class="apps-head">
         <div class="grow">
           <h2>Mini apps</h2>
-          <p class="muted small">Herramientas rápidas sobre tu workspace. Pide una nueva al agente cuando repitas una tarea.</p>
+          <p class="muted small">Herramientas rápidas sobre tu workspace; funcionan sin clave de API. Pide una nueva al agente cuando repitas una tarea.</p>
         </div>
         <label class="apps-search hidden" id="appsSearchWrap"><svg class="icon icon-sm"><use href="#i-search"/></svg><input class="input" id="appsSearch" type="search" placeholder="Buscar app…" aria-label="Buscar mini app"></label>
         <button id="appsRefresh" class="btn btn-ghost btn-icon" title="Actualizar"><svg class="icon"><use href="#i-refresh"/></svg></button>

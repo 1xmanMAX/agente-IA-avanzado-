@@ -12,16 +12,22 @@
     streamEl: null, streamText: "", rafPending: false, retry: 0, maxPx: 3200, everConnected: false,
     tab: "view", view: "agent", pane: "chat", apps: null, app: null, lastDeliverable: null, pixpin: false, undone: false, appsQuery: "",
     saveData: (navigator.connection && navigator.connection.saveData) || localGet("saveData") === "1",
+    question: null, apiKey: null, replay: null,
   };
 
-  const TEMPLATES = {
-    plan: "Te adjunto un plano y varias fotos. Ubica cada foto en el punto del plano donde se tomó, con flechas, números y conos de visión; añade leyenda y cajetín. Título: ",
-    diagram: "Crea un diagrama de flujo de este proceso: ",
-    report: "Genera un informe PDF profesional con portada e índice sobre: ",
-    panel: "Monta un panel fotográfico en PDF con las fotos adjuntas: fotos numeradas, pie de foto descriptivo y cajetín con los datos de la obra. Proyecto: ",
-    app: "Crea una mini app (HTML) que sirva para: ",
-    python: "Escribe y ejecuta un script de Python que: ",
-  };
+  // Único arranque guiado que queda: «Pedir una mini app» desde la galería vacía
+  const TEMPLATES = { app: "Crea una mini app (HTML) que sirva para: " };
+  const PLACEHOLDER = "Cuéntame qué necesitas: puedes adjuntar fotos, planos o documentos…";
+  const PLACEHOLDER_ANSWER = "Responde al agente…";
+  // Ejemplos que rotan en la bienvenida (solo texto: la conversación manda)
+  const EXAMPLES = [
+    "«Ubica estas 14 fotos en el plano de planta baja y genera el PDF»",
+    "«Haz un informe de visita de obra con las fotos y mis notas»",
+    "«Monta un panel fotográfico numerado con pie de foto y cajetín»",
+    "«Calcula el aforo de esta gradería y dime qué norma aplica»",
+    "«Pasa esta tabla de mediciones a Excel y súmala por capítulos»",
+    "«Crea una mini app para renombrar fotos de obra por zona»",
+  ];
   const TOOL_LABELS = {
     compose_plan: "Componer plano", render_diagram: "Diagrama", create_pdf: "Informe PDF", create_miniapp: "Mini app",
     html_to_pdf: "HTML a PDF", image_tools: "Imagen", view_image: "Ver imagen", todo_write: "Plan", run_python: "Python",
@@ -56,6 +62,13 @@
   const baseName = (p) => p.split("/").pop();
   const fmtSec = (s) => (s < 10 ? s.toFixed(1) : Math.round(s)).toString().replace(".", ",") + " s";
 
+  // Vibración suave solo tras un gesto del usuario (si no, Chrome la bloquea y lo anota en la consola)
+  let interacted = false;
+  ["pointerdown", "keydown", "touchstart"].forEach((ev) => document.addEventListener(ev, () => { interacted = true; }, { once: true, passive: true, capture: true }));
+  function buzz(pattern) {
+    const active = (navigator.userActivation && navigator.userActivation.hasBeenActive) || interacted;
+    if (navigator.vibrate && active) { try { navigator.vibrate(pattern); } catch (e) { /* no soportado */ } }
+  }
   function toast(msg, ms, type) {
     const stack = $("#toasts");
     const t = document.createElement("div");
@@ -128,13 +141,27 @@
       case "inbox": ev.files.forEach(addPending); toast("Recibido: " + ev.files.length + " archivo(s)", 2600, "ok"); refreshLibrary(); return;
       case "approval_request": askApproval(ev); return;
       case "approval_resolved": if ($("#approval").dataset.id === ev.id) $("#approval").classList.add("hidden"); return;
-      case "pong": case "hello_ok": return;
+      case "pong": return;
+      case "hello_ok":
+        if (state.replay) { // fin de la recuperación tras recargar
+          const mode = state.replay; state.replay = null;
+          if (mode === "full" && !$("#messages .msg")) { newSession(); } // la sesión ya no existe
+          else if (!state.question) setStatus("Pensando…");
+        }
+        return;
     }
     if (ev.session && state.session && ev.session !== state.session) return;
+    // Recuperación «solo preguntas»: el historial ya está pintado desde el archivo; del reenvío solo interesa lo pendiente
+    if (state.replay === "questions" && ev.type !== "question" && ev.type !== "done") return;
+    // ask_user se muestra como tarjeta de pregunta, no como herramienta
+    if ((ev.type === "tool_start" || ev.type === "tool_end" || ev.type === "tool_preparing") && ev.name === "ask_user") return;
     switch (ev.type) {
       case "session":
-        if (!state.session && ev.client === clientId) { state.session = ev.session; loadSessions(); }
+        if (!state.session && ev.client === clientId) { state.session = ev.session; rememberSession(); loadSessions(); }
         break;
+      case "question": addQuestion(ev, true); break;
+      case "answer": resolveQuestion(ev.id, ev.text === "(sin respuesta)" ? null : ev.text); break;
+      case "question_resolved": resolveQuestion(ev.id, null); setStatus("Pensando…"); break;
       case "turn_start": setStatus("Pensando…"); endStream(); break;
       case "text_delta":
         if (!state.streamEl) { state.streamEl = addMsg("assistant", ""); state.streamEl.classList.add("streaming"); }
@@ -148,7 +175,7 @@
       case "todos": renderTodos(ev.todos); break;
       case "error": addError(ev.text); break;
       case "done":
-        renderStream(); endStream(); state.undone = false; setRunning(false); loadSessions(); refreshLibrary();
+        renderStream(); endStream(); state.undone = false; clearQuestion(); setRunning(false); loadSessions(); refreshLibrary();
         if (ev.usage) renderUsage(ev.usage);
         break;
     }
@@ -165,7 +192,7 @@
       c.title = "Coste estimado acumulado de esta sesión"; c.classList.remove("hidden");
     } else c.classList.add("hidden");
   }
-  // Contadores locales de uso (para ordenar accesos rápidos y mini apps); fallan en silencio sin localStorage
+  // Contadores locales de uso (para ordenar mini apps frecuentes); fallan en silencio sin localStorage
   function counts(key) { try { return JSON.parse(localStorage.getItem(key) || "{}") || {}; } catch (e) { return {}; } }
   function bump(key, id) { try { const c = counts(key); c[id] = (c[id] || 0) + 1; localStorage.setItem(key, JSON.stringify(c)); } catch (e) { /* modo privado */ } }
   // Repintar como mucho una vez por fotograma (los móviles modestos lo agradecen)
@@ -179,18 +206,102 @@
   const toolLabel = (n) => TOOL_LABELS[n] || n;
 
   // ---------------------------------------------------------------- mensajes
+  let exTimer = 0;
   function showWelcome() {
     $("#messages").innerHTML = ""; $("#messages").appendChild($("#welcomeTpl").content.cloneNode(true));
-    // Las 4 acciones más usadas por este usuario a la vista (orden por defecto: plano, informe, panel, mini app); el resto tras «Más…»
-    const grid = $("#quickMain"), used = counts("qa:count");
-    const cards = Array.from(grid.querySelectorAll(".quick-card")).map((el, i) => ({ el: el, n: used[el.dataset.tpl] || 0, i: i }));
-    cards.sort((a, b) => b.n - a.n || a.i - b.i);
-    cards.forEach((c, i) => { grid.appendChild(c.el); c.el.classList.toggle("quick-extra", i >= 4); });
-    const more = $("#quickMore");
-    more.classList.toggle("hidden", cards.length <= 4);
-    more.onclick = () => { const open = grid.classList.toggle("expanded"); more.querySelector("span").textContent = open ? "Menos" : "Más…"; more.classList.toggle("open", open); };
+    // Una línea de ejemplos que rota despacio; se detiene sola cuando la bienvenida desaparece
+    clearInterval(exTimer);
+    const exEl = $("#welcomeExText");
+    let i = Math.floor(Math.random() * EXAMPLES.length);
+    const show = () => { if (!document.contains(exEl)) { clearInterval(exTimer); return; } exEl.textContent = EXAMPLES[i % EXAMPLES.length]; i++; };
+    show();
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    exTimer = setInterval(() => {
+      if (!document.contains(exEl)) { clearInterval(exTimer); return; }
+      if (reduced) { show(); return; }
+      exEl.classList.add("fade"); setTimeout(() => { show(); exEl.classList.remove("fade"); }, 220);
+    }, 5200);
+    renderKeyCard();
   }
   function clearWelcome() { const w = $("#messages .welcome"); if (w) w.remove(); }
+
+  // ---------------------------------------------------------------- preguntas del agente (ask_user)
+  const REC_RX = /\s*\((recomendad[oa]s?)\)\s*/i;
+  function addQuestion(ev, live) {
+    if ($('#messages .ask[data-qid="' + ev.id + '"]')) return;
+    clearWelcome();
+    const opts = (ev.options || []).slice(0, 4);
+    const d = document.createElement("div");
+    d.className = "msg ask" + (ev.multi ? " multi" : ""); d.dataset.qid = ev.id;
+    d.innerHTML = `<div class="ask-head"><span class="ask-icon">${ico("question")}</span><div class="ask-q">${md(ev.question || "")}</div></div>
+      <div class="ask-opts" role="${ev.multi ? "group" : "listbox"}" aria-label="Opciones">${opts.map((o, i) => {
+        const label = String(o.label || ""), rec = REC_RX.test(label);
+        return `<button type="button" class="ask-opt${rec ? " rec" : ""}" role="${ev.multi ? "checkbox" : "option"}" aria-checked="false" data-i="${i}" data-label="${esc(label)}">
+          <span class="ask-key tabular">${i + 1}</span>
+          <span class="ask-body"><b>${esc(label.replace(REC_RX, " ").trim())}${rec ? ' <span class="ask-rec">Recomendado</span>' : ""}</b>${o.description ? `<small>${esc(o.description)}</small>` : ""}</span>
+          <span class="ask-check">${ico("check")}</span></button>`; }).join("")}</div>
+      <div class="ask-foot">${ev.multi ? `<button type="button" class="btn btn-primary ask-send" disabled>${ico("send")}Enviar</button>` : ""}<span class="ask-hint">${ev.multi ? "Marca una o varias y envía, " : ""}o escribe tu respuesta abajo</span></div>`;
+    $("#messages").appendChild(d); trimDom();
+    d._multi = !!ev.multi; d._options = opts;
+    const already = state.question && state.question.id !== ev.id;
+    if (already) resolveQuestion(state.question.id, null); // solo una pendiente por sesión
+    state.question = { id: ev.id, el: d, multi: !!ev.multi };
+    setWaiting(true);
+    $("#messages").scrollTop = $("#messages").scrollHeight;
+    if (live) {
+      if (isTouch) buzz([25, 40, 25]);
+      if (!isTouch && document.visibilityState === "visible") $("#input").focus();
+    }
+    return d;
+  }
+  function $$in(sel, root) { return Array.from(root.querySelectorAll(sel)); }
+  function pickOption(i) {
+    const q = state.question; if (!q || q.el.classList.contains("done")) return;
+    const b = q.el.querySelector('.ask-opt[data-i="' + i + '"]'); if (!b) return;
+    if (q.multi) {
+      b.classList.toggle("sel"); b.setAttribute("aria-checked", b.classList.contains("sel") ? "true" : "false");
+      const n = $$in(".ask-opt.sel", q.el).length, send = q.el.querySelector(".ask-send");
+      send.disabled = !n; send.innerHTML = ico("send") + (n > 1 ? "Enviar " + n : "Enviar");
+    } else { b.classList.add("sel"); b.setAttribute("aria-checked", "true"); if (!answerQuestion(b.dataset.label)) { b.classList.remove("sel"); b.setAttribute("aria-checked", "false"); } }
+  }
+  function sendSelection() {
+    const q = state.question; if (!q || !q.multi) return;
+    const labels = $$in(".ask-opt.sel", q.el).map((b) => b.dataset.label);
+    if (labels.length) answerQuestion(labels.join(", "));
+  }
+  function answerQuestion(text) {
+    const q = state.question; if (!q) return false;
+    if (!send({ type: "answer", id: q.id, session: state.session, text: text })) { toast("Sin conexión; reintentando…", 3000, "warn"); connect(); return false; }
+    resolveQuestion(q.id, text); // optimista: el eco del servidor es idempotente
+    if (isTouch) $("#input").blur();
+    return true;
+  }
+  // Estado resuelto: opciones desactivadas, la elegida marcada, y la respuesta escrita bajo la tarjeta
+  function resolveQuestion(id, text) {
+    const d = $('#messages .ask[data-qid="' + id + '"]');
+    if (d && !d.classList.contains("done")) {
+      d.classList.add("done");
+      $$in(".ask-opt", d).forEach((b) => { b.disabled = true; b.tabIndex = -1; });
+      if (text) {
+        const parts = text.split(/\s*,\s*/);
+        $$in(".ask-opt", d).forEach((b) => { if (text === b.dataset.label || parts.indexOf(b.dataset.label) >= 0) { b.classList.add("sel"); b.setAttribute("aria-checked", "true"); } });
+        const custom = !$$in(".ask-opt.sel", d).length;
+        d.querySelector(".ask-foot").innerHTML = `<div class="ask-answer${custom ? " custom" : ""}">${ico("check", "icon-sm")}<span>${custom ? esc(text) : "Elegido: " + esc(text.replace(REC_RX, " ").trim())}</span></div>`;
+      } else d.querySelector(".ask-foot").innerHTML = `<div class="ask-answer faint">${ico("x", "icon-sm")}<span>Sin respuesta</span></div>`;
+    } else if (d && text && !d.querySelector(".ask-answer span")) {
+      d.querySelector(".ask-foot").innerHTML = `<div class="ask-answer">${ico("check", "icon-sm")}<span>${esc(text)}</span></div>`;
+    }
+    if (state.question && state.question.id === id) { state.question = null; setWaiting(false); }
+  }
+  function clearQuestion() { if (state.question) resolveQuestion(state.question.id, null); }
+  function setWaiting(on) {
+    $("#statusLine").classList.toggle("waiting", on);
+    $("#input").placeholder = on ? PLACEHOLDER_ANSWER : PLACEHOLDER;
+    if (!$("#input").value && typeof fitInput === "function") fitInput();
+    $("#sendBtn").disabled = state.running && !on;
+    if (on) setStatus("Esperando tu respuesta");
+  }
+  function rememberSession() { try { if (state.session) sessionStorage.setItem("pix:sid", state.session); else sessionStorage.removeItem("pix:sid"); } catch (e) { /* modo privado */ } }
   function scroll() {
     const m = $("#messages");
     if (m.scrollHeight - m.scrollTop - m.clientHeight < 400) m.scrollTop = m.scrollHeight;
@@ -206,7 +317,10 @@
     else d.innerHTML = html;
     $("#messages").appendChild(d); trimDom(); scroll(); return d;
   }
-  function addError(text) { addMsg("error", ico("alert") + `<div>${esc(text)}</div>`); }
+  function addError(text) {
+    const keyErr = /clave de API/i.test(text || "");
+    addMsg("error", ico("alert") + `<div class="grow">${esc(text)}</div>` + (keyErr ? `<button type="button" class="btn btn-sm err-action" data-addkey>${ico("key")}Añadir clave</button>` : ""));
+  }
   function addUser(text, atts) {
     const d = addMsg("user", `<div class="bubble">${md(text || "")}</div>`);
     if (atts && atts.length) {
@@ -269,8 +383,8 @@
       return `<div class="plan-item ${cls}"><span class="pi">${x.status === "completed" ? ico("check") : ""}</span><span>${esc(x.content)}</span></div>`;
     }).join("");
   }
-  function setStatus(text) { $("#statusText").textContent = text; }
-  function setRunning(on) { state.running = on; $("#statusLine").classList.toggle("hidden", !on); $("#sendBtn").disabled = on; updateUndo(); }
+  function setStatus(text) { if (state.question && text !== "Esperando tu respuesta") return; $("#statusText").textContent = text; }
+  function setRunning(on) { state.running = on; $("#statusLine").classList.toggle("hidden", !on); $("#sendBtn").disabled = on && !state.question; updateUndo(); }
   // «Deshacer cambios» bajo el último mensaje del asistente, solo con la sesión en reposo
   function updateUndo() {
     $$("#messages .undo-row").forEach((r) => r.remove());
@@ -532,26 +646,37 @@
     $("#sessionTitle").textContent = cur ? cur.title : "Nueva sesión";
   }
   async function openSession(sid) {
-    const d = await api("/api/sessions/" + sid + "?limit=" + (state.saveData ? 60 : 160));
-    state.session = sid; state.lastDeliverable = null; endStream();
+    let d;
+    try { d = await api("/api/sessions/" + sid + "?limit=" + (state.saveData ? 60 : 160)); } catch (e) { d = null; }
+    if (!d || !d.transcript) { toast("Esa sesión ya no existe", 3000, "warn"); newSession(); return false; }
+    state.session = sid; state.lastDeliverable = null; state.question = null; endStream(); setWaiting(false); rememberSession();
     $("#messages").innerHTML = d.truncated ? '<div class="msg note">Mensajes anteriores ocultos</div>' : "";
+    const answered = {};
+    d.transcript.forEach((ev) => { if (ev.type === "answer") answered[ev.id] = ev.text || ""; });
     d.transcript.forEach((ev) => {
       if (ev.type === "user") addUser(ev.text, ev.attachments);
       else if (ev.type === "assistant") addMsg("assistant", md(ev.text));
-      else if (ev.type === "tool_end") { addTool({ id: ev.id, name: ev.name, input: {} }); finishTool(ev, false); }
+      else if (ev.type === "tool_end") { if (ev.name === "ask_user") return; addTool({ id: ev.id, name: ev.name, input: {} }); finishTool(ev, false); }
       else if (ev.type === "error") addError(ev.text);
       else if (ev.type === "status" && ev.text) addMsg("note", esc(ev.text));
+      else if (ev.type === "question") {
+        addQuestion(ev, false);
+        // respondida → vista resuelta; sin respuesta y el agente ya no espera → cerrada
+        if (ev.id in answered) resolveQuestion(ev.id, answered[ev.id] === "(sin respuesta)" ? null : answered[ev.id]);
+        else if (!d.running) resolveQuestion(ev.id, null);
+      }
     });
     // si lo último que pasó fue un deshacer, no ofrecerlo otra vez hasta el próximo turno
     const lastEv = d.transcript[d.transcript.length - 1];
     state.undone = !!(lastEv && lastEv.type === "status" && /^Cambios deshechos/.test(lastEv.text || ""));
-    renderTodos(d.todos); setRunning(!!d.running); loadSessions();
+    renderTodos(d.todos); setRunning(!!d.running); if (state.question) setWaiting(true); loadSessions();
     if (state.lastDeliverable) openFile(state.lastDeliverable, true); // último resultado en el visor
     if (isMobile()) setPane("chat"); else setView("agent");
     $("#messages").scrollTop = $("#messages").scrollHeight;
+    return true;
   }
   function newSession() {
-    state.session = null; state.lastDeliverable = null; state.undone = false; endStream();
+    state.session = null; state.lastDeliverable = null; state.undone = false; state.question = null; endStream(); setWaiting(false); rememberSession();
     showWelcome(); renderTodos([]); setRunning(false); loadSessions();
     if (isMobile()) setPane("chat"); else setView("agent");
   }
@@ -622,7 +747,7 @@
     const done = (ok) => { if (answered) return; answered = true; send({ type: "approve", id: ev.id, ok: ok }); closeModal(m); };
     openModal(m, () => done(false)); // cerrar con «atrás» o Esc equivale a rechazar
     $("#allowBtn").onclick = () => done(true); $("#denyBtn").onclick = () => done(false);
-    if (navigator.vibrate) navigator.vibrate(60);
+    buzz(60);
   }
   function askConfirm(title, text, label, icon) {
     return new Promise((resolve) => {
@@ -660,7 +785,7 @@
     menu._prevFocus = document.activeElement;
     pushLayer("menu", () => hideMenu(true));
     setTimeout(() => { const b = menu.querySelector("button:not([disabled])"); if (b && !isTouch) b.focus(); }, 20);
-    if (navigator.vibrate && isTouch) navigator.vibrate(12);
+    if (isTouch) buzz(12);
   }
   function hideMenu(fromBack) {
     const m = $("#ctxMenu"); if (!m) return;
@@ -788,6 +913,11 @@
       else location.href = "/reports";
       return;
     }
+    // Pregunta pendiente: 1–4 eligen opción e Intro envía la selección (con el compositor vacío o sin foco en un campo)
+    if (state.question && !mod(e) && !e.altKey && (!field || (e.target.id === "input" && !e.target.value))) {
+      if (/^[1-4]$/.test(e.key)) { e.preventDefault(); pickOption(+e.key - 1); return; }
+      if (e.key === "Enter" && state.question.multi && !e.shiftKey) { e.preventDefault(); sendSelection(); return; }
+    }
     if (field) return;
     if (e.key === "/" && !mod(e)) { e.preventDefault(); if (isMobile()) setPane("chat"); $("#input").focus(); return; }
     if (e.key === "?" || (e.shiftKey && e.key === "/")) { e.preventDefault(); showShortcuts(); return; }
@@ -843,11 +973,17 @@
   $("#composer").addEventListener("submit", (e) => {
     e.preventDefault();
     const text = $("#input").value.trim();
+    if (state.question) { // lo que se escribe mientras el agente pregunta es la respuesta
+      if (!text) { if (state.question.multi) sendSelection(); return; }
+      if (answerQuestion(text)) { $("#input").value = ""; fitInput(); }
+      return;
+    }
     if (!text && !state.pending.length) return;
     if (state.running) { toast("El agente está trabajando…", 2200, "warn"); return; }
     if (!send({ type: "chat", session: state.session, text: text, attachments: state.pending, client: clientId })) { toast("Sin conexión; reintentando…", 3000, "warn"); connect(); return; }
+    try { sessionStorage.setItem("pix:turnseq", String(state.lastSeq)); } catch (e) { /* modo privado */ }
     addUser(text, state.pending);
-    state.pending = []; renderPending(); $("#input").value = ""; $("#input").style.height = ""; setRunning(true); setStatus("Enviando…");
+    state.pending = []; renderPending(); $("#input").value = ""; fitInput(); setRunning(true); setStatus("Enviando…");
     if (isTouch) $("#input").blur(); // cerrar el teclado para ver la respuesta
   });
   $("#input").addEventListener("keydown", (e) => {
@@ -855,7 +991,11 @@
     const modEnter = e.ctrlKey || e.metaKey;
     if (modEnter || (state.enterSend && !e.shiftKey && !isTouch)) { e.preventDefault(); $("#composer").requestSubmit(); }
   });
-  $("#input").addEventListener("input", (e) => { e.target.style.height = "auto"; e.target.style.height = Math.min(200, e.target.scrollHeight) + "px"; });
+  // El compositor crece con el texto (y con el placeholder largo, para que no se corte)
+  function fitInput() { const t = $("#input"); t.style.height = "auto"; t.style.height = Math.min(200, t.scrollHeight) + "px"; }
+  $("#input").addEventListener("input", fitInput);
+  window.addEventListener("resize", () => { if (!$("#input").value) fitInput(); });
+  fitInput();
   $("#fileInput").addEventListener("change", (e) => { uploadFiles(e.target.files); e.target.value = ""; });
   $("#camInput").addEventListener("change", (e) => { uploadFiles(e.target.files); e.target.value = ""; });
   document.addEventListener("paste", (e) => {
@@ -885,7 +1025,11 @@
     }
     const li = t.closest("[data-sid]"); if (li) { openSession(li.dataset.sid); return; }
     if (t.closest("#undoBtn")) { undoLast(); return; }
-    const tpl = t.closest("[data-tpl]"); if (tpl) { bump("qa:count", tpl.dataset.tpl); composeFrom(TEMPLATES[tpl.dataset.tpl], []); if (isTouch) $("#input").focus(); return; }
+    const opt = t.closest(".ask-opt"); if (opt && !opt.disabled) { pickOption(+opt.dataset.i); return; }
+    if (t.closest(".ask-send")) { sendSelection(); return; }
+    if (t.closest("[data-addkey]")) { openKeySettings(); return; }
+    if (t.closest("[data-view-apps]")) { if (isMobile()) setPane("apps"); else setView("apps"); return; }
+    const tpl = t.closest("[data-tpl]"); if (tpl && TEMPLATES[tpl.dataset.tpl]) { composeFrom(TEMPLATES[tpl.dataset.tpl], []); if (isTouch) $("#input").focus(); return; }
     const pane = t.closest("#bottomNav [data-pane]"); if (pane) { setPane(pane.dataset.pane); return; }
     const nav = t.closest(".side-nav [data-view]"); if (nav) { setView(nav.dataset.view); if (isMobile()) setPane(nav.dataset.view === "apps" ? "apps" : "chat"); return; }
     const card = t.closest("[data-app]"); if (card && state.apps) { openApp(state.apps[+card.dataset.app]); return; }
@@ -942,6 +1086,72 @@
     if (e.target.checked && !await askConfirm("¿Activar el modo total?", "El agente ejecutará comandos de terminal, Python y PixPin sin pedir confirmación. Puedes volver a desactivarlo aquí mismo.", "Activar", "shield")) { e.target.checked = false; return; }
     setPerm(e.target.checked ? "full" : "auto");
   };
+  // ---------------------------------------------------------------- clave de API (primer uso y Ajustes)
+  function refreshKey(info) {
+    state.apiKey = info || { configured: false, source: "", masked: "" };
+    const k = state.apiKey, fromEnv = k.source === "entorno";
+    $("#keyDot").className = "dot " + (k.configured ? "dot-ok" : "dot-warn");
+    $("#keyStatus").innerHTML = k.configured
+      ? (fromEnv ? "Configurada desde la variable de entorno <code>ANTHROPIC_API_KEY</code>" : `Configurada · <span class="mono">${esc(k.masked || "sk-ant-…")}</span>`)
+      : "Sin configurar: el agente no puede responder todavía.";
+    $("#keyChange span").textContent = k.configured ? "Cambiar" : "Añadir clave";
+    $("#keyRemove").classList.toggle("hidden", !(k.configured && !fromEnv));
+    renderKeyCard();
+  }
+  // Tarjeta de bienvenida: solo mientras no haya clave
+  function renderKeyCard() {
+    const card = $("#keyCard"); if (!card) return;
+    const show = !!(state.apiKey && !state.apiKey.configured);
+    card.classList.toggle("hidden", !show);
+    $("#messages .welcome").classList.toggle("needs-key", show);
+    if (show && !$("#keyCardForm .key-form")) mountKeyForm($("#keyCardForm"), { autofocus: !isTouch });
+  }
+  function mountKeyForm(container, opts) {
+    container.innerHTML = ""; container.appendChild($("#keyFormTpl").content.cloneNode(true));
+    const form = container.querySelector(".key-form"), inp = form.querySelector(".key-input"), eye = form.querySelector(".key-eye");
+    const msg = form.querySelector(".key-msg"), save = form.querySelector(".key-save");
+    const setMsg = (text, kind) => { msg.textContent = text || ""; msg.className = "key-msg xs" + (kind ? " key-" + kind : ""); };
+    eye.onclick = () => { const show = inp.type === "password"; inp.type = show ? "text" : "password"; eye.setAttribute("aria-pressed", show ? "true" : "false"); eye.setAttribute("aria-label", show ? "Ocultar clave" : "Mostrar clave"); eye.innerHTML = ico(show ? "eye-off" : "eye"); inp.focus(); };
+    inp.addEventListener("input", () => setMsg(""));
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const key = inp.value.trim();
+      if (!key) { setMsg("Pega la clave primero.", "err"); inp.focus(); return; }
+      save.disabled = true; inp.disabled = true; form.classList.add("busy");
+      save.innerHTML = '<span class="spinner"></span><span>Comprobando…</span>'; setMsg("Conectando con Anthropic para verificar la clave (no gasta tokens)…");
+      let j;
+      try { const r = await fetch("/api/apikey", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: key }) }); j = await r.json(); }
+      catch (err) { j = { ok: false, error: "No se pudo contactar con el servidor. Comprueba la conexión e inténtalo de nuevo." }; }
+      form.classList.remove("busy");
+      if (!j || !j.ok) {
+        save.disabled = false; inp.disabled = false; save.innerHTML = ico("check") + "<span>Guardar y comprobar</span>";
+        setMsg((j && j.error) || "No se pudo guardar la clave.", "err"); inp.focus(); inp.select();
+        return;
+      }
+      save.innerHTML = ico("check") + "<span>Guardada</span>"; save.classList.add("ok"); setMsg("Clave guardada y verificada. Ya puedes pedirle cosas al agente.", "ok");
+      inp.value = "";
+      toast("Clave de API guardada", 2600, "ok");
+      setTimeout(() => { refreshKey(j); $("#keySettingForm").classList.add("hidden"); if (opts && opts.then) opts.then(); }, 900);
+    });
+    if (opts && opts.autofocus) setTimeout(() => inp.focus(), 60);
+    return form;
+  }
+  function openKeySettings() {
+    const fold = $("#settingsFold"); if (!fold.open) { fold._auto = true; fold.open = true; }
+    if (isMobile()) setPane("sidebar");
+    const box = $("#keySettingForm"); box.classList.remove("hidden");
+    if (!box.querySelector(".key-form")) mountKeyForm(box, { autofocus: !isTouch, then: () => { if (isMobile()) setPane("chat"); } });
+    else setTimeout(() => { const i = box.querySelector(".key-input"); if (i && !isTouch) i.focus(); }, 60);
+    setTimeout(() => { try { $("#keySetting").scrollIntoView({ block: "start", behavior: "smooth" }); } catch (e) { $("#keySetting").scrollIntoView(); } }, 220);
+  }
+  $("#keyChange").onclick = () => { const box = $("#keySettingForm"); if (!box.classList.contains("hidden") && box.querySelector(".key-form")) { box.classList.add("hidden"); return; } openKeySettings(); };
+  $("#keyRemove").onclick = async () => {
+    if (!await askConfirm("¿Quitar la clave de API?", "El agente dejará de responder hasta que añadas otra. Las mini apps seguirán funcionando.", "Quitar")) return;
+    let j; try { j = await fetch("/api/apikey", { method: "DELETE" }).then((r) => r.json()); } catch (e) { j = null; }
+    if (!j || !j.ok) { toast("No se pudo quitar la clave", 3500, "err"); return; }
+    refreshKey(j); $("#keySettingForm").classList.add("hidden"); toast("Clave quitada", 2200, "ok");
+  };
+
   $("#saveData").checked = state.saveData;
   $("#saveData").onchange = (e) => { state.saveData = e.target.checked; localSet("saveData", e.target.checked ? "1" : "0"); refreshLibrary(); };
   // En escritorio las secciones plegables recuerdan su estado
@@ -967,7 +1177,7 @@
     let st;
     try { st = await api("/api/status"); } catch (e) { toast("No se pudo contactar con el servidor", 5000, "err"); connect(); return; }
     state.lastSeq = st.seq; state.maxPx = st.upload_max_px || 3200; state.pixpin = !!st.pixpin;
-    renderEffort(st.effort); renderPerm(st.permission_mode);
+    renderEffort(st.effort); renderPerm(st.permission_mode); refreshKey(st.api_key);
     $("#pixpinDot").className = "dot " + (st.pixpin ? "dot-ok" : "dot-danger");
     $("#pixpinSum").textContent = st.pixpin ? "" : "No conectado";
     $("#pixpinStatus").innerHTML = st.pixpin
@@ -979,6 +1189,23 @@
     if (!st.pixpin) { $$("[data-capture]").forEach((b) => b.classList.add("hidden")); $("#pinBtn").classList.add("hidden"); }
     else if (st.is_host) $("#capBtn").classList.remove("hidden");
     $("#wsInfo").textContent = st.workspace + " · v" + st.version; $("#wsInfo").title = "Workspace: " + st.workspace;
+    // Recarga a mitad de tarea: volver a la sesión de esta pestaña si el agente sigue trabajando o esperando una
+    // respuesta. El historial guardado se pinta desde el archivo; lo que aún no se guardó (el turno en curso, la
+    // pregunta pendiente) se recupera pidiendo al servidor que reenvíe los eventos desde que empezó el turno.
+    let prevSid = null, turnSeq = 0;
+    try { prevSid = sessionStorage.getItem("pix:sid"); turnSeq = +sessionStorage.getItem("pix:turnseq") || 0; } catch (e) { /* modo privado */ }
+    if (prevSid) {
+      let d = null, exists = false;
+      try { // la lista primero: evita un 404 ruidoso si el turno en curso aún no se ha guardado
+        const list = await api("/api/sessions");
+        exists = list.some((x) => x.id === prevSid);
+        if (exists) d = await api("/api/sessions/" + prevSid + "?limit=1");
+      } catch (e) { d = null; }
+      const from = turnSeq > 0 ? turnSeq : Math.max(0, st.seq - 1500);
+      if (exists && d.running) { await openSession(prevSid); state.replay = "questions"; state.lastSeq = Math.min(state.lastSeq, from); }
+      else if (!exists) { state.session = prevSid; state.replay = "full"; state.lastSeq = from; clearWelcome(); setRunning(true); setStatus("Recuperando la sesión…"); }
+      else rememberSession();
+    }
     connect(); loadSessions(); if (!isMobile() && state.tab === "library") refreshLibrary();
     const q = new URLSearchParams(location.search);
     if (q.get("shared") === "1") toast("Archivos compartidos recibidos", 3000, "ok");

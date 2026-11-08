@@ -169,6 +169,7 @@ class Agent:
             self.messages[-1]["content"] = (prev if isinstance(prev, list) else [{"type": "text", "text": prev}]) + content
         else:
             self.messages.append({"role": "user", "content": content})
+        self.save()  # guardar ya: si el usuario recarga a mitad del turno, la sesión existe
         final_text = ""
         tools = self.tool_specs()
         try:
