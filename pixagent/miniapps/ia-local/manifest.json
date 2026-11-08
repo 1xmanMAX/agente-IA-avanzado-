@@ -1,0 +1,9 @@
+{
+  "name": "IA local",
+  "description": "Modelos pequeños en tu propio equipo: instala un motor, descarga el kit recomendado, asigna modelos por tarea y pruébalos",
+  "icon": "🧠",
+  "category": "IA local",
+  "entry": "index.html",
+  "kind": "web",
+  "uses_ai": false
+}
