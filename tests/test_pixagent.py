@@ -156,7 +156,9 @@ def test_agent_loop_executes_tools_and_feeds_images(settings):
     assert out == "Listo: plans/x.png"
     # el primer mensaje incluye la imagen adjunta y la ruta
     first = a.messages[0]["content"]
-    assert first[0]["type"] == "image" and "uploads/plano.png" in first[-1]["text"]
+    texts = [b["text"] for b in first if b["type"] == "text"]
+    assert first[0]["type"] == "image" and any("uploads/plano.png" in t for t in texts)
+    assert any('habilidad nombre="planos-con-fotos"' in t for t in texts)   # se activó por palabra clave
     # ambos resultados del primer turno van en UN solo mensaje de usuario, con imagen
     results = a.messages[2]["content"]
     assert [r["tool_use_id"] for r in results] == ["t1", "t2"]
@@ -494,7 +496,8 @@ def test_undo_loop_detection_and_memory(settings):
     llm2 = ClaudeLLM(settings, client=object())
     Agent(settings, llm=llm2)
     p = llm2._params([], [])
-    assert "Constructora Max" in p["system"][1]["text"]
+    assert any("Constructora Max" in b["text"] for b in p["system"])
+    assert "compact_20260112" in json.dumps(p["context_management"])
     assert p["context_management"]["edits"][0]["type"] == "clear_tool_uses_20250919"
     assert "context-management-2025-06-27" in p["betas"]
 
@@ -660,3 +663,86 @@ def test_parallel_read_only_tools_keep_order(settings):
     res = a.messages[2]["content"]
     assert [r["tool_use_id"] for r in res] == ["r0", "r1", "r2", "r3"]
     assert all(f"contenido {i}" in res[i]["content"][0]["text"] for i in range(4))
+
+
+# ----------------------------------------------------------------- mejoras de harnesses de código abierto
+def test_stuck_detector_cycle_and_stop(settings):
+    from pixagent.agent import Agent
+    a_ = tu("a", "list_files", {"pattern": "*.a"})
+    b_ = tu("b", "list_files", {"pattern": "*.b"})
+    seq = [([tu(f"x{i}", "list_files", {"pattern": "*.a" if i % 2 == 0 else "*.b"})], "tool_use") for i in range(12)]
+    a = Agent(settings, llm=FakeLLM(seq + [([txt("fin")], "end_turn")]))
+    a.run("busca")
+    results = [m["content"][0] for m in a.messages if m["role"] == "user" and isinstance(m["content"], list)
+               and m["content"] and m["content"][0].get("type") == "tool_result"]
+    texts = [r["content"][0]["text"] for r in results]
+    assert any("ciclo de 2" in t for t in texts)                 # detecta A-B-A-B
+    assert any("detenida" in t for t in texts)                   # y se detiene si reincide
+    assert any(e["type"] == "error" and "atascado" in e["text"] for e in a.transcript)
+
+
+def test_delegate_subagent_readonly_and_cost(settings):
+    from pixagent.agent import Agent
+    (settings.ws / "outputs" / "dato.txt").write_text("medida: 3,20 m", "utf-8")
+    script = [
+        ([tu("d1", "delegate", {"task": "Lee outputs/dato.txt y dime la medida"})], "tool_use"),
+        # --- subagente (comparte el LLM simulado en el test)
+        ([tu("s1", "read_file", {"path": "outputs/dato.txt"}),
+          tu("s2", "write_file", {"path": "outputs/no.txt", "content": "x"})], "tool_use"),
+        ([txt("INFORME: la medida es 3,20 m")], "end_turn"),
+        # --- vuelve el principal
+        ([txt("La medida es 3,20 m.")], "end_turn"),
+    ]
+    a = Agent(settings, llm=FakeLLM(script))
+    out = a.run("¿qué medida hay?")
+    assert out == "La medida es 3,20 m."
+    res = a.messages[2]["content"][0]["content"][0]["text"]
+    assert "INFORME: la medida es 3,20 m" in res
+    assert not (settings.ws / "outputs" / "no.txt").exists()       # el subagente de lectura no escribe
+    assert not any(p.name.startswith("sub_") for p in (settings.ws / ".sessions").glob("*.json"))
+
+
+def test_plan_mode_commands_recipes_and_skills(settings):
+    from pixagent.agent import Agent
+    llm = FakeLLM([
+        ([tu("w", "write_file", {"path": "outputs/p.txt", "content": "x"})], "tool_use"),
+        ([txt("Plan: 1) … 2) …")], "end_turn"),
+        ([tu("w2", "write_file", {"path": "outputs/p.txt", "content": "x"})], "tool_use"),
+        ([txt("Hecho")], "end_turn"),
+        ([txt("Panel listo")], "end_turn"),
+    ])
+    a = Agent(settings, llm=llm)
+    assert "Modo plan activado" in a.run("/plan")
+    a.run("haz un informe")
+    assert "MODO PLAN" in a.messages[-2]["content"][0]["content"][0]["text"]   # escritura rechazada
+    assert not (settings.ws / "outputs" / "p.txt").exists()
+    a.run("/ejecutar")
+    assert (settings.ws / "outputs" / "p.txt").exists()
+    assert "/informe-diario" in a.run("/ayuda") and "patologias-construccion" in a.run("/ayuda")
+    a.run("/panel Obra Pérez")
+    prompt = [b["text"] for b in a.messages[-2]["content"] if b["type"] == "text"]
+    assert any("[Receta /panel]" in t and 'Título: "Obra Pérez"' in t for t in prompt)
+    # receta con dato obligatorio ausente → pide al agente preguntarlo
+    from pixagent import skills as SK
+    exp, _ = SK.expand_recipe(settings, "/informe-diario")
+    assert "Faltan estos datos obligatorios: obra" in exp
+    # recetas del usuario sustituyen a las integradas
+    (settings.ws / "recetas").mkdir(exist_ok=True)
+    (settings.ws / "recetas" / "panel.md").write_text("---\nname: panel\ndescription: mía\n---\nHola {{x}}", "utf-8")
+    assert SK.recipes(settings)["panel"]["description"] == "mía"
+
+
+def test_rewind_conversation_and_files(settings):
+    from pixagent.agent import Agent
+    llm = FakeLLM([
+        ([tu("1", "write_file", {"path": "outputs/r.txt", "content": "v1"})], "tool_use"), ([txt("uno")], "end_turn"),
+        ([tu("2", "write_file", {"path": "outputs/r.txt", "content": "v2"})], "tool_use"), ([txt("dos")], "end_turn"),
+    ])
+    a = Agent(settings, llm=llm)
+    a.run("primero")
+    n1 = len(a.messages)
+    a.run("segundo")
+    assert (settings.ws / "outputs" / "r.txt").read_text("utf-8") == "v2"
+    res = a.rewind(2, restore_files=True)
+    assert len(a.messages) == n1 and (settings.ws / "outputs" / "r.txt").read_text("utf-8") == "v1"
+    assert res["restored"] and a.transcript[-1]["type"] == "assistant"

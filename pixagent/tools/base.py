@@ -42,7 +42,8 @@ class ToolContext:
     # de la respuesta o None si no hay interfaz/no respondió.
     ask: Callable[[str, list, bool], str | None] = lambda question, options, multi: None
     session_id: str = "default"
-    state: dict[str, Any] = field(default_factory=dict)  # estado por sesión (todos, etc.)
+    state: dict[str, Any] = field(default_factory=dict)
+    agent: Any = None   # agente propietario (no se guarda en la sesión)
 
     @property
     def ws(self) -> Path:

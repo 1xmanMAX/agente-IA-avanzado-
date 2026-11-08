@@ -15,6 +15,8 @@ def key_source(settings) -> str:
 
 def make_client(settings, **kw):
     import anthropic
+    # Reintentos del SDK (429/5xx/529/conexión) con backoff exponencial y respeto de retry-after
+    kw.setdefault("max_retries", 6)
     key = getattr(settings, "anthropic_api_key", "") or None
     return anthropic.Anthropic(api_key=key, **kw) if key else anthropic.Anthropic(**kw)
 

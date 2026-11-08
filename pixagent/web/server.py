@@ -354,6 +354,8 @@ def create_app(settings: Settings, llm_factory=None, report_writer_factory=None)
         out = []
         files_ = sorted((ws_root / ".sessions").glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)[:60]
         for f in files_:
+            if f.stem.startswith("sub_"):
+                continue
             title = _read_title(f)
             out.append({"id": f.stem, "title": title or f.stem, "updated": f.stat().st_mtime})
         return out
@@ -366,7 +368,7 @@ def create_app(settings: Settings, llm_factory=None, report_writer_factory=None)
         d = await asyncio.to_thread(lambda: json.loads(f.read_text("utf-8")))
         tr = d.get("transcript", [])
         return {"id": d["id"], "title": d.get("title"), "transcript": tr[-limit:], "truncated": len(tr) > limit,
-                "todos": d.get("state", {}).get("todos", []),
+                "todos": d.get("state", {}).get("todos", []), "mode": d.get("state", {}).get("mode", "normal"),
                 "running": sid in running and running[sid].is_alive()}
 
     @app.delete("/api/sessions/{sid}")
@@ -386,6 +388,33 @@ def create_app(settings: Settings, llm_factory=None, report_writer_factory=None)
         if not restored:
             return {"ok": False, "error": "No hay cambios que deshacer"}
         return {"ok": True, "restored": restored}
+
+    @app.post("/api/sessions/{sid}/rewind")
+    async def rewind(sid: str, body: dict):
+        """Volver a antes del turno N (conversación y, opcionalmente, archivos)."""
+        if sid in running and running[sid].is_alive():
+            return JSONResponse({"ok": False, "error": "Espera a que el agente termine"}, status_code=409)
+        a = get_agent(sid)
+        try:
+            res = await asyncio.to_thread(a.rewind, int(body.get("turn", 0)), bool(body.get("files", True)))
+        except ValueError as e:
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=400)
+        return {"ok": True, **res}
+
+    @app.get("/api/commands")
+    async def commands():
+        """Comandos /, recetas y habilidades (para el autocompletado del compositor)."""
+        from .. import skills as SK
+        builtin = [{"name": "plan", "description": "Investigar y proponer un plan sin modificar nada", "kind": "comando"},
+                   {"name": "ejecutar", "description": "Llevar a cabo el plan acordado", "kind": "comando"},
+                   {"name": "deshacer", "description": "Revertir los cambios de archivos del último turno", "kind": "comando"},
+                   {"name": "ayuda", "description": "Ver comandos, recetas y habilidades", "kind": "comando"}]
+        rc = [{"name": d["name"], "description": d.get("description", ""), "kind": "receta",
+               "params": d.get("parametros") or d.get("parameters") or [], "builtin": d["builtin"]}
+              for d in SK.recipes(settings).values()]
+        sk = [{"name": d["name"], "description": d.get("description", ""), "kind": "habilidad", "builtin": d["builtin"]}
+              for d in SK.skills(settings).values()]
+        return {"commands": builtin + rc, "skills": sk}
 
     @app.post("/api/upload")
     async def upload(files: list[UploadFile] = File(...)):

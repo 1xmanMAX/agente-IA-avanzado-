@@ -88,7 +88,7 @@ def signature(f: Path):
     """Huella de 32x32 en gris para detectar fotogramas casi idénticos sin IA."""
     from PIL import Image
     with Image.open(f) as im:
-        return list(im.convert("L").resize((32, 32)).getdata())
+        return list(im.convert("L").resize((32, 32)).tobytes())
 
 
 def image_diff(a, b) -> float:

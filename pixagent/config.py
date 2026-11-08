@@ -49,6 +49,10 @@ class Settings:
     max_usd_per_task: float = 5.0
     # Limpieza en servidor de resultados de herramientas antiguos (ahorra tokens en sesiones largas)
     context_editing: bool = True
+    # Compactación automática de conversaciones largas (resumen en el servidor)
+    compaction: bool = True
+    # Modelo de los subagentes (delegate); vacío = el mismo que el principal
+    subagent_model: str = ""
     # Servidor web
     host: str = "127.0.0.1"
     port: int = 8765

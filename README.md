@@ -242,7 +242,10 @@ pixagent/
     static/         PWA sin dependencias: index.html, app.js, style.css, manifest, service worker
 ```
 
-Más detalle sobre las decisiones de diseño en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).
+Más detalle sobre las decisiones de diseño en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) y sobre lo
+aprendido del código de Codex CLI, Gemini CLI, opencode, OpenHands, Cline, Goose y DeepSeek-TUI en
+[docs/MEJORAS_HARNESS.md](docs/MEJORAS_HARNESS.md) (compactación, subagentes, habilidades, recetas
+`/comando`, modo plan, rebobinar, detector de atascos…).
 
 ## Tests
 
