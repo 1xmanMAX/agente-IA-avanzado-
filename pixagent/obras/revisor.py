@@ -148,7 +148,28 @@ def _merge(acc: dict, part: dict) -> None:
             acc[k] = v
 
 
-def extraer(paths: list[Path], writer, emit=lambda e: None, rango=None) -> dict:
+def esquema_formato(tipo: str) -> str:
+    """Instrucción extra para leer las casillas de un formato concreto (Anexos 10–20)."""
+    t = _plantilla(tipo)
+    if not t:
+        return ""
+    campos = "; ".join(f"{f['key']} = {f['label']}" for f in t["fields"])
+    tablas = "; ".join(f"{s['table']} = {s['title']} (columnas: {' | '.join(s.get('columns', []))})"
+                       for s in t["sections"] if s["kind"] == "table")
+    return (f"\n\nEste documento es el formato «{t['name']}». Además del esquema anterior, devuelve:\n"
+            f'"campos": {{clave: valor}} con estas claves si aparecen: {campos}\n'
+            f'"tablas": {{clave: [[cabecera...], [fila...]]}} con estas claves: {tablas or "—"}\n'
+            '"preguntas_sin_responder": número de preguntas Sí/No/N.A. sin marcar.')
+
+
+def _plantilla(tipo: str) -> dict | None:
+    import json as _json
+    from ..reports.engine import BUILTIN_TEMPLATES
+    f = BUILTIN_TEMPLATES / f"{tipo}.json"
+    return _json.loads(f.read_text("utf-8")) if f.exists() else None
+
+
+def extraer(paths: list[Path], writer, emit=lambda e: None, rango=None, extra: str = "") -> dict:
     """Lee los documentos por bloques de páginas y fusiona los datos extraídos."""
     from ..tools.base import image_block
     datos: dict = {"_paginas": 0, "_archivos": [p.name for p in paths]}
@@ -168,7 +189,7 @@ def extraer(paths: list[Path], writer, emit=lambda e: None, rango=None) -> dict:
                     content.append(image_block(pg["image"], max_side=1568))
             content.append({"type": "text", "text": f"Documento: {path.name}. Transcribe los datos de estas páginas en JSON."})
             try:
-                text, u = writer.write(EXTRACT_SYSTEM, content, max_tokens=8000)
+                text, u = writer.write(EXTRACT_SYSTEM + extra, content, max_tokens=8000)
             except Exception as e:  # noqa: BLE001
                 datos.setdefault("_errores", []).append(f"{path.name} págs. {bloque[0]['n']}-{bloque[-1]['n']}: {e}")
                 continue
@@ -363,6 +384,17 @@ def revisar(datos: dict, tipo: str = "mensual_residente", obra: Obra | None = No
         if not fi.get("residente"):
             H.append(_h("alerta", "Firma del residente", "No se detecta firma/sello del residente", fi.get("pagina"),
                         "firma y sello del residente", "Firma el informe antes de presentarlo."))
+    if _plantilla(tipo):
+        from .formatos import chequear
+        H += chequear(tipo, datos.get("campos", {}), datos.get("tablas", {}), obra)
+        n = parse_num(datos.get("preguntas_sin_responder"))
+        if n:
+            H.append(_h("alerta", "Preguntas sin responder", f"{int(n)} preguntas Sí/No/N.A. sin marcar", None,
+                        "todas las preguntas respondidas", "Responde cada pregunta o justifica «N/A»."))
+        faltan = [f["label"] for f in _plantilla(tipo)["fields"] if f.get("required") and not datos.get("campos", {}).get(f["key"])]
+        if datos.get("campos") is not None and faltan:
+            H.append(_h("alerta", "Casillas esenciales vacías", "; ".join(faltan[:8]), None, "casillas llenas",
+                        "Completa las casillas esenciales del formato."))
     for o in datos.get("observaciones", []):
         H.append(_h("ia", "Observación de lectura (verificar)", o.get("texto", ""), o.get("pagina")))
     for e in datos.get("_errores", []):
@@ -433,7 +465,7 @@ def reporte_pdf(settings, H: list[dict], datos: dict, out: Path, titulo: str, ob
 def revisar_documentos(settings, paths: list[Path], writer, tipo: str = "mensual_residente",
                        obra: Obra | None = None, emit=lambda e: None, rango=None) -> dict:
     t0 = time.time()
-    datos = extraer(paths, writer, emit, rango)
+    datos = extraer(paths, writer, emit, rango, esquema_formato(tipo))
     H = revisar(datos, tipo, obra)
     base = (obra.dir if obra else settings.ws / "obras") / "revisiones"
     stem = f"{date.today():%Y%m%d}-{re.sub(r'[^a-z0-9]+', '-', paths[0].stem.lower())[:40]}"

@@ -1,7 +1,7 @@
 ---
 name: obras-administracion-directa
 description: Informes de obra por administración directa según la Directiva 017-2023-CG/GMPL (Perú): informe mensual del residente, revisión de inconsistencias, pre-liquidación y coordinación del equipo técnico
-keywords: administracion directa, directiva 017, 017-2023, informe mensual, residente de obra, valorizacion, preliquidacion, pre liquidacion, liquidacion parcial, liquidacion de obra, cuaderno de obra, almacenero, administrador de obra, ssoma, ingeniero de calidad, asistente de obra, supervisor de obra, inspector de obra, anexo 2, infobras, expediente tecnico, inconsistencias, revisar informe
+keywords: ampliacion de plazo, adicional de obra, mayores metrados, mayores gastos generales, cronograma actualizado, reprogramacion, modificacion del expediente, informe final de obra, liquidacion final, anexo 10, anexo 12, anexo 13, anexo 14, anexo 18, anexo 19, anexo 20, administracion directa, directiva 017, 017-2023, informe mensual, residente de obra, valorizacion, preliquidacion, pre liquidacion, liquidacion parcial, liquidacion de obra, cuaderno de obra, almacenero, administrador de obra, ssoma, ingeniero de calidad, asistente de obra, supervisor de obra, inspector de obra, anexo 2, infobras, expediente tecnico, inconsistencias, revisar informe
 ---
 # Obras por administración directa (Directiva 017-2023-CG/GMPL)
 
@@ -54,6 +54,24 @@ el PDF. Las filas «REVISAR» son lecturas de la IA en escaneados: pide confirma
 Periodicidad: plazo < 1 año → cada 4 meses; ≥ 1 año → cada 6; ≤ 4 meses → solo liquidación total; 30 d.c.
 tras el periodo. Plantilla `preliquidacion-obra` (contenidos a–m del 7.3.10). Requiere conformidad previa
 de gastos de Contabilidad: recuérdalo.
+
+## 7. Demás formatos de la directiva (todos en modo guiado: `guia` iniciar objetivo=…)
+| Objetivo | Formato | Lo esencial que vigila la app |
+|---|---|---|
+| modificacion | Anexo 10 | incidencia = importe / ET; acumulado > 15 % = significativa; > 50 % Contraloría (10 d); certificación presupuestal si sube el costo |
+| conformidad | Anexo 11 | CPM y calendarios coherentes con el ET (supervisor) |
+| revision_et | Anexo 12 | informe del residente en 15/30 d; supervisor 7/10 d; variación > 15 % → reformulación |
+| supervision | Anexo 13 | acumulado, saldo, % financiero; atraso > 20 % → acciones; 5 d |
+| ampliacion_plazo | Anexo 14 | causal a/b/c del 7.3.7, ruta crítica, asientos, plazo vigente, nueva fecha = fin vigente + días |
+| reprogramacion / cronograma_actualizado | Anexos 15 y 17 | solo partidas afectadas; cronograma 2 d.c. tras el reinicio |
+| mayores_gastos_generales | Anexo 16 | solo GG variables del ET × días; conforme ≤ requerido |
+| adicional | Anexo 18 | CD + GG = total; incidencia; resúmenes ≤ 50 palabras; > 50 % autorización CGR |
+| mayores_metrados | Anexo 19 | P.U. × cantidad = parcial; ≤ 50 palabras; misma partida (si es nueva, es adicional) |
+| liquidacion_final | Anexo 20 | saldo = pagado − autorizado por rubro; conformidad de Contabilidad |
+| informe_final | 7.4.2 | valorización física y financiera en CD y CI; < 100 % → deductivos o saldo; lecciones aprendidas |
+Registra cada modificación y ampliación con `obra` action=modificacion / ampliacion: así los acumulados y la
+fecha de fin vigente se llenan solos en los siguientes formatos. Los Anexos 11–20 los firma el supervisor:
+el residente prepara el sustento y puede dejarle el formato pre-llenado.
 
 ## Reglas
 - No inventes cifras, fechas ni nombres: usa [POR COMPLETAR] y pregunta.

@@ -116,5 +116,26 @@ pidiendo datos para deducirla); salida en **PDF**.
 | Plantillas `informe-mensual-residente`, `preliquidacion-obra` (tipo de sección `table` y anexos) | `pixagent/reports/templates/` |
 | Habilidad y recetas `/informe-mensual`, `/revisar-informe`, `/preliquidacion`, `/equipo` | `pixagent/library/` |
 
-Pendiente para siguientes fases: Anexo 13 (supervisión), Anexos 10 y 14–19 (modificaciones, ampliaciones,
-adicionales, mayores metrados), informe final y Anexo 20 (liquidación final).
+### Formatos de la directiva (todos implementados)
+
+| Objetivo del modo guiado | Plantilla | Comprobaciones propias (`obras/formatos.py`) |
+|---|---|---|
+| informe_mensual | informe-mensual-residente (Anexo 2) | sumas, saldos, total ejecutado, atraso > 20 %, cuadros D1–D15 |
+| preliquidacion | preliquidacion-obra (7.3.10) | periodicidad y plazo de 30 d |
+| modificacion | anexo10-modificacion | incidencia, acumulado, 15 % significativa, 50 % Contraloría |
+| conformidad | anexo11-conformidad | preguntas del CPM y calendarios |
+| revision_et | anexo12-revision-et | 21 preguntas; variación > 15 % |
+| supervision | anexo13-supervision | acumulado, saldo, % financiero, atraso > 20 %, estado |
+| ampliacion_plazo | anexo14-ampliacion-plazo | causal a/b/c, ruta crítica, asiento, plazo vigente, nueva fecha |
+| reprogramacion | anexo15-reprogramacion | partidas afectadas |
+| mayores_gastos_generales | anexo16-mayores-gastos-generales | conforme ≤ requerido; GG variables × días |
+| cronograma_actualizado | anexo17-cronograma-actualizado | 8 preguntas; 2 d tras el reinicio |
+| adicional | anexo18-adicional | CD + GG = total, incidencia, ≤ 50 palabras, > 50 % CGR |
+| mayores_metrados | anexo19-mayores-metrados | P.U. × cantidad, total, ≤ 50 palabras |
+| liquidacion_final | anexo20-liquidacion | saldo B − A por rubro, totales, conformidad contable |
+| informe_final | informe-final-obra (7.4.2) | < 100 % exige deductivos o saldo; CD y CI |
+
+Las plantillas se generan con `python -m pixagent.obras.plantillas` (bloques I–IV comunes idénticos).
+La obra lleva el registro de modificaciones (incidencia acumulada) y ampliaciones (fin vigente), que
+rellenan solos los formatos siguientes. `revisar_informe` acepta el id de cualquier formato: lee sus
+casillas en los escaneados y aplica sus reglas.

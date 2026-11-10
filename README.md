@@ -95,6 +95,11 @@ Para el **residente de obra** (Perú). Detalle de la norma en [docs/DIRECTIVA_01
   anterior, apartados faltantes, fotos y firmas. Entrega un **reporte rápido en PDF** con semáforo.
 - **Informes según la norma, en PDF**: informe mensual del residente (Anexo 2, con los 15 cuadros y los
   entregables escaneados como anexos) y liquidación parcial / pre-liquidación (contenidos a–m del 7.3.10).
+- **Todos los formatos de la directiva**: modificación del ET (Anexo 10), conformidad (11), revisión del ET (12),
+  supervisión mensual (13), ampliación de plazo (14), reprogramación (15), mayores gastos generales (16),
+  cronograma actualizado (17), adicional (18), mayores metrados (19), liquidación (20) e informe final de obra.
+  Cada uno con sus preguntas Sí/No/N.A., cuadros y reglas (umbrales, causales, fechas, máx. 50 palabras…).
+  La obra lleva el registro de modificaciones y ampliaciones: acumulados y fecha de fin vigente se rellenan solos.
 
 ### Modo guiado: dime qué quieres y lo construimos paso a paso
 
@@ -108,7 +113,9 @@ Para cualquier informe, el agente trabaja como un asistente de varios pasos, per
 4. Redacta **sección por sección**: la apruebas, pides cambios («menciona las lluvias») o la editas tú.
 5. Arma el **PDF final** y hace las comprobaciones. Si lo dejas a medias, al volver sigue donde quedó.
 
-Comandos: `/informe-mensual 2026-10`, `/revisar-informe` (con el PDF adjunto), `/preliquidacion`, `/equipo`.
+Comandos: `/informe-mensual 2026-10`, `/revisar-informe` (con el PDF adjunto), `/preliquidacion`, `/equipo`,
+`/ampliacion-plazo`, `/adicional`, `/mayores-metrados`, `/modificacion`, `/supervision`, `/revision-expediente`,
+`/reprogramacion`, `/mayores-gastos-generales`, `/cronograma-actualizado`, `/conformidad`, `/liquidacion-final`, `/informe-final`.
 
 ## Integración con PixPin
 
@@ -262,7 +269,8 @@ pixagent/
     reports_tool.py report_builder: informes por plantilla (para el agente)
     obra_tool.py    obra (perfil, categoría, equipo, órdenes, entregas, tablero, plazos) y revisar_informe
     guia_tool.py    guia: modo guiado (qué necesito → aportes → secciones aprobadas → PDF)
-  obras/            Directiva 017-2023-CG/GMPL: norma.py (datos de la norma), obra.py, revisor.py
+  obras/            Directiva 017-2023-CG/GMPL: norma.py (datos de la norma), obra.py, revisor.py,
+                    plantillas.py (genera los formatos), formatos.py (reglas de cada anexo)
   reports/
     engine.py       motor de informes: plantillas, unidades, redacción en paralelo, estado, ensamblado
     templates/      plantillas integradas (JSON)

@@ -1,0 +1,383 @@
+{
+ "id": "anexo18-adicional",
+ "name": "Aprobación de prestación adicional de obra (Anexo 18)",
+ "description": "Prestación adicional: asiento, sustento (resúmenes de máx. 50 palabras), presupuesto adicional, incidencia y criterios.",
+ "norma": "Directiva N.º 017-2023-CG/GMPL, numerales 7.3.6, 7.3.8 e) y Anexo 18",
+ "autor": "supervisor",
+ "style": {
+  "theme_color": "#6d28d9",
+  "page_size": "A4",
+  "cover": true,
+  "toc": true,
+  "cover_photo": false
+ },
+ "fields": [
+  {
+   "key": "unidad_ejecutora",
+   "label": "U. Ejecutora",
+   "type": "text"
+  },
+  {
+   "key": "entidad",
+   "label": "Entidad",
+   "type": "text"
+  },
+  {
+   "key": "pliego",
+   "label": "Pliego",
+   "type": "text"
+  },
+  {
+   "key": "estado_obra",
+   "label": "Estado de la obra",
+   "type": "text"
+  },
+  {
+   "key": "obra",
+   "label": "Obra",
+   "type": "text"
+  },
+  {
+   "key": "cui",
+   "label": "Código Único de Inversión",
+   "type": "text"
+  },
+  {
+   "key": "infobras",
+   "label": "Código INFOBRAS",
+   "type": "text"
+  },
+  {
+   "key": "distrito",
+   "label": "Distrito",
+   "type": "text"
+  },
+  {
+   "key": "provincia",
+   "label": "Provincia",
+   "type": "text"
+  },
+  {
+   "key": "departamento",
+   "label": "Departamento",
+   "type": "text"
+  },
+  {
+   "key": "plazo_dias",
+   "label": "Plazo de ejecución de obra (d.c.)",
+   "type": "text"
+  },
+  {
+   "key": "fecha_inicio",
+   "label": "Inicio del plazo de obra",
+   "type": "text"
+  },
+  {
+   "key": "fecha_fin",
+   "label": "Fin del plazo de obra",
+   "type": "text"
+  },
+  {
+   "key": "modalidad",
+   "label": "Modalidad de ejecución",
+   "type": "text"
+  },
+  {
+   "key": "sistema",
+   "label": "Sistema de ejecución",
+   "type": "text"
+  },
+  {
+   "key": "res_designacion",
+   "label": "N.º de resolución de designación / contrato",
+   "type": "text"
+  },
+  {
+   "key": "res_monto",
+   "label": "Monto S/",
+   "type": "text"
+  },
+  {
+   "key": "res_fecha",
+   "label": "Fecha de resolución / suscripción",
+   "type": "text"
+  },
+  {
+   "key": "res_inicio",
+   "label": "Inicio del plazo de servicio",
+   "type": "text"
+  },
+  {
+   "key": "res_fin",
+   "label": "Término del plazo de servicio",
+   "type": "text"
+  },
+  {
+   "key": "res_nombre",
+   "label": "Residente",
+   "type": "text"
+  },
+  {
+   "key": "res_dni",
+   "label": "DNI",
+   "type": "text"
+  },
+  {
+   "key": "res_cip",
+   "label": "N.º CIP/CAP",
+   "type": "text"
+  },
+  {
+   "key": "sup_designacion",
+   "label": "N.º de resolución de designación / contrato de supervisión",
+   "type": "text"
+  },
+  {
+   "key": "sup_monto",
+   "label": "Monto S/",
+   "type": "text"
+  },
+  {
+   "key": "sup_fecha",
+   "label": "Fecha de resolución / suscripción",
+   "type": "text"
+  },
+  {
+   "key": "sup_inicio",
+   "label": "Inicio del plazo de servicio",
+   "type": "text"
+  },
+  {
+   "key": "sup_fin",
+   "label": "Término del plazo de servicio",
+   "type": "text"
+  },
+  {
+   "key": "sup_nombre",
+   "label": "Supervisor / inspector",
+   "type": "text"
+  },
+  {
+   "key": "sup_dni",
+   "label": "DNI",
+   "type": "text"
+  },
+  {
+   "key": "sup_cip",
+   "label": "N.º CIP/CAP",
+   "type": "text"
+  },
+  {
+   "key": "aprobacion_et",
+   "label": "Documento de aprobación del expediente técnico",
+   "type": "text"
+  },
+  {
+   "key": "presupuesto_aprobado",
+   "label": "Monto del presupuesto (S/)",
+   "type": "text"
+  },
+  {
+   "key": "fecha_presupuesto",
+   "label": "Fecha del presupuesto",
+   "type": "text"
+  },
+  {
+   "key": "fecha",
+   "label": "Lugar y fecha",
+   "type": "text"
+  },
+  {
+   "key": "adicional_numero",
+   "label": "Prestación adicional N.º",
+   "type": "text",
+   "required": true
+  },
+  {
+   "key": "asiento",
+   "label": "N.º de asiento del cuaderno de obra",
+   "type": "text"
+  },
+  {
+   "key": "fecha_asiento",
+   "label": "Fecha del asiento",
+   "type": "text"
+  },
+  {
+   "key": "incidencia_acumulada",
+   "label": "% de incidencia acumulado",
+   "type": "text"
+  },
+  {
+   "key": "resumen_deficiencia",
+   "label": "Resumen de la deficiencia del ET que genera el adicional (anotado en CO)",
+   "type": "text",
+   "max_words": 50
+  },
+  {
+   "key": "resumen_riesgo",
+   "label": "Resumen del riesgo que generó el adicional (anotado en CO)",
+   "type": "text",
+   "max_words": 50
+  },
+  {
+   "key": "resumen_supervisor",
+   "label": "Resumen del informe técnico de la supervisión sobre la necesidad (máx. 50 palabras)",
+   "type": "text",
+   "max_words": 50
+  },
+  {
+   "key": "informe_supervisor",
+   "label": "N.º y fecha del informe técnico de la supervisión",
+   "type": "text"
+  },
+  {
+   "key": "causa",
+   "label": "Causa (deficiencia del ET / hechos no previsibles posteriores a su aprobación)",
+   "type": "text"
+  },
+  {
+   "key": "ad_cd",
+   "label": "Costo directo (S/)",
+   "type": "number",
+   "required": true
+  },
+  {
+   "key": "ad_ggv",
+   "label": "Gastos generales variables (S/)",
+   "type": "number"
+  },
+  {
+   "key": "ad_ggd",
+   "label": "Gastos generales directos/fijos (S/)",
+   "type": "number"
+  },
+  {
+   "key": "ad_total",
+   "label": "Costo total (S/)",
+   "type": "number"
+  },
+  {
+   "key": "ad_incidencia",
+   "label": "Incidencia respecto al presupuesto inicial (%)",
+   "type": "text"
+  }
+ ],
+ "sections": [
+  {
+   "id": "i-obra",
+   "title": "I. Información general de la obra",
+   "kind": "fields_table",
+   "keys": [
+    "unidad_ejecutora",
+    "entidad",
+    "pliego",
+    "estado_obra",
+    "obra",
+    "cui",
+    "infobras",
+    "distrito",
+    "provincia",
+    "departamento",
+    "plazo_dias",
+    "fecha_inicio",
+    "fecha_fin",
+    "modalidad",
+    "sistema"
+   ]
+  },
+  {
+   "id": "ii-residente",
+   "title": "II. Información general del residente de obra",
+   "kind": "fields_table",
+   "keys": [
+    "res_designacion",
+    "res_monto",
+    "res_fecha",
+    "res_inicio",
+    "res_fin",
+    "res_nombre",
+    "res_dni",
+    "res_cip"
+   ]
+  },
+  {
+   "id": "iii-supervisor",
+   "title": "III. Información general del inspector / supervisor",
+   "kind": "fields_table",
+   "keys": [
+    "sup_designacion",
+    "sup_monto",
+    "sup_fecha",
+    "sup_inicio",
+    "sup_fin",
+    "sup_nombre",
+    "sup_dni",
+    "sup_cip"
+   ]
+  },
+  {
+   "id": "iv",
+   "title": "IV. Prestación adicional de obra en trámite",
+   "kind": "fields_table",
+   "keys": [
+    "adicional_numero",
+    "asiento",
+    "fecha_asiento",
+    "incidencia_acumulada"
+   ]
+  },
+  {
+   "id": "via",
+   "title": "VI.a Sustento de la necesidad de la prestación adicional",
+   "kind": "fields_table",
+   "keys": [
+    "resumen_deficiencia",
+    "resumen_riesgo",
+    "resumen_supervisor",
+    "informe_supervisor",
+    "causa"
+   ]
+  },
+  {
+   "id": "memoria",
+   "title": "Memoria del expediente del adicional",
+   "kind": "ai",
+   "words": 600,
+   "photos": true,
+   "instructions": "Memoria descriptiva y justificación del adicional (7.3.6): trabajos no considerados en el ET indispensables para la meta, solución técnica, partidas, precios (pactados con acta y APU si los hay), planos y EETT. Los resúmenes del bloque VI.a no superan 50 palabras."
+  },
+  {
+   "id": "vib",
+   "title": "VI.b Presupuesto adicional de obra",
+   "kind": "fields_table",
+   "keys": [
+    "ad_cd",
+    "ad_ggv",
+    "ad_ggd",
+    "ad_total",
+    "ad_incidencia"
+   ]
+  },
+  {
+   "id": "criterios",
+   "title": "Criterios de conformidad del expediente del adicional",
+   "kind": "checklist",
+   "items": [
+    "La solución técnica comprende trabajos no considerados en el ET, indispensables para la meta de la obra principal",
+    "Si existen precios unitarios pactados, cuenta con la respectiva acta de precios pactados",
+    "Si existen precios unitarios pactados, cuenta con el análisis de precios",
+    "Corresponde a una prestación adicional de obra de carácter de emergencia",
+    "Se adjunta el análisis de los gastos generales del presupuesto adicional",
+    "El expediente de adicional cuenta con fórmula polinómica",
+    "Se requiere la autorización de la Contraloría General de la República (incidencia acumulada > 50 %)"
+   ]
+  },
+  {
+   "id": "firma",
+   "title": "Declaración jurada y firma",
+   "kind": "static",
+   "content": "Nota: La información registrada en el presente tiene el carácter de declaración jurada.\n\nLugar y fecha: {{fecha}}\n\n\n\n______________________________\n\n**Jefe de supervisión / inspector:** {{sup_nombre}} · DNI {{sup_dni}} · Registro CIP {{sup_cip}}"
+  }
+ ]
+}

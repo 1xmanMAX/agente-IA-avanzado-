@@ -1,0 +1,395 @@
+{
+ "id": "informe-final-obra",
+ "name": "Informe final de obra (7.4.2)",
+ "description": "Informe final del residente con parte técnica y administrativa, valorización física (CD y CI) y financiera, lecciones aprendidas y documentos.",
+ "norma": "Directiva N.º 017-2023-CG/GMPL, numeral 7.4.2",
+ "autor": "ambos",
+ "style": {
+  "theme_color": "#14532d",
+  "page_size": "A4",
+  "cover": true,
+  "toc": true,
+  "cover_photo": false
+ },
+ "fields": [
+  {
+   "key": "unidad_ejecutora",
+   "label": "U. Ejecutora",
+   "type": "text"
+  },
+  {
+   "key": "entidad",
+   "label": "Entidad",
+   "type": "text"
+  },
+  {
+   "key": "pliego",
+   "label": "Pliego",
+   "type": "text"
+  },
+  {
+   "key": "estado_obra",
+   "label": "Estado de la obra",
+   "type": "text"
+  },
+  {
+   "key": "obra",
+   "label": "Obra",
+   "type": "text"
+  },
+  {
+   "key": "cui",
+   "label": "Código Único de Inversión",
+   "type": "text"
+  },
+  {
+   "key": "infobras",
+   "label": "Código INFOBRAS",
+   "type": "text"
+  },
+  {
+   "key": "distrito",
+   "label": "Distrito",
+   "type": "text"
+  },
+  {
+   "key": "provincia",
+   "label": "Provincia",
+   "type": "text"
+  },
+  {
+   "key": "departamento",
+   "label": "Departamento",
+   "type": "text"
+  },
+  {
+   "key": "plazo_dias",
+   "label": "Plazo de ejecución de obra (d.c.)",
+   "type": "text"
+  },
+  {
+   "key": "fecha_inicio",
+   "label": "Inicio del plazo de obra",
+   "type": "text"
+  },
+  {
+   "key": "fecha_fin",
+   "label": "Fin del plazo de obra",
+   "type": "text"
+  },
+  {
+   "key": "modalidad",
+   "label": "Modalidad de ejecución",
+   "type": "text"
+  },
+  {
+   "key": "sistema",
+   "label": "Sistema de ejecución",
+   "type": "text"
+  },
+  {
+   "key": "res_designacion",
+   "label": "N.º de resolución de designación / contrato",
+   "type": "text"
+  },
+  {
+   "key": "res_monto",
+   "label": "Monto S/",
+   "type": "text"
+  },
+  {
+   "key": "res_fecha",
+   "label": "Fecha de resolución / suscripción",
+   "type": "text"
+  },
+  {
+   "key": "res_inicio",
+   "label": "Inicio del plazo de servicio",
+   "type": "text"
+  },
+  {
+   "key": "res_fin",
+   "label": "Término del plazo de servicio",
+   "type": "text"
+  },
+  {
+   "key": "res_nombre",
+   "label": "Residente",
+   "type": "text"
+  },
+  {
+   "key": "res_dni",
+   "label": "DNI",
+   "type": "text"
+  },
+  {
+   "key": "res_cip",
+   "label": "N.º CIP/CAP",
+   "type": "text"
+  },
+  {
+   "key": "sup_designacion",
+   "label": "N.º de resolución de designación / contrato de supervisión",
+   "type": "text"
+  },
+  {
+   "key": "sup_monto",
+   "label": "Monto S/",
+   "type": "text"
+  },
+  {
+   "key": "sup_fecha",
+   "label": "Fecha de resolución / suscripción",
+   "type": "text"
+  },
+  {
+   "key": "sup_inicio",
+   "label": "Inicio del plazo de servicio",
+   "type": "text"
+  },
+  {
+   "key": "sup_fin",
+   "label": "Término del plazo de servicio",
+   "type": "text"
+  },
+  {
+   "key": "sup_nombre",
+   "label": "Supervisor / inspector",
+   "type": "text"
+  },
+  {
+   "key": "sup_dni",
+   "label": "DNI",
+   "type": "text"
+  },
+  {
+   "key": "sup_cip",
+   "label": "N.º CIP/CAP",
+   "type": "text"
+  },
+  {
+   "key": "aprobacion_et",
+   "label": "Documento de aprobación del expediente técnico",
+   "type": "text"
+  },
+  {
+   "key": "presupuesto_aprobado",
+   "label": "Monto del presupuesto (S/)",
+   "type": "text"
+  },
+  {
+   "key": "fecha_presupuesto",
+   "label": "Fecha del presupuesto",
+   "type": "text"
+  },
+  {
+   "key": "fecha",
+   "label": "Lugar y fecha",
+   "type": "text"
+  },
+  {
+   "key": "fecha_culminacion",
+   "label": "Fecha de culminación de la ejecución física",
+   "type": "text",
+   "required": true
+  },
+  {
+   "key": "avance_fisico_final",
+   "label": "Avance físico final (%)",
+   "type": "text"
+  },
+  {
+   "key": "val_fisica_cd",
+   "label": "Valorización física — costo directo (S/)",
+   "type": "number"
+  },
+  {
+   "key": "val_fisica_ci",
+   "label": "Valorización física — costo indirecto (S/)",
+   "type": "number"
+  },
+  {
+   "key": "val_financiera_cd",
+   "label": "Valorización financiera (devengado) — costo directo (S/)",
+   "type": "number"
+  },
+  {
+   "key": "val_financiera_ci",
+   "label": "Valorización financiera (devengado) — costo indirecto (S/)",
+   "type": "number"
+  },
+  {
+   "key": "deductivos",
+   "label": "Deductivos (S/)",
+   "type": "number"
+  },
+  {
+   "key": "saldo_obra",
+   "label": "Saldo de obra por ejecutar (S/ y descripción)",
+   "type": "text"
+  },
+  {
+   "key": "metas",
+   "label": "Metas físicas alcanzadas",
+   "type": "text"
+  }
+ ],
+ "sections": [
+  {
+   "id": "i-obra",
+   "title": "I. Información general de la obra",
+   "kind": "fields_table",
+   "keys": [
+    "unidad_ejecutora",
+    "entidad",
+    "pliego",
+    "estado_obra",
+    "obra",
+    "cui",
+    "infobras",
+    "distrito",
+    "provincia",
+    "departamento",
+    "plazo_dias",
+    "fecha_inicio",
+    "fecha_fin",
+    "modalidad",
+    "sistema"
+   ]
+  },
+  {
+   "id": "ii-residente",
+   "title": "II. Información general del residente de obra",
+   "kind": "fields_table",
+   "keys": [
+    "res_designacion",
+    "res_monto",
+    "res_fecha",
+    "res_inicio",
+    "res_fin",
+    "res_nombre",
+    "res_dni",
+    "res_cip"
+   ]
+  },
+  {
+   "id": "iii-supervisor",
+   "title": "III. Información general del inspector / supervisor",
+   "kind": "fields_table",
+   "keys": [
+    "sup_designacion",
+    "sup_monto",
+    "sup_fecha",
+    "sup_inicio",
+    "sup_fin",
+    "sup_nombre",
+    "sup_dni",
+    "sup_cip"
+   ]
+  },
+  {
+   "id": "iv-et",
+   "title": "IV. Información general del expediente técnico",
+   "kind": "fields_table",
+   "keys": [
+    "aprobacion_et",
+    "presupuesto_aprobado",
+    "fecha_presupuesto"
+   ]
+  },
+  {
+   "id": "resumen",
+   "title": "Resumen ejecutivo",
+   "kind": "ai",
+   "depends_on": [
+    "*"
+   ],
+   "words": 350,
+   "instructions": "Objetivo, metas alcanzadas, plazo real vs. programado, valorización física y financiera final, deductivos y saldo de obra."
+  },
+  {
+   "id": "tecnica",
+   "title": "Parte técnica",
+   "kind": "ai",
+   "words": 1200,
+   "photos": true,
+   "instructions": "Descripción de la obra ejecutada por componentes; metas programadas vs. ejecutadas; modificaciones, adicionales, mayores metrados y deductivos aprobados; ampliaciones de plazo; controles de calidad; seguridad y medio ambiente; pruebas operativas."
+  },
+  {
+   "id": "administrativa",
+   "title": "Parte administrativa",
+   "kind": "ai",
+   "words": 700,
+   "instructions": "Ejecución presupuestal por específica, personal, almacén y saldo de materiales, maquinaria, rendiciones y conformidad de gastos."
+  },
+  {
+   "id": "valorizacion",
+   "title": "Valorización final física y financiera",
+   "kind": "fields_table",
+   "keys": [
+    "fecha_culminacion",
+    "avance_fisico_final",
+    "val_fisica_cd",
+    "val_fisica_ci",
+    "val_financiera_cd",
+    "val_financiera_ci",
+    "deductivos",
+    "saldo_obra",
+    "metas"
+   ]
+  },
+  {
+   "id": "val-final",
+   "title": "Cuadro de valorización final por partida",
+   "kind": "table",
+   "table": "valorizacion_final",
+   "columns": [
+    "Partida",
+    "Descripción",
+    "Und",
+    "Metrado ET",
+    "Metrado ejecutado",
+    "P.U.",
+    "Valorizado",
+    "% avance"
+   ],
+   "responsable": "Asistente de obra"
+  },
+  {
+   "id": "lecciones",
+   "title": "Registro de lecciones aprendidas",
+   "kind": "ai",
+   "words": 500,
+   "instructions": "Problemas relevantes ocurridos durante la ejecución y las soluciones que permitieron continuar hasta la culminación. Tabla | Problema | Causa | Solución aplicada | Lección / recomendación |."
+  },
+  {
+   "id": "documentos",
+   "title": "Relación de documentos adjuntos",
+   "kind": "checklist",
+   "opciones": [
+    "Adjunto",
+    "No",
+    "N/A"
+   ],
+   "items": [
+    "Resolución de aprobación del ET y de modificaciones",
+    "Actas de entrega de terreno e inicio de obra",
+    "Informes mensuales del residente y de la supervisión",
+    "Valorizaciones mensuales",
+    "Cuaderno de obra",
+    "Resoluciones de ampliaciones de plazo, adicionales y mayores metrados",
+    "Protocolos y certificados de calidad",
+    "Planos de replanteo (post construcción)",
+    "Liquidaciones parciales",
+    "Panel fotográfico antes, durante y final",
+    "Expediente de obra (Anexo 3)"
+   ]
+  },
+  {
+   "id": "firma",
+   "title": "Declaración jurada y firma",
+   "kind": "static",
+   "content": "La información registrada en el presente tiene el carácter de declaración jurada.\n\nLugar y fecha: {{fecha}}\n\n\n\n______________________________\n\n**Residente de obra:** {{res_nombre}} · CIP {{res_cip}}\n\n\n\n______________________________\n\n**Inspector / supervisor:** {{sup_nombre}} · CIP {{sup_cip}}"
+  }
+ ]
+}

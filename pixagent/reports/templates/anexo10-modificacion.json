@@ -1,0 +1,441 @@
+{
+ "id": "anexo10-modificacion",
+ "name": "Modificación del expediente técnico (Anexo 10)",
+ "description": "Control de modificaciones de obra: problema, propuesta, razones, impacto en calidad/costo/plazo, partidas y precios nuevos, sustento e incidencia acumulada (15 % significativa, 50 % Contraloría).",
+ "norma": "Directiva N.º 017-2023-CG/GMPL, numeral 7.3.6 y Anexo 10",
+ "autor": "ambos",
+ "style": {
+  "theme_color": "#7c2d12",
+  "page_size": "A4",
+  "cover": true,
+  "toc": true,
+  "cover_photo": false
+ },
+ "fields": [
+  {
+   "key": "unidad_ejecutora",
+   "label": "U. Ejecutora",
+   "type": "text"
+  },
+  {
+   "key": "entidad",
+   "label": "Entidad",
+   "type": "text"
+  },
+  {
+   "key": "pliego",
+   "label": "Pliego",
+   "type": "text"
+  },
+  {
+   "key": "estado_obra",
+   "label": "Estado de la obra",
+   "type": "text"
+  },
+  {
+   "key": "obra",
+   "label": "Obra",
+   "type": "text",
+   "required": true
+  },
+  {
+   "key": "cui",
+   "label": "Código Único de Inversión",
+   "type": "text"
+  },
+  {
+   "key": "infobras",
+   "label": "Código INFOBRAS",
+   "type": "text"
+  },
+  {
+   "key": "distrito",
+   "label": "Distrito",
+   "type": "text"
+  },
+  {
+   "key": "provincia",
+   "label": "Provincia",
+   "type": "text"
+  },
+  {
+   "key": "departamento",
+   "label": "Departamento",
+   "type": "text"
+  },
+  {
+   "key": "plazo_dias",
+   "label": "Plazo de ejecución de obra (d.c.)",
+   "type": "text"
+  },
+  {
+   "key": "fecha_inicio",
+   "label": "Inicio del plazo de obra",
+   "type": "text"
+  },
+  {
+   "key": "fecha_fin",
+   "label": "Fin del plazo de obra",
+   "type": "text"
+  },
+  {
+   "key": "modalidad",
+   "label": "Modalidad de ejecución",
+   "type": "text"
+  },
+  {
+   "key": "sistema",
+   "label": "Sistema de ejecución",
+   "type": "text"
+  },
+  {
+   "key": "res_designacion",
+   "label": "N.º de resolución de designación / contrato",
+   "type": "text"
+  },
+  {
+   "key": "res_monto",
+   "label": "Monto S/",
+   "type": "text"
+  },
+  {
+   "key": "res_fecha",
+   "label": "Fecha de resolución / suscripción",
+   "type": "text"
+  },
+  {
+   "key": "res_inicio",
+   "label": "Inicio del plazo de servicio",
+   "type": "text"
+  },
+  {
+   "key": "res_fin",
+   "label": "Término del plazo de servicio",
+   "type": "text"
+  },
+  {
+   "key": "res_nombre",
+   "label": "Residente",
+   "type": "text"
+  },
+  {
+   "key": "res_dni",
+   "label": "DNI",
+   "type": "text"
+  },
+  {
+   "key": "res_cip",
+   "label": "N.º CIP/CAP",
+   "type": "text"
+  },
+  {
+   "key": "sup_designacion",
+   "label": "N.º de resolución de designación / contrato de supervisión",
+   "type": "text"
+  },
+  {
+   "key": "sup_monto",
+   "label": "Monto S/",
+   "type": "text"
+  },
+  {
+   "key": "sup_fecha",
+   "label": "Fecha de resolución / suscripción",
+   "type": "text"
+  },
+  {
+   "key": "sup_inicio",
+   "label": "Inicio del plazo de servicio",
+   "type": "text"
+  },
+  {
+   "key": "sup_fin",
+   "label": "Término del plazo de servicio",
+   "type": "text"
+  },
+  {
+   "key": "sup_nombre",
+   "label": "Supervisor / inspector",
+   "type": "text"
+  },
+  {
+   "key": "sup_dni",
+   "label": "DNI",
+   "type": "text"
+  },
+  {
+   "key": "sup_cip",
+   "label": "N.º CIP/CAP",
+   "type": "text"
+  },
+  {
+   "key": "aprobacion_et",
+   "label": "Documento de aprobación del expediente técnico",
+   "type": "text"
+  },
+  {
+   "key": "presupuesto_aprobado",
+   "label": "Monto del presupuesto (S/)",
+   "type": "text"
+  },
+  {
+   "key": "fecha_presupuesto",
+   "label": "Fecha del presupuesto",
+   "type": "text"
+  },
+  {
+   "key": "fecha",
+   "label": "Lugar y fecha",
+   "type": "text"
+  },
+  {
+   "key": "mod_numero",
+   "label": "N.º de modificación",
+   "type": "text",
+   "required": true
+  },
+  {
+   "key": "mod_fecha",
+   "label": "Fecha",
+   "type": "text"
+  },
+  {
+   "key": "mod_tipo",
+   "label": "Tipo de modificación (significativa / no significativa)",
+   "type": "text"
+  },
+  {
+   "key": "mod_elaborado",
+   "label": "Elaborado por (residente)",
+   "type": "text"
+  },
+  {
+   "key": "mod_revisado",
+   "label": "Revisado por (supervisor / inspector)",
+   "type": "text"
+  },
+  {
+   "key": "mod_aprobado",
+   "label": "Aprobado por (si es no significativa: supervisor / inspector)",
+   "type": "text"
+  },
+  {
+   "key": "nombre_inversion",
+   "label": "Nombre de la inversión",
+   "type": "text"
+  },
+  {
+   "key": "codigo_obra",
+   "label": "Código de la obra",
+   "type": "text"
+  },
+  {
+   "key": "imp_calidad",
+   "label": "Impacto en calidad (incrementa / disminuye / mantiene)",
+   "type": "text"
+  },
+  {
+   "key": "imp_calidad_desc",
+   "label": "Descripción del impacto en calidad",
+   "type": "text"
+  },
+  {
+   "key": "imp_costo",
+   "label": "Impacto en costo (incrementa / disminuye / mantiene)",
+   "type": "text"
+  },
+  {
+   "key": "imp_costo_desc",
+   "label": "Descripción del impacto en costo",
+   "type": "text"
+  },
+  {
+   "key": "imp_plazo",
+   "label": "Impacto en plazo (incrementa / disminuye / mantiene)",
+   "type": "text"
+  },
+  {
+   "key": "imp_plazo_desc",
+   "label": "Descripción del impacto en plazo",
+   "type": "text"
+  },
+  {
+   "key": "partidas_nuevas",
+   "label": "¿Existen partidas nuevas? (detallar)",
+   "type": "text"
+  },
+  {
+   "key": "precios_nuevos",
+   "label": "¿Existen precios nuevos? (detallar)",
+   "type": "text"
+  },
+  {
+   "key": "precio_pactado",
+   "label": "¿Cuenta con precio pactado?",
+   "type": "text"
+  },
+  {
+   "key": "estudios_adicionales",
+   "label": "¿Requiere estudios adicionales? (descripción)",
+   "type": "text"
+  },
+  {
+   "key": "mod_importe",
+   "label": "Importe neto de la modificación (S/)",
+   "type": "number",
+   "required": true
+  },
+  {
+   "key": "mod_pct",
+   "label": "Porcentaje de incidencia respecto al presupuesto (%)",
+   "type": "text"
+  },
+  {
+   "key": "mod_acumulado",
+   "label": "Importe acumulado de las modificaciones (S/)",
+   "type": "number"
+  },
+  {
+   "key": "mod_acumulado_pct",
+   "label": "Incidencia total acumulada respecto al presupuesto (%)",
+   "type": "text"
+  },
+  {
+   "key": "mod_responsable_aprobacion",
+   "label": "Responsable de aprobación (nombre, cargo, entidad)",
+   "type": "text"
+  }
+ ],
+ "sections": [
+  {
+   "id": "control",
+   "title": "Control de modificaciones de obra",
+   "kind": "fields_table",
+   "keys": [
+    "mod_numero",
+    "mod_elaborado",
+    "mod_revisado",
+    "mod_aprobado",
+    "mod_fecha",
+    "mod_tipo"
+   ]
+  },
+  {
+   "id": "responsables",
+   "title": "Responsables de la propuesta",
+   "kind": "table",
+   "table": "responsables",
+   "columns": [
+    "Ítem",
+    "Elaborado por",
+    "Cargo",
+    "N.º colegiatura",
+    "Fecha",
+    "Firma"
+   ],
+   "responsable": "Residente"
+  },
+  {
+   "id": "inversion",
+   "title": "Datos de la inversión y de la obra",
+   "kind": "fields_table",
+   "keys": [
+    "cui",
+    "nombre_inversion",
+    "codigo_obra",
+    "obra"
+   ]
+  },
+  {
+   "id": "problema",
+   "title": "Definición del problema o situación actual",
+   "kind": "ai",
+   "words": 250,
+   "instructions": "Define y acota el problema a resolver, distinguiendo el problema de sus causas y de sus consecuencias (Anexo 10). Cita el asiento del cuaderno de obra si se indica."
+  },
+  {
+   "id": "descripcion",
+   "title": "Descripción detallada de la modificación propuesta",
+   "kind": "ai",
+   "words": 350,
+   "instructions": "Especifica con claridad el cambio: qué, quién, cómo, cuándo y dónde. Lista partidas afectadas."
+  },
+  {
+   "id": "razon",
+   "title": "Razón por la que se solicita la modificación",
+   "kind": "ai",
+   "words": 300,
+   "instructions": "Por qué se solicita, por qué este curso de acción y no otro alternativo, y qué sucedería si el cambio no se realiza. Menciona la evidencia adjunta. Recuerda (7.3.6) que solo procede si sirve al objetivo y metas de la inversión o por imprevistos no atribuibles a los participantes."
+  },
+  {
+   "id": "impacto",
+   "title": "Tipo de impacto de la modificación",
+   "kind": "fields_table",
+   "keys": [
+    "imp_calidad",
+    "imp_calidad_desc",
+    "imp_costo",
+    "imp_costo_desc",
+    "imp_plazo",
+    "imp_plazo_desc"
+   ]
+  },
+  {
+   "id": "planteadas",
+   "title": "Modificaciones planteadas",
+   "kind": "fields_table",
+   "keys": [
+    "partidas_nuevas",
+    "precios_nuevos",
+    "precio_pactado",
+    "estudios_adicionales"
+   ]
+  },
+  {
+   "id": "sustento",
+   "title": "Documentos de sustento",
+   "kind": "checklist",
+   "opciones": [
+    "Adjunto",
+    "No",
+    "N/A"
+   ],
+   "items": [
+    "Informe técnico de modificación",
+    "Memoria de cálculos técnicos",
+    "Copia del cuaderno de obra, con asiento de la consulta",
+    "Planos propuestos",
+    "Cotizaciones",
+    "Presupuesto",
+    "Estudios de ingeniería de detalle",
+    "Certificación o previsión presupuestal (si aumenta el costo neto)",
+    "Otros necesarios"
+   ]
+  },
+  {
+   "id": "deficiencia",
+   "title": "Deficiencia, situación imprevisible o de fuerza mayor que originó la modificación",
+   "kind": "ai",
+   "words": 250,
+   "instructions": "Detalla el origen: deficiencia del expediente técnico, situación imprevisible o fuerza mayor, con la evidencia."
+  },
+  {
+   "id": "informacion",
+   "title": "Información de la modificación",
+   "kind": "fields_table",
+   "keys": [
+    "mod_importe",
+    "mod_pct",
+    "mod_acumulado",
+    "mod_acumulado_pct",
+    "mod_responsable_aprobacion"
+   ]
+  },
+  {
+   "id": "firma",
+   "title": "Declaración jurada y firma",
+   "kind": "static",
+   "content": "La información registrada en el presente tiene el carácter de declaración jurada.\n\nLugar y fecha: {{fecha}}\n\n\n\n______________________________\n\n**Residente de obra:** {{res_nombre}} · CIP {{res_cip}}\n\n\n\n______________________________\n\n**Inspector / supervisor:** {{sup_nombre}} · CIP {{sup_cip}}"
+  }
+ ]
+}

@@ -22,14 +22,21 @@ def _writer(ctx):
       cada respuesta → cuando estén los datos: redactar (una sección), muéstrala y pregunta → aprobar /
       corregir(instrucciones) / editar(markdown) → siguiente sección … → finalizar (PDF + comprobaciones).
       Si el usuario eligió ritmo «rápido»: redactar(todas=true) y luego finalizar.
-      Acciones: iniciar(objetivo: informe_mensual|preliquidacion|revision|informe, plantilla, periodo, ritmo) ·
+      Objetivos: informe_mensual, preliquidacion, revision, informe (otra plantilla) y los formatos de la Directiva
+      017-2023: modificacion (Anexo 10), conformidad (11), revision_et (12), supervision (13), ampliacion_plazo (14),
+      reprogramacion (15), mayores_gastos_generales (16), cronograma_actualizado (17), adicional (18),
+      mayores_metrados (19), liquidacion_final (20), informe_final (7.4.2). También acepta la frase del usuario.
+      Acciones: iniciar(objetivo, plantilla, periodo, ritmo) ·
       estado · aportar(paso, datos, archivos, texto) · omitir(paso, motivo) · redactar(seccion?, todas?) ·
       aprobar(seccion|'todas') · corregir(seccion, texto) · editar(seccion, texto=markdown) · finalizar.
       Pasos de aportar: obra{nombre,cui,entidad,distrito,provincia,departamento,costo_et,fecha_inicio,plazo_dias,...},
       categoria{categoria|costo_et,zona_especial}, periodo{periodo,numero,periodo_liquidado}, equipo{miembros:[{nombre,rol}]},
       cuadros{cuadro,autor}+archivos, fotos{fotos:[{path,caption,grupo,etapa}]}+archivos,
       cifras{valorizacion_mes,valorizacion_acumulada,mayores_metrados,adicionales,deductivos,total_ejecutado,
-      avance_programado,avance_real,metas}, notas(texto), datos{campos de la plantilla}, plantilla, archivos, tipo, ritmo.
+      avance_programado,avance_real,metas}, notas(texto), datos{campos de la plantilla}, plantilla, archivos, tipo, ritmo;
+      en formatos: firmantes{res_*, sup_*}, datos / datos_extra{claves del formato}, tablas{tabla, filas}+archivos,
+      checklist{seccion, respuestas:[{n, r, c}]}, sustento + archivos. El resultado trae las CLAVES EXACTAS del paso
+      actual: úsalas. Si el usuario da documentos, puedes proponerle respuestas a las preguntas para que confirme.
       El progreso se calcula solo y se ve en el panel «Plan».""",
       {"properties": {
           "action": {"type": "string", "enum": ["iniciar", "estado", "aportar", "omitir", "redactar", "aprobar",

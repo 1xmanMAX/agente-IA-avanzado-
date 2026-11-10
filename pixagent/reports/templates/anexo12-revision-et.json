@@ -1,0 +1,393 @@
+{
+ "id": "anexo12-revision-et",
+ "name": "Revisión del expediente técnico o saldo de obra (Anexo 12)",
+ "description": "Informe de revisión del ET del residente y pronunciamiento de la supervisión con la lista de verificación del Anexo 12.",
+ "norma": "Directiva N.º 017-2023-CG/GMPL, numerales 7.2 y 7.3.8 b), Anexo 12",
+ "autor": "supervisor",
+ "style": {
+  "theme_color": "#0e7490",
+  "page_size": "A4",
+  "cover": true,
+  "toc": true,
+  "cover_photo": false
+ },
+ "fields": [
+  {
+   "key": "unidad_ejecutora",
+   "label": "U. Ejecutora",
+   "type": "text"
+  },
+  {
+   "key": "entidad",
+   "label": "Entidad",
+   "type": "text"
+  },
+  {
+   "key": "pliego",
+   "label": "Pliego",
+   "type": "text"
+  },
+  {
+   "key": "estado_obra",
+   "label": "Estado de la obra",
+   "type": "text"
+  },
+  {
+   "key": "obra",
+   "label": "Obra",
+   "type": "text"
+  },
+  {
+   "key": "cui",
+   "label": "Código Único de Inversión",
+   "type": "text"
+  },
+  {
+   "key": "infobras",
+   "label": "Código INFOBRAS",
+   "type": "text"
+  },
+  {
+   "key": "distrito",
+   "label": "Distrito",
+   "type": "text"
+  },
+  {
+   "key": "provincia",
+   "label": "Provincia",
+   "type": "text"
+  },
+  {
+   "key": "departamento",
+   "label": "Departamento",
+   "type": "text"
+  },
+  {
+   "key": "plazo_dias",
+   "label": "Plazo de ejecución de obra (d.c.)",
+   "type": "text"
+  },
+  {
+   "key": "fecha_inicio",
+   "label": "Inicio del plazo de obra",
+   "type": "text"
+  },
+  {
+   "key": "fecha_fin",
+   "label": "Fin del plazo de obra",
+   "type": "text"
+  },
+  {
+   "key": "modalidad",
+   "label": "Modalidad de ejecución",
+   "type": "text"
+  },
+  {
+   "key": "sistema",
+   "label": "Sistema de ejecución",
+   "type": "text"
+  },
+  {
+   "key": "res_designacion",
+   "label": "N.º de resolución de designación / contrato",
+   "type": "text"
+  },
+  {
+   "key": "res_monto",
+   "label": "Monto S/",
+   "type": "text"
+  },
+  {
+   "key": "res_fecha",
+   "label": "Fecha de resolución / suscripción",
+   "type": "text"
+  },
+  {
+   "key": "res_inicio",
+   "label": "Inicio del plazo de servicio",
+   "type": "text"
+  },
+  {
+   "key": "res_fin",
+   "label": "Término del plazo de servicio",
+   "type": "text"
+  },
+  {
+   "key": "res_nombre",
+   "label": "Residente",
+   "type": "text"
+  },
+  {
+   "key": "res_dni",
+   "label": "DNI",
+   "type": "text"
+  },
+  {
+   "key": "res_cip",
+   "label": "N.º CIP/CAP",
+   "type": "text"
+  },
+  {
+   "key": "sup_designacion",
+   "label": "N.º de resolución de designación / contrato de supervisión",
+   "type": "text"
+  },
+  {
+   "key": "sup_monto",
+   "label": "Monto S/",
+   "type": "text"
+  },
+  {
+   "key": "sup_fecha",
+   "label": "Fecha de resolución / suscripción",
+   "type": "text"
+  },
+  {
+   "key": "sup_inicio",
+   "label": "Inicio del plazo de servicio",
+   "type": "text"
+  },
+  {
+   "key": "sup_fin",
+   "label": "Término del plazo de servicio",
+   "type": "text"
+  },
+  {
+   "key": "sup_nombre",
+   "label": "Supervisor / inspector",
+   "type": "text"
+  },
+  {
+   "key": "sup_dni",
+   "label": "DNI",
+   "type": "text"
+  },
+  {
+   "key": "sup_cip",
+   "label": "N.º CIP/CAP",
+   "type": "text"
+  },
+  {
+   "key": "aprobacion_et",
+   "label": "Documento de aprobación del expediente técnico",
+   "type": "text"
+  },
+  {
+   "key": "presupuesto_aprobado",
+   "label": "Monto del presupuesto (S/)",
+   "type": "text"
+  },
+  {
+   "key": "fecha_presupuesto",
+   "label": "Fecha del presupuesto",
+   "type": "text"
+  },
+  {
+   "key": "fecha",
+   "label": "Lugar y fecha",
+   "type": "text"
+  },
+  {
+   "key": "doc_residente",
+   "label": "Documento con el que el residente presenta el informe de revisión",
+   "type": "text"
+  },
+  {
+   "key": "fecha_doc_residente",
+   "label": "Fecha (recibida por supervisor/inspector)",
+   "type": "text"
+  },
+  {
+   "key": "doc_supervisor",
+   "label": "Documento con el que la supervisión presenta su pronunciamiento",
+   "type": "text"
+  },
+  {
+   "key": "fecha_doc_supervisor",
+   "label": "Fecha (recibida por la entidad)",
+   "type": "text"
+  },
+  {
+   "key": "variacion_pct",
+   "label": "Variación estimada respecto al ET (%)",
+   "type": "text"
+  },
+  {
+   "key": "tipo_inversion",
+   "label": "Tipo de inversión (proyecto de inversión / IOARR)",
+   "type": "text"
+  }
+ ],
+ "sections": [
+  {
+   "id": "i-obra",
+   "title": "I. Información general de la obra",
+   "kind": "fields_table",
+   "keys": [
+    "unidad_ejecutora",
+    "entidad",
+    "pliego",
+    "estado_obra",
+    "obra",
+    "cui",
+    "infobras",
+    "distrito",
+    "provincia",
+    "departamento",
+    "plazo_dias",
+    "fecha_inicio",
+    "fecha_fin",
+    "modalidad",
+    "sistema"
+   ]
+  },
+  {
+   "id": "ii-residente",
+   "title": "II. Información general del residente de obra",
+   "kind": "fields_table",
+   "keys": [
+    "res_designacion",
+    "res_monto",
+    "res_fecha",
+    "res_inicio",
+    "res_fin",
+    "res_nombre",
+    "res_dni",
+    "res_cip"
+   ]
+  },
+  {
+   "id": "iii-supervisor",
+   "title": "III. Información general del inspector / supervisor",
+   "kind": "fields_table",
+   "keys": [
+    "sup_designacion",
+    "sup_monto",
+    "sup_fecha",
+    "sup_inicio",
+    "sup_fin",
+    "sup_nombre",
+    "sup_dni",
+    "sup_cip"
+   ]
+  },
+  {
+   "id": "iv-et",
+   "title": "IV. Información general del expediente técnico",
+   "kind": "fields_table",
+   "keys": [
+    "aprobacion_et",
+    "presupuesto_aprobado",
+    "fecha_presupuesto"
+   ]
+  },
+  {
+   "id": "v-flujo",
+   "title": "V. Flujo documentario de la revisión del expediente técnico",
+   "kind": "fields_table",
+   "keys": [
+    "doc_residente",
+    "fecha_doc_residente",
+    "doc_supervisor",
+    "fecha_doc_supervisor"
+   ]
+  },
+  {
+   "id": "revision-residente",
+   "title": "Informe de revisión del residente",
+   "kind": "ai",
+   "words": 900,
+   "photos": true,
+   "instructions": "Informe del residente (numeral 7.2): hallazgos por componente (planos y compatibilidad, metrados, presupuesto y APU, EETT, cronograma, terreno, interferencias, canteras y agua, autorizaciones), posibles adicionales y deductivos con importe estimado, riesgos del proyecto y conclusión. Si la variación supera el 15 % corresponde reformulación del ET. Tabla | Componente | Observación | Impacto | Propuesta |. Plazo: 15 d.c. (cat. A y B) o 30 d.c. (cat. C) desde la entrega de terreno."
+  },
+  {
+   "id": "vi-evaluacion",
+   "title": "VI. Evaluación, pronunciamiento y verificaciones propias de la supervisión",
+   "kind": "checklist",
+   "items": [
+    "El expediente técnico y sus estudios básicos responden a la normatividad sectorial aplicable y vigente",
+    "Presenta memoria descriptiva, EETT, planos, metrados, presupuesto, valor referencial, fecha del presupuesto, APU, calendario valorizado, fórmulas polinómicas, estudios básicos y memorias de cálculo, firmados por los especialistas y el responsable",
+    {
+     "grupo": "Planos",
+     "pregunta": "¿Se cuenta con los planos de todas las especialidades que requiere la obra?"
+    },
+    {
+     "grupo": "Planos",
+     "pregunta": "¿Existe compatibilidad entre los planos de las especialidades con los estudios, diseños, cálculos y EETT?"
+    },
+    {
+     "grupo": "Planos",
+     "pregunta": "¿Se determinaron posibles incompatibilidades con la topografía del terreno?"
+    },
+    {
+     "grupo": "Planos",
+     "pregunta": "¿Se determinaron limitaciones de disponibilidad total o parcial del terreno?"
+    },
+    {
+     "grupo": "Planos",
+     "pregunta": "¿Se determinaron posibles interferencias para la ejecución?"
+    },
+    {
+     "grupo": "Planos",
+     "pregunta": "¿Se identificó la ubicación de canteras y fuentes de agua?"
+    },
+    {
+     "grupo": "Presupuesto",
+     "pregunta": "¿Las partidas cuentan con sustento de metrados por cada partida?"
+    },
+    {
+     "grupo": "Presupuesto",
+     "pregunta": "¿Existen partidas que no están consideradas en el presupuesto?"
+    },
+    {
+     "grupo": "Presupuesto",
+     "pregunta": "¿La suma de los costos parciales es igual al costo directo del presupuesto?"
+    },
+    {
+     "grupo": "Presupuesto",
+     "pregunta": "¿La suma de coeficientes de cada monomio de la(s) fórmula(s) polinómica(s) es igual a 1?"
+    },
+    {
+     "grupo": "APU",
+     "pregunta": "¿Cada partida cuenta con su APU con la unidad de las EETT y del presupuesto, y la fecha de los costos?"
+    },
+    {
+     "grupo": "EETT",
+     "pregunta": "¿Todas las partidas del presupuesto cuentan con especificaciones técnicas?"
+    },
+    {
+     "grupo": "EETT",
+     "pregunta": "¿Las EETT describen procedimiento constructivo, forma de medida, pago y calidad de materiales y trabajos?"
+    },
+    {
+     "grupo": "Cronograma",
+     "pregunta": "¿El programa de ejecución contiene todas las partidas del presupuesto?"
+    },
+    {
+     "grupo": "Cronograma",
+     "pregunta": "¿El programa de ejecución presenta ruta crítica?"
+    },
+    "Se verificó que se cuenta con autorizaciones, licencias, certificaciones, factibilidad u otros",
+    "De la evaluación se han identificado posibles prestaciones adicionales y/o reducciones de obra",
+    "La matriz de riesgos del expediente técnico es concordante con la naturaleza y características de la obra",
+    "De la evaluación existen soluciones técnicas inaplicables"
+   ]
+  },
+  {
+   "id": "conclusion",
+   "title": "Conclusiones y pronunciamiento",
+   "kind": "ai",
+   "depends_on": [
+    "revision-residente"
+   ],
+   "words": 300,
+   "instructions": "Pronunciamiento (conforme / con observaciones / reformulación) en 7 o 10 d.c. según la categoría; vigencia del ET (≤ 3 años PI, ≤ 1 año IOARR) y de los precios (≤ 9 meses)."
+  },
+  {
+   "id": "firma",
+   "title": "Declaración jurada y firma",
+   "kind": "static",
+   "content": "Nota: La información registrada en el presente tiene el carácter de declaración jurada.\n\nLugar y fecha: {{fecha}}\n\n\n\n______________________________\n\n**Jefe de supervisión / inspector:** {{sup_nombre}} · DNI {{sup_dni}} · Registro CIP {{sup_cip}}"
+  }
+ ]
+}

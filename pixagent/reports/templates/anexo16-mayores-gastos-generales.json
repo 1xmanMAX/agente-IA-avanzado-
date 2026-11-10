@@ -1,0 +1,341 @@
+{
+ "id": "anexo16-mayores-gastos-generales",
+ "name": "Mayores gastos generales por ampliación de plazo (Anexo 16)",
+ "description": "Mayores gastos generales aprobados y en trámite, con su cálculo sobre los gastos generales variables del ET.",
+ "norma": "Directiva N.º 017-2023-CG/GMPL, numeral 7.3.8 d) ii. y Anexo 16",
+ "autor": "supervisor",
+ "style": {
+  "theme_color": "#9a3412",
+  "page_size": "A4",
+  "cover": true,
+  "toc": true,
+  "cover_photo": false
+ },
+ "fields": [
+  {
+   "key": "unidad_ejecutora",
+   "label": "U. Ejecutora",
+   "type": "text"
+  },
+  {
+   "key": "entidad",
+   "label": "Entidad",
+   "type": "text"
+  },
+  {
+   "key": "pliego",
+   "label": "Pliego",
+   "type": "text"
+  },
+  {
+   "key": "estado_obra",
+   "label": "Estado de la obra",
+   "type": "text"
+  },
+  {
+   "key": "obra",
+   "label": "Obra",
+   "type": "text"
+  },
+  {
+   "key": "cui",
+   "label": "Código Único de Inversión",
+   "type": "text"
+  },
+  {
+   "key": "infobras",
+   "label": "Código INFOBRAS",
+   "type": "text"
+  },
+  {
+   "key": "distrito",
+   "label": "Distrito",
+   "type": "text"
+  },
+  {
+   "key": "provincia",
+   "label": "Provincia",
+   "type": "text"
+  },
+  {
+   "key": "departamento",
+   "label": "Departamento",
+   "type": "text"
+  },
+  {
+   "key": "plazo_dias",
+   "label": "Plazo de ejecución de obra (d.c.)",
+   "type": "text"
+  },
+  {
+   "key": "fecha_inicio",
+   "label": "Inicio del plazo de obra",
+   "type": "text"
+  },
+  {
+   "key": "fecha_fin",
+   "label": "Fin del plazo de obra",
+   "type": "text"
+  },
+  {
+   "key": "modalidad",
+   "label": "Modalidad de ejecución",
+   "type": "text"
+  },
+  {
+   "key": "sistema",
+   "label": "Sistema de ejecución",
+   "type": "text"
+  },
+  {
+   "key": "res_designacion",
+   "label": "N.º de resolución de designación / contrato",
+   "type": "text"
+  },
+  {
+   "key": "res_monto",
+   "label": "Monto S/",
+   "type": "text"
+  },
+  {
+   "key": "res_fecha",
+   "label": "Fecha de resolución / suscripción",
+   "type": "text"
+  },
+  {
+   "key": "res_inicio",
+   "label": "Inicio del plazo de servicio",
+   "type": "text"
+  },
+  {
+   "key": "res_fin",
+   "label": "Término del plazo de servicio",
+   "type": "text"
+  },
+  {
+   "key": "res_nombre",
+   "label": "Residente",
+   "type": "text"
+  },
+  {
+   "key": "res_dni",
+   "label": "DNI",
+   "type": "text"
+  },
+  {
+   "key": "res_cip",
+   "label": "N.º CIP/CAP",
+   "type": "text"
+  },
+  {
+   "key": "sup_designacion",
+   "label": "N.º de resolución de designación / contrato de supervisión",
+   "type": "text"
+  },
+  {
+   "key": "sup_monto",
+   "label": "Monto S/",
+   "type": "text"
+  },
+  {
+   "key": "sup_fecha",
+   "label": "Fecha de resolución / suscripción",
+   "type": "text"
+  },
+  {
+   "key": "sup_inicio",
+   "label": "Inicio del plazo de servicio",
+   "type": "text"
+  },
+  {
+   "key": "sup_fin",
+   "label": "Término del plazo de servicio",
+   "type": "text"
+  },
+  {
+   "key": "sup_nombre",
+   "label": "Supervisor / inspector",
+   "type": "text"
+  },
+  {
+   "key": "sup_dni",
+   "label": "DNI",
+   "type": "text"
+  },
+  {
+   "key": "sup_cip",
+   "label": "N.º CIP/CAP",
+   "type": "text"
+  },
+  {
+   "key": "aprobacion_et",
+   "label": "Documento de aprobación del expediente técnico",
+   "type": "text"
+  },
+  {
+   "key": "presupuesto_aprobado",
+   "label": "Monto del presupuesto (S/)",
+   "type": "text"
+  },
+  {
+   "key": "fecha_presupuesto",
+   "label": "Fecha del presupuesto",
+   "type": "text"
+  },
+  {
+   "key": "fecha",
+   "label": "Lugar y fecha",
+   "type": "text"
+  },
+  {
+   "key": "ampl_numero",
+   "label": "Ampliación de plazo N.º",
+   "type": "text",
+   "required": true
+  },
+  {
+   "key": "plazo_otorgado",
+   "label": "Plazo otorgado (d.c.)",
+   "type": "number"
+  },
+  {
+   "key": "doc_aprobacion",
+   "label": "Documento de aprobación de la ampliación (N.º y fecha)",
+   "type": "text"
+  },
+  {
+   "key": "mgg_req_doc",
+   "label": "Requerimiento de MGG del residente (documento, N.º, fecha)",
+   "type": "text"
+  },
+  {
+   "key": "mgg_req_monto",
+   "label": "Monto requerido (con IGV, S/)",
+   "type": "number",
+   "required": true
+  },
+  {
+   "key": "mgg_conf_doc",
+   "label": "Conformidad de la supervisión (documento, N.º, fecha)",
+   "type": "text"
+  },
+  {
+   "key": "mgg_conf_monto",
+   "label": "Monto conforme (con IGV, S/)",
+   "type": "number"
+  },
+  {
+   "key": "gg_diario",
+   "label": "Gasto general variable diario del ET (S/)",
+   "type": "number"
+  }
+ ],
+ "sections": [
+  {
+   "id": "i-obra",
+   "title": "I. Información general de la obra",
+   "kind": "fields_table",
+   "keys": [
+    "unidad_ejecutora",
+    "entidad",
+    "pliego",
+    "estado_obra",
+    "obra",
+    "cui",
+    "infobras",
+    "distrito",
+    "provincia",
+    "departamento",
+    "plazo_dias",
+    "fecha_inicio",
+    "fecha_fin",
+    "modalidad",
+    "sistema"
+   ]
+  },
+  {
+   "id": "ii-residente",
+   "title": "II. Información general del residente de obra",
+   "kind": "fields_table",
+   "keys": [
+    "res_designacion",
+    "res_monto",
+    "res_fecha",
+    "res_inicio",
+    "res_fin",
+    "res_nombre",
+    "res_dni",
+    "res_cip"
+   ]
+  },
+  {
+   "id": "iii-supervisor",
+   "title": "III. Información general del inspector / supervisor",
+   "kind": "fields_table",
+   "keys": [
+    "sup_designacion",
+    "sup_monto",
+    "sup_fecha",
+    "sup_inicio",
+    "sup_fin",
+    "sup_nombre",
+    "sup_dni",
+    "sup_cip"
+   ]
+  },
+  {
+   "id": "iv-a",
+   "title": "IV.A Mayores gastos generales aprobados por la entidad",
+   "kind": "table",
+   "table": "mgg",
+   "columns": [
+    "Ampliación N.º",
+    "Plazo otorgado (d.c.)",
+    "Documento de aprobación",
+    "N.º",
+    "Fecha",
+    "MGG S/"
+   ],
+   "responsable": "Administrador de obra"
+  },
+  {
+   "id": "iv-b",
+   "title": "IV.B Mayores gastos generales en trámite",
+   "kind": "fields_table",
+   "keys": [
+    "ampl_numero",
+    "plazo_otorgado",
+    "doc_aprobacion",
+    "mgg_req_doc",
+    "mgg_req_monto",
+    "mgg_conf_doc",
+    "mgg_conf_monto",
+    "gg_diario"
+   ]
+  },
+  {
+   "id": "calculo",
+   "title": "Cálculo y sustento de los mayores gastos generales",
+   "kind": "ai",
+   "words": 450,
+   "instructions": "Sustenta el cálculo con los gastos generales VARIABLES del expediente técnico (no los fijos) por los días otorgados; si hubo paralización, solo los conceptos de GG variables debidamente acreditados. Tabla | Concepto | Unidad | Cantidad | Días | Costo | Parcial |."
+  },
+  {
+   "id": "preguntas",
+   "title": "Preguntas",
+   "kind": "checklist",
+   "items": [
+    "¿Se cumplieron los procedimientos y plazos previstos en la tramitación de la ampliación otorgada? (residente / supervisor)",
+    "En caso de paralización, ¿los gastos generales variables están debidamente acreditados y forman parte de la estructura de GG variables del ET?",
+    "¿Se adjunta la documentación sustentatoria?",
+    "¿Se adjuntan los archivos de los aplicativos utilizados?"
+   ]
+  },
+  {
+   "id": "firma",
+   "title": "Declaración jurada y firma",
+   "kind": "static",
+   "content": "Nota: La información registrada en el presente tiene el carácter de declaración jurada.\n\nLugar y fecha: {{fecha}}\n\n\n\n______________________________\n\n**Jefe de supervisión / inspector:** {{sup_nombre}} · DNI {{sup_dni}} · Registro CIP {{sup_cip}}"
+  }
+ ]
+}

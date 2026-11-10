@@ -1,0 +1,339 @@
+{
+ "id": "anexo20-liquidacion",
+ "name": "Informe de liquidación de obra (Anexo 20)",
+ "description": "Cuantificación de la liquidación por rubros (autorizado, pagado, saldo) y flujo documentario.",
+ "norma": "Directiva N.º 017-2023-CG/GMPL, numerales 7.3.8 g), 7.4.3 y Anexo 20",
+ "autor": "supervisor",
+ "style": {
+  "theme_color": "#14532d",
+  "page_size": "A4",
+  "cover": true,
+  "toc": true,
+  "cover_photo": false
+ },
+ "fields": [
+  {
+   "key": "unidad_ejecutora",
+   "label": "U. Ejecutora",
+   "type": "text"
+  },
+  {
+   "key": "entidad",
+   "label": "Entidad",
+   "type": "text"
+  },
+  {
+   "key": "pliego",
+   "label": "Pliego",
+   "type": "text"
+  },
+  {
+   "key": "estado_obra",
+   "label": "Estado de la obra",
+   "type": "text"
+  },
+  {
+   "key": "obra",
+   "label": "Obra",
+   "type": "text"
+  },
+  {
+   "key": "cui",
+   "label": "Código Único de Inversión",
+   "type": "text"
+  },
+  {
+   "key": "infobras",
+   "label": "Código INFOBRAS",
+   "type": "text"
+  },
+  {
+   "key": "distrito",
+   "label": "Distrito",
+   "type": "text"
+  },
+  {
+   "key": "provincia",
+   "label": "Provincia",
+   "type": "text"
+  },
+  {
+   "key": "departamento",
+   "label": "Departamento",
+   "type": "text"
+  },
+  {
+   "key": "plazo_dias",
+   "label": "Plazo de ejecución de obra (d.c.)",
+   "type": "text"
+  },
+  {
+   "key": "fecha_inicio",
+   "label": "Inicio del plazo de obra",
+   "type": "text"
+  },
+  {
+   "key": "fecha_fin",
+   "label": "Fin del plazo de obra",
+   "type": "text"
+  },
+  {
+   "key": "modalidad",
+   "label": "Modalidad de ejecución",
+   "type": "text"
+  },
+  {
+   "key": "sistema",
+   "label": "Sistema de ejecución",
+   "type": "text"
+  },
+  {
+   "key": "res_designacion",
+   "label": "N.º de resolución de designación / contrato",
+   "type": "text"
+  },
+  {
+   "key": "res_monto",
+   "label": "Monto S/",
+   "type": "text"
+  },
+  {
+   "key": "res_fecha",
+   "label": "Fecha de resolución / suscripción",
+   "type": "text"
+  },
+  {
+   "key": "res_inicio",
+   "label": "Inicio del plazo de servicio",
+   "type": "text"
+  },
+  {
+   "key": "res_fin",
+   "label": "Término del plazo de servicio",
+   "type": "text"
+  },
+  {
+   "key": "res_nombre",
+   "label": "Residente",
+   "type": "text"
+  },
+  {
+   "key": "res_dni",
+   "label": "DNI",
+   "type": "text"
+  },
+  {
+   "key": "res_cip",
+   "label": "N.º CIP/CAP",
+   "type": "text"
+  },
+  {
+   "key": "sup_designacion",
+   "label": "N.º de resolución de designación / contrato de supervisión",
+   "type": "text"
+  },
+  {
+   "key": "sup_monto",
+   "label": "Monto S/",
+   "type": "text"
+  },
+  {
+   "key": "sup_fecha",
+   "label": "Fecha de resolución / suscripción",
+   "type": "text"
+  },
+  {
+   "key": "sup_inicio",
+   "label": "Inicio del plazo de servicio",
+   "type": "text"
+  },
+  {
+   "key": "sup_fin",
+   "label": "Término del plazo de servicio",
+   "type": "text"
+  },
+  {
+   "key": "sup_nombre",
+   "label": "Supervisor / inspector",
+   "type": "text"
+  },
+  {
+   "key": "sup_dni",
+   "label": "DNI",
+   "type": "text"
+  },
+  {
+   "key": "sup_cip",
+   "label": "N.º CIP/CAP",
+   "type": "text"
+  },
+  {
+   "key": "aprobacion_et",
+   "label": "Documento de aprobación del expediente técnico",
+   "type": "text"
+  },
+  {
+   "key": "presupuesto_aprobado",
+   "label": "Monto del presupuesto (S/)",
+   "type": "text"
+  },
+  {
+   "key": "fecha_presupuesto",
+   "label": "Fecha del presupuesto",
+   "type": "text"
+  },
+  {
+   "key": "fecha",
+   "label": "Lugar y fecha",
+   "type": "text"
+  },
+  {
+   "key": "doc_presentacion",
+   "label": "Documento con el que la supervisión presenta la liquidación",
+   "type": "text"
+  },
+  {
+   "key": "fecha_presentacion",
+   "label": "Fecha (recibida por la entidad)",
+   "type": "text"
+  },
+  {
+   "key": "doc_entidad",
+   "label": "Documento con el que la entidad alcanza la liquidación a la supervisión",
+   "type": "text"
+  },
+  {
+   "key": "fecha_entidad",
+   "label": "Fecha",
+   "type": "text"
+  },
+  {
+   "key": "articulo",
+   "label": "Artículo aplicado (209.1 / 209.3 del RLCE), si corresponde",
+   "type": "text"
+  },
+  {
+   "key": "conformidad_contable",
+   "label": "Informe de conformidad de gastos de Contabilidad (N.º y fecha)",
+   "type": "text"
+  }
+ ],
+ "sections": [
+  {
+   "id": "i-obra",
+   "title": "I. Información general de la obra",
+   "kind": "fields_table",
+   "keys": [
+    "unidad_ejecutora",
+    "entidad",
+    "pliego",
+    "estado_obra",
+    "obra",
+    "cui",
+    "infobras",
+    "distrito",
+    "provincia",
+    "departamento",
+    "plazo_dias",
+    "fecha_inicio",
+    "fecha_fin",
+    "modalidad",
+    "sistema"
+   ]
+  },
+  {
+   "id": "ii-residente",
+   "title": "II. Información general del residente de obra",
+   "kind": "fields_table",
+   "keys": [
+    "res_designacion",
+    "res_monto",
+    "res_fecha",
+    "res_inicio",
+    "res_fin",
+    "res_nombre",
+    "res_dni",
+    "res_cip"
+   ]
+  },
+  {
+   "id": "iii-supervisor",
+   "title": "III. Información general del inspector / supervisor",
+   "kind": "fields_table",
+   "keys": [
+    "sup_designacion",
+    "sup_monto",
+    "sup_fecha",
+    "sup_inicio",
+    "sup_fin",
+    "sup_nombre",
+    "sup_dni",
+    "sup_cip"
+   ]
+  },
+  {
+   "id": "iv",
+   "title": "IV. Flujo documentario de la presentación de la liquidación",
+   "kind": "fields_table",
+   "keys": [
+    "doc_presentacion",
+    "fecha_presentacion",
+    "doc_entidad",
+    "fecha_entidad",
+    "conformidad_contable"
+   ]
+  },
+  {
+   "id": "iv1",
+   "title": "IV.1 Cuantificación de la liquidación de obra",
+   "kind": "table",
+   "table": "liquidacion",
+   "columns": [
+    "N.º",
+    "Rubro",
+    "Monto autorizado (A)",
+    "Monto pagado (B)",
+    "Saldo (B−A)",
+    "¿Concordante?",
+    "Observaciones"
+   ],
+   "responsable": "Comité de liquidación / administrador",
+   "rubros": [
+    "Valorizaciones (inc. GG) — contrato principal",
+    "Valorizaciones — prestaciones adicionales de obra",
+    "Valorizaciones — mayores metrados",
+    "Valorizaciones — deductivos",
+    "Reajustes de toda la ejecución",
+    "Reajustes de las prestaciones adicionales",
+    "Reajustes de los mayores metrados",
+    "Interés por mora — contrato principal",
+    "Interés por mora — prestación adicional",
+    "Interés por mora — mayores metrados",
+    "Mayores costos directos y GG variables — ampliación de plazo",
+    "Mayores costos directos y GG variables — suspensión de plazo",
+    "Otros costos"
+   ]
+  },
+  {
+   "id": "v",
+   "title": "V. Artículo aplicado",
+   "kind": "fields_table",
+   "keys": [
+    "articulo"
+   ]
+  },
+  {
+   "id": "comentarios",
+   "title": "Comentarios y conclusiones",
+   "kind": "ai",
+   "words": 350,
+   "instructions": "Resultado de la liquidación: saldo a favor o en contra por rubro, concordancia con lo pagado, observaciones y recomendaciones. Los montos incluyen sus gastos generales."
+  },
+  {
+   "id": "firma",
+   "title": "Declaración jurada y firma",
+   "kind": "static",
+   "content": "Nota: La información registrada en el presente tiene el carácter de declaración jurada.\n\nLugar y fecha: {{fecha}}\n\n\n\n______________________________\n\n**Jefe de supervisión / inspector:** {{sup_nombre}} · DNI {{sup_dni}} · Registro CIP {{sup_cip}}"
+  }
+ ]
+}

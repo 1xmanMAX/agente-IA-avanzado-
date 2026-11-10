@@ -35,8 +35,16 @@ CAMPOS = {  # clave: etiqueta (orden del Anexo 2 y de los anexos 12–20)
     "fecha_inicio": "Inicio del plazo de obra", "plazo_dias": "Plazo de ejecución (d.c.)",
     "fecha_fin": "Fin del plazo de obra", "accesibilidad": "Accesibilidad", "canteras": "Canteras",
     "zona_especial": "¿Zona de frontera Sierra/Selva o VRAEM?",
+    "estado_obra": "Estado de la obra",
+    # Anexos 11–20, bloques II y III: designación del residente y del inspector/supervisor
+    "res_designacion": "Resolución de designación / contrato del residente", "res_monto": "Monto del contrato del residente (S/)",
+    "res_fecha": "Fecha de la resolución / suscripción (residente)", "res_inicio": "Inicio del servicio del residente",
+    "res_fin": "Término del servicio del residente",
+    "sup_designacion": "Resolución de designación / contrato del supervisor", "sup_monto": "Monto del contrato de supervisión (S/)",
+    "sup_fecha": "Fecha de la resolución / suscripción (supervisor)", "sup_inicio": "Inicio del servicio del supervisor",
+    "sup_fin": "Término del servicio del supervisor",
 }
-NUMERICOS = {"costo_et", "presupuesto_aprobado", "presupuesto_analitico", "plazo_dias"}
+NUMERICOS = {"costo_et", "presupuesto_aprobado", "presupuesto_analitico", "plazo_dias", "res_monto", "sup_monto"}
 ESTADOS = ("pendiente", "entregado", "observado", "conforme")
 
 
@@ -363,8 +371,72 @@ class Obra:
         f["categoria"] = d.get("categoria") or ""
         for m in d["equipo"]:
             f[m["rol"]] = m["nombre"] + (f" (CIP {m['cip']})" if m.get("cip") else "") + (f", DNI {m['dni']}" if m.get("dni") else "")
+            pre = {"residente": "res", "supervisor": "sup"}.get(m["rol"])
+            if pre:
+                f[f"{pre}_nombre"], f[f"{pre}_dni"], f[f"{pre}_cip"] = m["nombre"], m.get("dni", ""), m.get("cip", "")
+        # acumulados de modificaciones y ampliaciones (Anexos 10, 14, 18, 19)
+        acum = self.modificaciones_acumuladas()
+        if acum["n"]:
+            f["mod_acumulado"] = acum["importe"]
+            f["mod_acumulado_pct"] = f"{acum['pct']:.2%}" if acum["pct"] is not None else ""
+        if d.get("ampliaciones"):
+            f["ampliaciones_dias"] = str(sum(int(a.get("dias") or 0) for a in d["ampliaciones"] if a.get("estado") == "aprobada"))
+            f["fecha_fin_vigente"] = self.fecha_fin_vigente() or ""
         return {k: (f"{v:,.2f}" if isinstance(v, float) and k != "plazo_dias" else
                     str(int(v)) if k == "plazo_dias" and v is not None else v) for k, v in f.items()}
+
+    # ---------------------------------------------------------- modificaciones y ampliaciones
+    def registrar_modificacion(self, tipo: str, importe, descripcion: str = "", estado: str = "en trámite",
+                               fecha: str = "", resolucion: str = "") -> dict:
+        """tipo: adicional | deductivo | mayor_metrado | partida_nueva | otra. Devuelve la modificación con
+        la incidencia acumulada y los umbrales de la directiva (15 % significativa, 50 % Contraloría)."""
+        imp = parse_num(importe) or 0.0
+        if tipo == "deductivo":
+            imp = -abs(imp)
+        with self.lock:
+            lst = self.data.setdefault("modificaciones", [])
+            m = {"n": len(lst) + 1, "tipo": tipo, "importe": imp, "descripcion": descripcion, "estado": estado,
+                 "fecha": fecha or date.today().isoformat(), "resolucion": resolucion}
+            lst.append(m)
+            self.save()
+        acum = self.modificaciones_acumuladas()
+        m["incidencia"] = (imp / acum["base"]) if acum["base"] else None
+        m["acumulado"] = acum
+        return m
+
+    def modificaciones_acumuladas(self) -> dict:
+        base = self.data.get("costo_et") or self.data.get("presupuesto_aprobado")
+        lst = [m for m in self.data.get("modificaciones", []) if m.get("estado") != "rechazada"]
+        neto = sum(m["importe"] for m in lst)
+        pct = (neto / base) if base else None
+        aviso = ""
+        if pct is not None:
+            from . import norma as _N
+            if abs(pct) > _N.UMBRALES["autorizacion_cgr"]:
+                aviso = ("Supera el 50 % del ET: la OAD debe comunicarlo a la Contraloría en 10 d.c. y se evalúa el "
+                         "desempeño de proyectista, residente y supervisor (7.3.6).")
+            elif abs(pct) > _N.UMBRALES["modificacion_significativa"]:
+                aviso = "Supera el 15 %: modificación SIGNIFICATIVA (Anexo 10; absuelve la OAD con el proyectista en 15 d)."
+        return {"n": len(lst), "importe": neto, "base": base, "pct": pct, "aviso": aviso}
+
+    def registrar_ampliacion(self, dias, causal: str, estado: str = "en trámite", resolucion: str = "",
+                             fecha: str = "", inicio_evento: str = "", fin_evento: str = "") -> dict:
+        with self.lock:
+            lst = self.data.setdefault("ampliaciones", [])
+            a = {"n": len(lst) + 1, "dias": int(parse_num(dias) or 0), "causal": causal, "estado": estado,
+                 "resolucion": resolucion, "fecha": fecha or date.today().isoformat(),
+                 "inicio_evento": inicio_evento, "fin_evento": fin_evento}
+            lst.append(a)
+            self.save()
+        a["fecha_fin_vigente"] = self.fecha_fin_vigente()
+        return a
+
+    def fecha_fin_vigente(self) -> str | None:
+        fin = parse_fecha(self.data.get("fecha_fin"))
+        if not fin:
+            return None
+        dias = sum(int(a.get("dias") or 0) for a in self.data.get("ampliaciones", []) if a.get("estado") == "aprobada")
+        return (fin + timedelta(days=dias)).isoformat()
 
     def resumen_texto(self) -> str:
         d = self.data

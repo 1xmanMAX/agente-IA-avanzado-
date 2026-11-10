@@ -20,8 +20,11 @@ from .base import ToolContext, ToolError, ToolResult, tool
       - generate: redacta las secciones pendientes (o 'sections' concretas; force=true para rehacer).
       - build: ensambla el PDF.  - status: estado de cada sección.
       Agrupa las fotos por zona/frente con 'group' para que cada grupo tenga su apartado.
-      OBRAS POR ADMINISTRACIÓN DIRECTA: plantillas 'informe-mensual-residente' (Anexo 2) y 'preliquidacion-obra'
-      (7.3.10). Con obra_id (o la obra activa) y periodo AAAA-MM, create rellena los datos maestros desde el
+      OBRAS POR ADMINISTRACIÓN DIRECTA: plantillas 'informe-mensual-residente' (Anexo 2), 'preliquidacion-obra'
+      (7.3.10), 'anexo10-modificacion', 'anexo11-conformidad', 'anexo12-revision-et', 'anexo13-supervision',
+      'anexo14-ampliacion-plazo', 'anexo15-reprogramacion', 'anexo16-mayores-gastos-generales',
+      'anexo17-cronograma-actualizado', 'anexo18-adicional', 'anexo19-mayores-metrados', 'anexo20-liquidacion',
+      'informe-final-obra'. Con obra_id (o la obra activa) y periodo AAAA-MM, create rellena los datos maestros desde el
       perfil de la obra, pone en cada cuadro D1–D15 la tabla entregada por el equipo (CSV/Excel) y adjunta al
       final los entregables en PDF/foto. Antes de generar revisa el tablero (obra action='tablero').""",
       {"properties": {
@@ -116,6 +119,19 @@ def _from_obra(ctx: ToolContext, oid, periodo, tpl: dict, fields: dict) -> tuple
                 anexos.append({"key": k, "path": a, "title": f"Cuadro {k} {e['titulo']} ({a.split('/')[-1]})"})
         if e["estado"] in ("pendiente", "observado"):
             pend.append(f"{k} ({e['estado']})")
+    # cuadros que salen del registro de la obra (no los entrega nadie: ya están en el perfil)
+    if "ampliaciones" in wanted and o.data.get("ampliaciones"):
+        tables["ampliaciones"] = [["N.º ampliación", "Documento de aprobación", "Fecha", "N.º días", "Nueva fecha de término"]] + [
+            [str(a["n"]), a.get("resolucion", ""), a.get("fecha", ""), str(a.get("dias", "")), ""]
+            for a in o.data["ampliaciones"] if a.get("estado") == "aprobada"]
+    if "mm_aprobados" in wanted:
+        mms = [m for m in o.data.get("modificaciones", []) if m["tipo"] == "mayor_metrado" and m.get("estado") == "aprobada"]
+        base = o.data.get("costo_et") or o.data.get("presupuesto_aprobado")
+        if mms:
+            tables["mm_aprobados"] = [["N.º", "Partida", "Descripción", "Monto total", "% incidencia"]] + [
+                [str(m["n"]), "", m.get("descripcion", ""), f"{m['importe']:,.2f}", f"{m['importe'] / base:.2%}" if base else ""]
+                for m in mms]
+    tables = {k: v for k, v in tables.items() if len(v) > 1}
     faltan = [f["label"] for f in tpl.get("fields", []) if f.get("required") and not merged.get(f["key"])]
     note = f"\nObra: {o.data.get('nombre')} · periodo {per} · {len(tables)} cuadros con datos, {len(anexos)} anexos."
     if pend:

@@ -918,3 +918,101 @@ def test_modo_guiado_paso_a_paso(settings, monkeypatch):
     assert r.files and r.files[0].exists() and "[x] 11. PDF final" in r.text
     assert all(t["status"] == "completed" for t in r.data["todos"])
     assert ctx.state["todos"] == r.data["todos"]                         # el panel «Plan» lo muestra
+
+
+def test_formatos_directiva_plantillas_y_reglas(settings):
+    import json as _json
+    from pixagent.obras import plantillas
+    from pixagent.obras.formatos import chequear
+    from pixagent.reports.engine import BUILTIN_TEMPLATES, Templates
+    # las plantillas JSON están al día con su generador
+    for fn in plantillas.TODAS:
+        t = fn()
+        assert _json.loads((BUILTIN_TEMPLATES / f"{t['id']}.json").read_text("utf-8")) == t, t["id"]
+    ids = {t["id"] for t in Templates(settings.ws).list()}
+    assert {"anexo10-modificacion", "anexo13-supervision", "anexo14-ampliacion-plazo", "anexo18-adicional",
+            "anexo19-mayores-metrados", "anexo20-liquidacion", "informe-final-obra"} <= ids
+    H = chequear("anexo10-modificacion", {"mod_importe": 500000, "mod_pct": "10%", "mod_acumulado": 900000,
+                                          "mod_acumulado_pct": "18%", "mod_tipo": "No significativa", "costo_et": 5000000})
+    reglas = {h["regla"] for h in H}
+    assert "Tipo de modificación" in reglas and "Incidencia acumulada" not in reglas   # 18 % ok, pero es significativa
+    H = chequear("anexo14-ampliacion-plazo", {"causal": "lluvias", "ampl_dias": 10, "fecha_fin": "2026-12-25",
+                                               "nueva_fecha_fin": "2027-01-10"})
+    assert {"Causal no prevista en 7.3.7", "Nueva fecha de término", "Ruta crítica"} <= {h["regla"] for h in H}
+    assert not [h for h in chequear("anexo14-ampliacion-plazo", {"causal": "c) fuerza mayor", "ampl_dias": 10,
+            "fecha_fin": "2026-12-25", "nueva_fecha_fin": "2027-01-04", "hitos_afectados": "02.01", "asiento_inicio": "45"})]
+    H = chequear("anexo19-mayores-metrados", {"sustento_supervisor": "palabra " * 51}, {"mm_cuantificacion": [
+        ["Ítem", "Partida", "Und", "P.U.", "c", "p", "c", "p", "Cant", "Parcial"], ["1", "02.01", "m3", "35", "", "", "", "", "10", "300"]]})
+    assert {"Sustento de la supervisión: máximo 50 palabras", "Cuantificación: parcial"} <= {h["regla"] for h in H}
+
+
+def test_obra_registra_modificaciones_y_ampliaciones(settings):
+    from pixagent.tools import REGISTRY, ToolContext
+    ctx = ToolContext(settings=settings)
+    T = REGISTRY["obra"].func
+    T(ctx, action="nueva", nombre="Pistas", datos={"costo_et": 2000000, "fecha_inicio": "2026-03-01", "plazo_dias": 300})
+    r = T(ctx, action="modificacion", tipo="adicional", importe=250000, estado="aprobada")
+    assert "12.50% del ET" in r.text and "⚠" not in r.text
+    r = T(ctx, action="modificacion", tipo="adicional", importe=100000, estado="aprobada")
+    assert "17.50%" in r.text and "SIGNIFICATIVA" in r.text
+    r = T(ctx, action="ampliacion", dias=15, causal="c) fuerza mayor", estado="aprobada", resolucion="RG 12-2026")
+    assert "2027-01-09" in r.text                                   # fin 2026-12-25 + 15 d
+    from pixagent.obras.obra import get_activa
+    f = get_activa(settings.ws).campos_informe()
+    assert f["mod_acumulado_pct"] == "17.50%" and f["fecha_fin_vigente"] == "2027-01-09"
+
+
+def test_guia_formato_ampliacion_de_plazo(settings, monkeypatch):
+    """Ampliación de plazo paso a paso: datos esenciales con aviso inmediato, cuadro desde el registro de la obra,
+    preguntas del formato, sustento y PDF."""
+    from pixagent.tools import REGISTRY, ToolContext, guia_tool
+    monkeypatch.setattr(guia_tool, "writer_factory", lambda s: FakeWriter())
+    ctx = ToolContext(settings=settings)
+    REGISTRY["obra"].func(ctx, action="nueva", nombre="Pistas", datos={"cui": "1", "entidad": "Muni", "distrito": "a",
+                          "provincia": "b", "departamento": "c", "fecha_inicio": "2026-03-01", "plazo_dias": 300, "costo_et": 2000000})
+    REGISTRY["obra"].func(ctx, action="ampliacion", dias=10, causal="a) desabastecimiento", estado="aprobada", resolucion="RG 1")
+    G = REGISTRY["guia"].func
+    r = G(ctx, action="iniciar", objetivo="necesito pedir una ampliación de plazo por lluvias")
+    assert "Ampliación de plazo (Anexo 14)" in r.text and "[x] 1. Datos de la obra" in r.text
+    G(ctx, action="aportar", paso="ritmo", texto="rápido")
+    r = G(ctx, action="aportar", paso="firmantes", datos={"res_nombre": "Luis Rojas", "res_cip": "123", "sup_nombre": "Ana Paz",
+                                                          "sup_cip": "456", "res_designacion": "RA 1", "sup_designacion": "RA 2"})
+    assert "PASO ACTUAL: Datos esenciales" in r.text and "ampl_numero = Ampliación de plazo N.º" in r.text
+    r = G(ctx, action="aportar", paso="datos", datos={"ampl_numero": "2", "ampl_dias": 12, "causal": "lluvias intensas"})
+    assert "[ERROR] Causal no prevista en 7.3.7" in r.text            # aviso inmediato
+    r = G(ctx, action="aportar", paso="datos", datos={"causal": "c) fuerza mayor (lluvias, reporte SENAMHI)"})
+    assert "Causal no prevista" not in r.text
+    G(ctx, action="omitir", paso="datos_extra")
+    assert "[x] 5. Cuadros" in G(ctx, action="estado").text           # IV.A sale del registro de la obra
+    r = G(ctx, action="estado")
+    assert "[preguntas n=1]" in r.text
+    G(ctx, action="aportar", paso="checklist", datos={"seccion": "preguntas", "respuestas": [
+        {"n": i, "r": "Sí" if i < 3 else "No", "c": ""} for i in range(1, 6)]})
+    (settings.ws / "uploads" / "asiento.pdf").write_bytes(b"%PDF-1.4\n%%EOF")
+    from PIL import Image as _I
+    _I.new("RGB", (800, 1100), "white").save(settings.ws / "uploads" / "asiento.pdf", "PDF")
+    G(ctx, action="aportar", paso="sustento", archivos=["uploads/asiento.pdf"])
+    r = G(ctx, action="aportar", paso="notas", texto="Lluvias del 10 al 22 de octubre paralizaron el frente 2.")
+    assert "[x] 8. Hechos" in r.text
+    G(ctx, action="redactar", todas=True)
+    r = G(ctx, action="finalizar")
+    from pixagent.guia import Guia
+    from pixagent.reports.engine import assemble_markdown
+    md = assemble_markdown(Guia(ctx).proyecto())
+    assert "| 1 | RG 1 |" in md and "| 3 | ¿La causal es abierta? | No |" in md and "Luis Rojas" in md
+    assert r.files[0].exists() and "Ruta crítica" in r.text          # comprobación al finalizar: faltan hitos
+
+
+def test_revisar_formato_escaneado(settings, monkeypatch):
+    from pixagent.tools import REGISTRY, ToolContext, obra_tool
+
+    class Fx:
+        def write(self, system, content, max_tokens):
+            assert "Aprobación de prestación adicional" in system and "ad_cd = Costo directo" in system
+            return json.dumps({"campos": {"ad_cd": 100000, "ad_ggv": 8000, "ad_total": 120000,
+                                          "resumen_riesgo": "texto " * 70}, "preguntas_sin_responder": 2}), {"input": 1, "output": 1}
+    monkeypatch.setattr(obra_tool, "writer_factory", lambda s: Fx())
+    ctx = ToolContext(settings=settings)
+    Image.new("RGB", (800, 1100), "white").save(settings.ws / "uploads" / "ad.pdf", "PDF")
+    r = REGISTRY["revisar_informe"].func(ctx, paths=["uploads/ad.pdf"], tipo="anexo18-adicional")
+    assert "Presupuesto adicional: costo total" in r.text and "máximo 50 palabras" in r.text and "Preguntas sin responder" in r.text

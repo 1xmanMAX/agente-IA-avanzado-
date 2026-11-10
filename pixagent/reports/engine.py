@@ -115,7 +115,7 @@ class Templates:
             f.unlink()
 
 
-KINDS = {"ai", "per_group", "auto_outline", "fields_table", "photo_grid", "static", "table"}
+KINDS = {"ai", "per_group", "auto_outline", "fields_table", "photo_grid", "static", "table", "checklist"}
 
 
 def validate_template(t: dict) -> None:
@@ -202,7 +202,8 @@ class ReportProject:
 
     def update(self, **kw) -> None:
         with self.lock:
-            for k in ("title", "fields", "notes", "target_pages", "model", "template", "tables", "anexos", "obra"):
+            for k in ("title", "fields", "notes", "target_pages", "model", "template", "tables", "anexos", "obra",
+                      "checklists"):
                 if k in kw and kw[k] is not None:
                     self.data[k] = kw[k]
             if kw.get("photos") is not None:
@@ -505,6 +506,9 @@ def assemble_markdown(p: ReportProject) -> str:
         elif u.kind == "table":
             sec = next((s for s in p.template["sections"] if s["id"] == u.section_id), {})
             out.append(_table_md(p, sec))
+        elif u.kind == "checklist":
+            sec = next((s for s in p.template["sections"] if s["id"] == u.section_id), {})
+            out.append(_checklist_md(p, sec))
         elif u.kind == "static":
             sec = next((s for s in p.template["sections"] if s["id"] == u.section_id), {})
             txt = sec.get("content", "")
@@ -547,8 +551,28 @@ def _table_md(p: ReportProject, sec: dict) -> str:
         return "Ver en anexos: " + "; ".join(f"**{a.get('title') or a['path']}**" for a in anexos) + "."
     cols = sec.get("columns") or []
     resp = sec.get("responsable", "")
+    if sec.get("rubros"):   # formato con filas fijas (p. ej. rubros de la liquidación, Anexo 20)
+        return (f"_[POR COMPLETAR: montos{' — ' + resp if resp else ''}]_\n\n| " + " | ".join(cols) + " |\n|" + "---|" * len(cols)
+                + "\n" + "\n".join(f"| {i} | {r} |" + " |" * (len(cols) - 2) for i, r in enumerate(sec["rubros"], 1)))
     return (f"_[CUADRO PENDIENTE{': lo entrega ' + resp if resp else ''}]_"
             + ("\n\n| " + " | ".join(cols) + " |\n|" + "---|" * len(cols) + "\n|" + " |" * len(cols) if cols else ""))
+
+
+def checklist_items(sec: dict) -> list[dict]:
+    """Ítems de una lista de verificación: «pregunta» o {grupo, pregunta}."""
+    return [x if isinstance(x, dict) else {"pregunta": x} for x in sec.get("items", [])]
+
+
+def _checklist_md(p: ReportProject, sec: dict) -> str:
+    """Preguntas Sí/No/N.A. con comentarios (formatos de los Anexos 11–19)."""
+    resp = (p.data.get("checklists") or {}).get(sec["id"], {})
+    opts = sec.get("opciones", ["Sí", "No", "N/A"])
+    rows = []
+    for i, it in enumerate(checklist_items(sec), 1):
+        r = resp.get(str(i)) or {}
+        g = f"{it['grupo']}: " if it.get("grupo") else ""
+        rows.append(f"| {i} | {_cell(g + it['pregunta'])} | {_cell(r.get('r')) or '—'} | {_cell(r.get('c'))} |")
+    return (f"| N.º | Pregunta | {'/'.join(opts)} | Comentarios |\n|---|---|---|---|\n" + "\n".join(rows))
 
 
 def _append_anexos(settings, pdf: Path, anexos: list[dict], warnings: list[str]) -> None:
@@ -623,6 +647,19 @@ def check_evidence(p: ReportProject) -> list[str]:
                 (cited.add(k) if 1 <= k <= n else bad.add(k))
             pending += txt.count("[POR COMPLETAR")
     out = []
+    for sec in p.template["sections"]:
+        if sec.get("kind") == "checklist":
+            resp = (p.data.get("checklists") or {}).get(sec["id"], {})
+            sin = [str(i) for i in range(1, len(checklist_items(sec)) + 1) if not (resp.get(str(i)) or {}).get("r")]
+            if sin:
+                out.append(f"«{sec.get('title')}»: {len(sin)} preguntas sin responder (N.º {', '.join(sin[:15])})")
+        if sec.get("max_words"):
+            f = p.section_file(sec["id"])
+            if f.exists() and len(f.read_text("utf-8").split()) > sec["max_words"]:
+                out.append(f"«{sec.get('title')}» supera el máximo de {sec['max_words']} palabras de la directiva")
+    for fd in p.template.get("fields", []):
+        if fd.get("max_words") and len(str(p.data["fields"].get(fd["key"], "")).split()) > fd["max_words"]:
+            out.append(f"«{fd['label']}» supera el máximo de {fd['max_words']} palabras de la directiva")
     if bad:
         out.append("Se citan fotos que no existen: " + ", ".join(f"Foto {k}" for k in sorted(bad)))
     unused = [k for k in range(1, n + 1) if k not in cited]

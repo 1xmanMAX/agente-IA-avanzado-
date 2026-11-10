@@ -44,10 +44,15 @@ def _obra(ctx: ToolContext, oid: str | None):
       - entrega(cuadro 'D1'..'D15', archivos, autor, periodo, notas): registra y valida un entregable
         (CSV/Excel: columnas y sumas; PDF/fotos: revísalo luego con revisar_informe).
       - marcar(cuadro, estado pendiente|entregado|observado|conforme, observaciones)
-      - tablero(periodo): estado de entregables por responsable.  - plazos: vencimientos próximos.""",
+      - tablero(periodo): estado de entregables por responsable.  - plazos: vencimientos próximos.
+      - modificacion(tipo adicional|deductivo|mayor_metrado|partida_nueva|otra, importe, descripcion, estado
+        'en trámite'|'aprobada'|'rechazada', resolucion): registra y devuelve la incidencia ACUMULADA y si pasa
+        el 15 % (significativa) o el 50 % (Contraloría).  - ampliacion(dias, causal, estado, resolucion,
+        inicio_evento, fin_evento): registra y devuelve la fecha de fin vigente.  - historial: ambas listas.""",
       {"properties": {
           "action": {"type": "string", "enum": ["listar", "nueva", "activar", "ver", "actualizar", "categoria", "personal",
-                                                "miembro", "orden", "ordenes", "entrega", "marcar", "tablero", "plazos"]},
+                                                "miembro", "orden", "ordenes", "entrega", "marcar", "tablero", "plazos",
+                                                "modificacion", "ampliacion", "historial"]},
           "obra_id": {"type": "string"}, "nombre": {"type": "string"}, "datos": {"type": "object"},
           "categoria": {"type": "string"}, "motivo": {"type": "string"},
           "rol": {"type": "string"}, "dni": {"type": "string"}, "cip": {"type": "string"},
@@ -55,7 +60,10 @@ def _obra(ctx: ToolContext, oid: str | None):
           "periodo": {"type": "string"}, "cuadro": {"type": "string"},
           "archivos": {"type": "array", "items": {"type": "string"}}, "autor": {"type": "string"},
           "notas": {"type": "string"}, "estado": {"type": "string"},
-          "observaciones": {"type": "array", "items": {"type": "string"}}},
+          "observaciones": {"type": "array", "items": {"type": "string"}},
+          "tipo": {"type": "string"}, "importe": {"type": "number"}, "descripcion": {"type": "string"},
+          "resolucion": {"type": "string"}, "dias": {"type": "integer"}, "causal": {"type": "string"},
+          "inicio_evento": {"type": "string"}, "fin_evento": {"type": "string"}},
        "required": ["action"]})
 def obra(ctx: ToolContext, action: str, **kw) -> ToolResult:
     from ..obras import norma as N
@@ -136,6 +144,28 @@ def obra(ctx: ToolContext, action: str, **kw) -> ToolResult:
             return ToolResult(f"{kw.get('cuadro', '').upper()}: {e['estado']}")
         if action == "tablero":
             return ToolResult(o.tablero(per))
+        if action == "modificacion":
+            m = o.registrar_modificacion(kw.get("tipo") or "otra", kw.get("importe"), kw.get("descripcion", ""),
+                                         kw.get("estado") or "en trámite", resolucion=kw.get("resolucion", ""))
+            a = m["acumulado"]
+            return ToolResult(f"Modificación N.º {m['n']} ({m['tipo']}, {m['estado']}): S/ {m['importe']:,.2f}"
+                              + (f" = {m['incidencia']:.2%} del ET" if m["incidencia"] is not None else "")
+                              + f"\nAcumulado neto: S/ {a['importe']:,.2f}"
+                              + (f" = {a['pct']:.2%} del ET" if a["pct"] is not None else " (falta el costo del ET para el %)")
+                              + (f"\n⚠ {a['aviso']}" if a["aviso"] else ""))
+        if action == "ampliacion":
+            a = o.registrar_ampliacion(kw.get("dias") or 0, kw.get("causal", ""), kw.get("estado") or "en trámite",
+                                       kw.get("resolucion", ""), inicio_evento=kw.get("inicio_evento", ""),
+                                       fin_evento=kw.get("fin_evento", ""))
+            return ToolResult(f"Ampliación N.º {a['n']} ({a['estado']}): {a['dias']} d.c. por «{a['causal']}». "
+                              f"Fin vigente (solo cuenta las aprobadas): {a['fecha_fin_vigente'] or 'falta fecha de fin'}.\n"
+                              "Recuerda: solo procede si afecta la ruta crítica y con plazo vigente (7.3.7); registrar en "
+                              "SNPMGI/INFOBRAS antes de iniciarla; cronograma actualizado 2 d.c. tras el reinicio.")
+        if action == "historial":
+            return ToolResult(json.dumps({"modificaciones": o.data.get("modificaciones", []),
+                                          "acumulado": o.modificaciones_acumuladas(),
+                                          "ampliaciones": o.data.get("ampliaciones", []),
+                                          "fin_vigente": o.fecha_fin_vigente()}, ensure_ascii=False, indent=1))
         if action == "plazos":
             return ToolResult("\n".join(f"- {x['fecha']} ({x['dias']:+d} d): {x['que']}" for x in o.plazos()))
     except (ValueError, KeyError) as e:
@@ -149,9 +179,12 @@ def obra(ctx: ToolContext, action: str, **kw) -> ToolResult:
       sumas y saldos (acumulado = anterior + actual, saldo, total ejecutado, almacén), atraso > 20 % sin
       acciones, modificaciones > 15 %/50 %, fechas y plazos, coherencia con la obra y con el mes anterior,
       apartados del Anexo 2 faltantes, fotos y firmas. Lee los escaneados por bloques de páginas con visión.
-      tipo: mensual_residente | preliquidacion | supervision | cuadro. paginas: '1-40' para limitar.""",
+      tipo: mensual_residente | preliquidacion | supervision | cuadro, o el id de un formato de la directiva
+      (anexo10-modificacion … anexo20-liquidacion, informe-final-obra): entonces lee también sus casillas y aplica
+      sus reglas (incidencias, 15 %/50 %, causales y fechas de ampliación, máx. 50 palabras, saldos de liquidación).
+      paginas: '1-40' para limitar.""",
       {"properties": {"paths": {"type": "array", "items": {"type": "string"}},
-                      "tipo": {"type": "string", "enum": ["mensual_residente", "preliquidacion", "supervision", "cuadro"]},
+                      "tipo": {"type": "string"},
                       "obra_id": {"type": "string"}, "paginas": {"type": "string"}},
        "required": ["paths"]})
 def revisar_informe(ctx: ToolContext, paths: list, tipo: str = "mensual_residente", obra_id: str | None = None,
@@ -172,6 +205,12 @@ def revisar_informe(ctx: ToolContext, paths: list, tipo: str = "mensual_resident
         from ..reports.engine import ClaudeWriter
         writer = ClaudeWriter(ctx.settings, ctx.settings.model)
     res = revisar_documentos(ctx.settings, files, writer, tipo, o, ctx.emit, rango)
+    g = ctx.state.get("guia") or {}
+    if g.get("objetivo") == "revision":   # el modo guiado marca el paso de revisión como hecho
+        g["revisado"] = True
+        g["reporte"] = ctx.rel(res["pdf"])
+        g.setdefault("archivos", [])
+        g["archivos"] += [ctx.rel(f) for f in files if ctx.rel(f) not in g["archivos"]]
     H = res["hallazgos"]
     cnt = {k: sum(1 for h in H if h["nivel"] == k) for k in ETIQUETA}
     top = "\n".join(f"- [{ETIQUETA[h['nivel']]}] p.{h.get('pagina') or '—'} {h['regla']}: {h['detalle']}"

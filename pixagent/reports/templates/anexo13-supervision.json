@@ -1,0 +1,418 @@
+{
+ "id": "anexo13-supervision",
+ "name": "Informe mensual de supervisión y valorización (Anexo 13)",
+ "description": "Informe mensual del inspector/supervisor: avance físico, control del monto valorizado, control técnico, personal y pronunciamiento.",
+ "norma": "Directiva N.º 017-2023-CG/GMPL, numerales 7.3.3, 7.3.8 c) y Anexo 13",
+ "autor": "supervisor",
+ "style": {
+  "theme_color": "#1e3a8a",
+  "page_size": "A4",
+  "cover": true,
+  "toc": true,
+  "cover_photo": false
+ },
+ "fields": [
+  {
+   "key": "unidad_ejecutora",
+   "label": "U. Ejecutora",
+   "type": "text"
+  },
+  {
+   "key": "entidad",
+   "label": "Entidad",
+   "type": "text"
+  },
+  {
+   "key": "pliego",
+   "label": "Pliego",
+   "type": "text"
+  },
+  {
+   "key": "estado_obra",
+   "label": "Estado de la obra",
+   "type": "text"
+  },
+  {
+   "key": "obra",
+   "label": "Obra",
+   "type": "text"
+  },
+  {
+   "key": "cui",
+   "label": "Código Único de Inversión",
+   "type": "text"
+  },
+  {
+   "key": "infobras",
+   "label": "Código INFOBRAS",
+   "type": "text"
+  },
+  {
+   "key": "distrito",
+   "label": "Distrito",
+   "type": "text"
+  },
+  {
+   "key": "provincia",
+   "label": "Provincia",
+   "type": "text"
+  },
+  {
+   "key": "departamento",
+   "label": "Departamento",
+   "type": "text"
+  },
+  {
+   "key": "plazo_dias",
+   "label": "Plazo de ejecución de obra (d.c.)",
+   "type": "text"
+  },
+  {
+   "key": "fecha_inicio",
+   "label": "Inicio del plazo de obra",
+   "type": "text"
+  },
+  {
+   "key": "fecha_fin",
+   "label": "Fin del plazo de obra",
+   "type": "text"
+  },
+  {
+   "key": "modalidad",
+   "label": "Modalidad de ejecución",
+   "type": "text"
+  },
+  {
+   "key": "sistema",
+   "label": "Sistema de ejecución",
+   "type": "text"
+  },
+  {
+   "key": "res_designacion",
+   "label": "N.º de resolución de designación / contrato",
+   "type": "text"
+  },
+  {
+   "key": "res_monto",
+   "label": "Monto S/",
+   "type": "text"
+  },
+  {
+   "key": "res_fecha",
+   "label": "Fecha de resolución / suscripción",
+   "type": "text"
+  },
+  {
+   "key": "res_inicio",
+   "label": "Inicio del plazo de servicio",
+   "type": "text"
+  },
+  {
+   "key": "res_fin",
+   "label": "Término del plazo de servicio",
+   "type": "text"
+  },
+  {
+   "key": "res_nombre",
+   "label": "Residente",
+   "type": "text"
+  },
+  {
+   "key": "res_dni",
+   "label": "DNI",
+   "type": "text"
+  },
+  {
+   "key": "res_cip",
+   "label": "N.º CIP/CAP",
+   "type": "text"
+  },
+  {
+   "key": "sup_designacion",
+   "label": "N.º de resolución de designación / contrato de supervisión",
+   "type": "text"
+  },
+  {
+   "key": "sup_monto",
+   "label": "Monto S/",
+   "type": "text"
+  },
+  {
+   "key": "sup_fecha",
+   "label": "Fecha de resolución / suscripción",
+   "type": "text"
+  },
+  {
+   "key": "sup_inicio",
+   "label": "Inicio del plazo de servicio",
+   "type": "text"
+  },
+  {
+   "key": "sup_fin",
+   "label": "Término del plazo de servicio",
+   "type": "text"
+  },
+  {
+   "key": "sup_nombre",
+   "label": "Supervisor / inspector",
+   "type": "text"
+  },
+  {
+   "key": "sup_dni",
+   "label": "DNI",
+   "type": "text"
+  },
+  {
+   "key": "sup_cip",
+   "label": "N.º CIP/CAP",
+   "type": "text"
+  },
+  {
+   "key": "aprobacion_et",
+   "label": "Documento de aprobación del expediente técnico",
+   "type": "text"
+  },
+  {
+   "key": "presupuesto_aprobado",
+   "label": "Monto del presupuesto (S/)",
+   "type": "text"
+  },
+  {
+   "key": "fecha_presupuesto",
+   "label": "Fecha del presupuesto",
+   "type": "text"
+  },
+  {
+   "key": "fecha",
+   "label": "Lugar y fecha",
+   "type": "text"
+  },
+  {
+   "key": "periodo",
+   "label": "Periodo valorizado",
+   "type": "text",
+   "required": true
+  },
+  {
+   "key": "valorizacion_numero",
+   "label": "Valorización N.º",
+   "type": "text"
+  },
+  {
+   "key": "doc_presentacion",
+   "label": "Documento con el que la supervisión presenta el informe mensual",
+   "type": "text"
+  },
+  {
+   "key": "fecha_recepcion",
+   "label": "Fecha (recibida por la entidad)",
+   "type": "text"
+  },
+  {
+   "key": "av_prog_mes",
+   "label": "Avance programado mensual (S/ y %)",
+   "type": "text"
+  },
+  {
+   "key": "av_ejec_mes",
+   "label": "Avance ejecutado mensual (S/ y %)",
+   "type": "text"
+  },
+  {
+   "key": "av_prog_acum",
+   "label": "Avance programado acumulado (S/ y %)",
+   "type": "text"
+  },
+  {
+   "key": "av_ejec_acum",
+   "label": "Avance ejecutado acumulado (S/ y %)",
+   "type": "text"
+  },
+  {
+   "key": "estado_avance",
+   "label": "Estado de obra del acumulado (adelantada / atrasada)",
+   "type": "text"
+  },
+  {
+   "key": "monto_vigente",
+   "label": "Monto de obra vigente (S/)",
+   "type": "number"
+  },
+  {
+   "key": "val_anterior",
+   "label": "Valorización con IGV — anterior acumulado (S/)",
+   "type": "number"
+  },
+  {
+   "key": "val_actual",
+   "label": "Valorización con IGV — actual (S/)",
+   "type": "number"
+  },
+  {
+   "key": "val_acumulado",
+   "label": "Valorización con IGV — acumulado (S/)",
+   "type": "number"
+  },
+  {
+   "key": "val_saldo",
+   "label": "Saldo (S/)",
+   "type": "number"
+  },
+  {
+   "key": "avance_financiero",
+   "label": "Avance financiero (%)",
+   "type": "number"
+  }
+ ],
+ "sections": [
+  {
+   "id": "i-obra",
+   "title": "I. Información general de la obra",
+   "kind": "fields_table",
+   "keys": [
+    "unidad_ejecutora",
+    "entidad",
+    "pliego",
+    "estado_obra",
+    "obra",
+    "cui",
+    "infobras",
+    "distrito",
+    "provincia",
+    "departamento",
+    "plazo_dias",
+    "fecha_inicio",
+    "fecha_fin",
+    "modalidad",
+    "sistema"
+   ]
+  },
+  {
+   "id": "ii-residente",
+   "title": "II. Información general del residente de obra",
+   "kind": "fields_table",
+   "keys": [
+    "res_designacion",
+    "res_monto",
+    "res_fecha",
+    "res_inicio",
+    "res_fin",
+    "res_nombre",
+    "res_dni",
+    "res_cip"
+   ]
+  },
+  {
+   "id": "iii-supervisor",
+   "title": "III. Información general del inspector / supervisor",
+   "kind": "fields_table",
+   "keys": [
+    "sup_designacion",
+    "sup_monto",
+    "sup_fecha",
+    "sup_inicio",
+    "sup_fin",
+    "sup_nombre",
+    "sup_dni",
+    "sup_cip"
+   ]
+  },
+  {
+   "id": "iv-et",
+   "title": "IV. Información general del expediente técnico",
+   "kind": "fields_table",
+   "keys": [
+    "aprobacion_et",
+    "presupuesto_aprobado",
+    "fecha_presupuesto"
+   ]
+  },
+  {
+   "id": "v-flujo",
+   "title": "V. Flujo documentario",
+   "kind": "fields_table",
+   "keys": [
+    "doc_presentacion",
+    "fecha_recepcion",
+    "periodo",
+    "valorizacion_numero"
+   ]
+  },
+  {
+   "id": "vi-a",
+   "title": "VI.A Control de avance físico de obra",
+   "kind": "fields_table",
+   "keys": [
+    "av_prog_mes",
+    "av_ejec_mes",
+    "av_prog_acum",
+    "av_ejec_acum",
+    "estado_avance"
+   ]
+  },
+  {
+   "id": "vi-b",
+   "title": "VI.B Control de monto valorizado de obra",
+   "kind": "fields_table",
+   "keys": [
+    "monto_vigente",
+    "val_anterior",
+    "val_actual",
+    "val_acumulado",
+    "val_saldo",
+    "avance_financiero"
+   ]
+  },
+  {
+   "id": "vi-c",
+   "title": "VI.C Control técnico de obra",
+   "kind": "checklist",
+   "items": [
+    "Durante el periodo, ¿la supervisión ha detectado e informado riesgos atribuibles a la entidad que influyeron en la ejecución?",
+    "Durante el periodo, ¿la supervisión ha detectado e informado riesgos atribuibles al ejecutor que influyeron en la ejecución?",
+    "¿Se generaron consultas del residente sobre incompatibilidades o soluciones técnicas inaplicables? ¿Fueron atendidas?",
+    "Se ha verificado el uso de los recursos, equipos y personal por parte de la entidad",
+    "Se han realizado los controles de calidad a materiales, trabajos e insumos según la normatividad sectorial vigente",
+    "Los trabajos del periodo valorizado se ejecutaron en estricto cumplimiento de los planos de detalle",
+    "Los trabajos ejecutados están de acuerdo al cronograma de ejecución vigente",
+    "La valorización se formuló en función de los metrados ejecutados",
+    "Se realizaron los reajustes con la fórmula polinómica aprobada en el expediente técnico",
+    "En el periodo valorizado se identificaron partidas con mayor metrado",
+    "Las partidas valorizadas cuentan con sustento de metrados por partida",
+    "En los asientos del cuaderno de obra se describieron los hechos relevantes del periodo"
+   ]
+  },
+  {
+   "id": "vi-d",
+   "title": "VI.D Control de personal propuesto vs. presente en obra",
+   "kind": "table",
+   "table": "personal",
+   "columns": [
+    "Ítem",
+    "Cargo/rol",
+    "Propuesto (nombre, DNI, CIP)",
+    "Participación (%)",
+    "Tiempo (meses)",
+    "Presente en obra (nombre, DNI, CIP)",
+    "Participación (%)",
+    "Tiempo (meses)",
+    "Conformidad"
+   ],
+   "responsable": "Supervisor"
+  },
+  {
+   "id": "pronunciamiento",
+   "title": "Pronunciamiento de la supervisión (7.3.3)",
+   "kind": "ai",
+   "words": 900,
+   "photos": true,
+   "instructions": "Con subtítulos ###: a) avance físico; b) balance financiero (concordancia del gasto con el presupuesto analítico); c) cumplimiento del ET y de las recomendaciones de la supervisión; d) certificación de los controles de calidad con sus certificados y protocolos; e) impacto ambiental y medidas de seguridad; f) comentarios: problemática, soluciones, aspectos relevantes y, si el atraso supera el 20 %, las acciones a adoptar. Plazo: 5 d.c. desde que recibe el informe del residente."
+  },
+  {
+   "id": "firma",
+   "title": "Declaración jurada y firma",
+   "kind": "static",
+   "content": "Nota: La información registrada en el presente tiene el carácter de declaración jurada.\n\nLugar y fecha: {{fecha}}\n\n\n\n______________________________\n\n**Jefe de supervisión / inspector:** {{sup_nombre}} · DNI {{sup_dni}} · Registro CIP {{sup_cip}}"
+  }
+ ]
+}

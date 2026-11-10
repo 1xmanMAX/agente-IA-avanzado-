@@ -1,0 +1,332 @@
+{
+ "id": "anexo11-conformidad",
+ "name": "Informe de conformidad al inicio del plazo (Anexo 11)",
+ "description": "Conformidad del supervisor al programa CPM y a los calendarios valorizado, de adquisición de materiales y de equipo.",
+ "norma": "Directiva N.º 017-2023-CG/GMPL, numeral 7.3.8 a) y Anexo 11",
+ "autor": "supervisor",
+ "style": {
+  "theme_color": "#334155",
+  "page_size": "A4",
+  "cover": true,
+  "toc": true,
+  "cover_photo": false
+ },
+ "fields": [
+  {
+   "key": "unidad_ejecutora",
+   "label": "U. Ejecutora",
+   "type": "text"
+  },
+  {
+   "key": "entidad",
+   "label": "Entidad",
+   "type": "text"
+  },
+  {
+   "key": "pliego",
+   "label": "Pliego",
+   "type": "text"
+  },
+  {
+   "key": "estado_obra",
+   "label": "Estado de la obra",
+   "type": "text"
+  },
+  {
+   "key": "obra",
+   "label": "Obra",
+   "type": "text"
+  },
+  {
+   "key": "cui",
+   "label": "Código Único de Inversión",
+   "type": "text"
+  },
+  {
+   "key": "infobras",
+   "label": "Código INFOBRAS",
+   "type": "text"
+  },
+  {
+   "key": "distrito",
+   "label": "Distrito",
+   "type": "text"
+  },
+  {
+   "key": "provincia",
+   "label": "Provincia",
+   "type": "text"
+  },
+  {
+   "key": "departamento",
+   "label": "Departamento",
+   "type": "text"
+  },
+  {
+   "key": "plazo_dias",
+   "label": "Plazo de ejecución de obra (d.c.)",
+   "type": "text"
+  },
+  {
+   "key": "fecha_inicio",
+   "label": "Inicio del plazo de obra",
+   "type": "text"
+  },
+  {
+   "key": "fecha_fin",
+   "label": "Fin del plazo de obra",
+   "type": "text"
+  },
+  {
+   "key": "modalidad",
+   "label": "Modalidad de ejecución",
+   "type": "text"
+  },
+  {
+   "key": "sistema",
+   "label": "Sistema de ejecución",
+   "type": "text"
+  },
+  {
+   "key": "res_designacion",
+   "label": "N.º de resolución de designación / contrato",
+   "type": "text"
+  },
+  {
+   "key": "res_monto",
+   "label": "Monto S/",
+   "type": "text"
+  },
+  {
+   "key": "res_fecha",
+   "label": "Fecha de resolución / suscripción",
+   "type": "text"
+  },
+  {
+   "key": "res_inicio",
+   "label": "Inicio del plazo de servicio",
+   "type": "text"
+  },
+  {
+   "key": "res_fin",
+   "label": "Término del plazo de servicio",
+   "type": "text"
+  },
+  {
+   "key": "res_nombre",
+   "label": "Residente",
+   "type": "text"
+  },
+  {
+   "key": "res_dni",
+   "label": "DNI",
+   "type": "text"
+  },
+  {
+   "key": "res_cip",
+   "label": "N.º CIP/CAP",
+   "type": "text"
+  },
+  {
+   "key": "sup_designacion",
+   "label": "N.º de resolución de designación / contrato de supervisión",
+   "type": "text"
+  },
+  {
+   "key": "sup_monto",
+   "label": "Monto S/",
+   "type": "text"
+  },
+  {
+   "key": "sup_fecha",
+   "label": "Fecha de resolución / suscripción",
+   "type": "text"
+  },
+  {
+   "key": "sup_inicio",
+   "label": "Inicio del plazo de servicio",
+   "type": "text"
+  },
+  {
+   "key": "sup_fin",
+   "label": "Término del plazo de servicio",
+   "type": "text"
+  },
+  {
+   "key": "sup_nombre",
+   "label": "Supervisor / inspector",
+   "type": "text"
+  },
+  {
+   "key": "sup_dni",
+   "label": "DNI",
+   "type": "text"
+  },
+  {
+   "key": "sup_cip",
+   "label": "N.º CIP/CAP",
+   "type": "text"
+  },
+  {
+   "key": "aprobacion_et",
+   "label": "Documento de aprobación del expediente técnico",
+   "type": "text"
+  },
+  {
+   "key": "presupuesto_aprobado",
+   "label": "Monto del presupuesto (S/)",
+   "type": "text"
+  },
+  {
+   "key": "fecha_presupuesto",
+   "label": "Fecha del presupuesto",
+   "type": "text"
+  },
+  {
+   "key": "fecha",
+   "label": "Lugar y fecha",
+   "type": "text"
+  }
+ ],
+ "sections": [
+  {
+   "id": "i-obra",
+   "title": "I. Información general de la obra",
+   "kind": "fields_table",
+   "keys": [
+    "unidad_ejecutora",
+    "entidad",
+    "pliego",
+    "estado_obra",
+    "obra",
+    "cui",
+    "infobras",
+    "distrito",
+    "provincia",
+    "departamento",
+    "plazo_dias",
+    "fecha_inicio",
+    "fecha_fin",
+    "modalidad",
+    "sistema"
+   ]
+  },
+  {
+   "id": "ii-residente",
+   "title": "II. Información general del residente de obra",
+   "kind": "fields_table",
+   "keys": [
+    "res_designacion",
+    "res_monto",
+    "res_fecha",
+    "res_inicio",
+    "res_fin",
+    "res_nombre",
+    "res_dni",
+    "res_cip"
+   ]
+  },
+  {
+   "id": "iii-supervisor",
+   "title": "III. Información general del inspector / supervisor",
+   "kind": "fields_table",
+   "keys": [
+    "sup_designacion",
+    "sup_monto",
+    "sup_fecha",
+    "sup_inicio",
+    "sup_fin",
+    "sup_nombre",
+    "sup_dni",
+    "sup_cip"
+   ]
+  },
+  {
+   "id": "iv-evaluacion",
+   "title": "IV. Evaluación y verificaciones de la supervisión al informe del inicio del plazo",
+   "kind": "checklist",
+   "items": [
+    {
+     "grupo": "Programa de ejecución (CPM)",
+     "pregunta": "¿El plazo de ejecución de obra corresponde al previsto en el expediente técnico?"
+    },
+    {
+     "grupo": "Programa de ejecución (CPM)",
+     "pregunta": "¿Las partidas consideradas corresponden al presupuesto del expediente técnico?"
+    },
+    {
+     "grupo": "Programa de ejecución (CPM)",
+     "pregunta": "¿La duración de las actividades deviene de considerar los rendimientos y metrados de las partidas?"
+    },
+    {
+     "grupo": "Programa de ejecución (CPM)",
+     "pregunta": "¿Existe coherencia entre actividades predecesoras, sucesoras y paralelas para un correcto proceso constructivo?"
+    },
+    {
+     "grupo": "Programa de ejecución (CPM)",
+     "pregunta": "¿Se encuentran identificadas las actividades de la ruta crítica?"
+    },
+    {
+     "grupo": "Calendario de avance valorizado",
+     "pregunta": "¿Considera las mismas actividades que el programa de ejecución, por periodo (mensual/quincenal/etc.)?"
+    },
+    {
+     "grupo": "Calendario de avance valorizado",
+     "pregunta": "¿Se consigna por periodo el metrado y el monto parcial correspondiente?"
+    },
+    {
+     "grupo": "Calendario de avance valorizado",
+     "pregunta": "¿El costo directo es igual a la sumatoria de los parciales considerados?"
+    },
+    {
+     "grupo": "Calendario de adquisición de materiales e insumos",
+     "pregunta": "¿Es concordante con el calendario de avance de obra valorizado?"
+    },
+    {
+     "grupo": "Calendario de adquisición de materiales e insumos",
+     "pregunta": "¿Las sumatorias totales devienen de las sumas parciales?"
+    },
+    {
+     "grupo": "Calendario de utilización de equipo",
+     "pregunta": "¿Es concordante con el calendario de avance de obra valorizado?"
+    },
+    {
+     "grupo": "Calendario de utilización de equipo",
+     "pregunta": "¿Se consideran todos los equipos de los análisis de precios unitarios del presupuesto?"
+    },
+    {
+     "grupo": "Calendario de utilización de equipo",
+     "pregunta": "¿Las sumatorias totales devienen de las sumas parciales?"
+    }
+   ]
+  },
+  {
+   "id": "conformidad",
+   "title": "¿Se emite conformidad a los siguientes documentos?",
+   "kind": "checklist",
+   "opciones": [
+    "Conforme",
+    "No conforme",
+    "N/A"
+   ],
+   "items": [
+    "Programa de ejecución de obras (CPM)",
+    "Calendario de adquisición de materiales e insumos",
+    "Calendario de utilización de equipo"
+   ]
+  },
+  {
+   "id": "comentarios",
+   "title": "Comentarios",
+   "kind": "ai",
+   "words": 250,
+   "instructions": "Comentarios sobre las respuestas «No» de las listas anteriores y qué debe corregir el residente."
+  },
+  {
+   "id": "firma",
+   "title": "Declaración jurada y firma",
+   "kind": "static",
+   "content": "Nota: La información registrada en el presente tiene el carácter de declaración jurada.\n\nLugar y fecha: {{fecha}}\n\n\n\n______________________________\n\n**Jefe de supervisión / inspector:** {{sup_nombre}} · DNI {{sup_dni}} · Registro CIP {{sup_cip}}"
+  }
+ ]
+}

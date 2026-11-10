@@ -21,18 +21,55 @@ OBJETIVOS = {
     "revision": {"nombre": "Revisión de un informe por inconsistencias", "plantilla": None, "obra": False},
     "informe": {"nombre": "Informe con una plantilla", "plantilla": None, "obra": False},
 }
-ALIAS = {
-    "informe_mensual": ["mensual", "anexo 2", "residente", "valorizacion mensual"],
-    "preliquidacion": ["preliquid", "pre-liquid", "pre liquid", "liquidacion parcial", "liquidación parcial", "liquidacion"],
-    "revision": ["revis", "inconsisten", "observa", "verific", "auditar"],
+# Formatos de la directiva (Anexos 10–20 e informe final): pasos generados desde la plantilla
+FORMATOS = {
+    "modificacion": ("anexo10-modificacion", "Modificación del expediente técnico (Anexo 10)",
+                     ["anexo 10", "modificacion del expediente", "modificación del expediente", "modificacion de obra",
+                      "modificación de obra", "control de modificaciones", "deductivo", "partida nueva"]),
+    "conformidad": ("anexo11-conformidad", "Informe de conformidad al inicio del plazo (Anexo 11)",
+                    ["anexo 11", "conformidad al", "informe de conformidad", "cpm", "calendario de adquisicion"]),
+    "revision_et": ("anexo12-revision-et", "Revisión del expediente técnico (Anexo 12)",
+                    ["anexo 12", "revision del expediente", "revisión del expediente", "revision del et", "revisión del et",
+                     "expediente de saldo", "compatibilidad"]),
+    "supervision": ("anexo13-supervision", "Informe mensual de supervisión y valorización (Anexo 13)",
+                    ["anexo 13", "supervision", "supervisión", "inspector"]),
+    "ampliacion_plazo": ("anexo14-ampliacion-plazo", "Ampliación de plazo (Anexo 14)",
+                         ["anexo 14", "ampliacion de plazo", "ampliación de plazo", "ampliacion", "ampliación", "paralizacion", "paralización"]),
+    "reprogramacion": ("anexo15-reprogramacion", "Reprogramación por ampliación de plazo (Anexo 15)",
+                       ["anexo 15", "reprogramacion", "reprogramación"]),
+    "mayores_gastos_generales": ("anexo16-mayores-gastos-generales", "Mayores gastos generales (Anexo 16)",
+                                 ["anexo 16", "mayores gastos", "gastos generales"]),
+    "cronograma_actualizado": ("anexo17-cronograma-actualizado", "Cronograma actualizado (Anexo 17)",
+                               ["anexo 17", "cronograma actualizado", "programa actualizado", "cronograma acelerado", "reinicio"]),
+    "adicional": ("anexo18-adicional", "Prestación adicional de obra (Anexo 18)",
+                  ["anexo 18", "adicional"]),
+    "mayores_metrados": ("anexo19-mayores-metrados", "Mayores metrados (Anexo 19)",
+                         ["anexo 19", "mayores metrados", "mayor metrado"]),
+    "liquidacion_final": ("anexo20-liquidacion", "Informe de liquidación de obra (Anexo 20)",
+                          ["anexo 20", "liquidacion final", "liquidación final", "liquidacion de obra", "liquidación de obra",
+                           "liquidacion total", "liquidación total"]),
+    "informe_final": ("informe-final-obra", "Informe final de obra (7.4.2)",
+                      ["informe final", "culminacion", "culminación", "lecciones aprendidas"]),
 }
+for _k, (_tid, _nom, _al) in FORMATOS.items():
+    OBJETIVOS[_k] = {"nombre": _nom, "plantilla": _tid, "obra": True}
+
+# orden de detección: lo más específico primero
+ALIAS = [(k, FORMATOS[k][2]) for k in ("revision_et", "liquidacion_final", "informe_final", "cronograma_actualizado",
+                                       "reprogramacion", "mayores_gastos_generales", "mayores_metrados", "ampliacion_plazo",
+                                       "adicional", "modificacion", "conformidad", "supervision")] + [
+    ("preliquidacion", ["preliquid", "pre-liquid", "pre liquid", "liquidacion parcial", "liquidación parcial", "liquidacion",
+                        "liquidación"]),
+    ("informe_mensual", ["mensual", "anexo 2", "residente", "valorizacion mensual"]),
+    ("revision", ["revis", "inconsisten", "observa", "verific", "auditar"]),
+]
 
 
 def detectar_objetivo(texto: str) -> str | None:
     t = (texto or "").lower()
     if t in OBJETIVOS:
         return t
-    for k, al in ALIAS.items():
+    for k, al in ALIAS:
         if any(a in t for a in al):
             return k
     if "informe" in t or "reporte" in t:
@@ -111,6 +148,8 @@ class Guia:
         obj = self.objetivo
         if obj in ("informe_mensual", "preliquidacion"):
             return self._pasos_obra(obj)
+        if obj in FORMATOS:
+            return self._pasos_formato()
         if obj == "revision":
             return [
                 Paso("archivos", "Documento a revisar", "el PDF (escaneado o digital), fotos de las páginas o Excel",
@@ -126,6 +165,98 @@ class Guia:
                      lambda g: (bool(g.st.get("revisado")), g.st.get("reporte", ""))),
             ]
         return self._pasos_generico()
+
+    def _pasos_formato(self) -> list[Paso]:
+        """Pasos de un formato de la directiva, deducidos de su plantilla: datos de la obra, firmantes,
+        datos propios del formato, cuadros, listas de verificación, documentos de sustento y hechos."""
+        from .obras.obra import CAMPOS
+        from .obras.plantillas import F_OBRA, F_RES, F_SUP, F_ET
+        from .reports.engine import checklist_items
+        t = self.plantilla() or {"fields": [], "sections": []}
+        comunes = {k for k, _ in F_OBRA + F_RES + F_SUP + F_ET} | {"fecha"}
+        propios = [f for f in t["fields"] if f["key"] not in comunes]
+        req = [f for f in propios if f.get("required")]
+        opc = [f for f in propios if not f.get("required")]
+        tablas = [s_ for s_ in t["sections"] if s_["kind"] == "table"]
+        listas = [s_ for s_ in t["sections"] if s_["kind"] == "checklist"]
+
+        def vals(g):
+            return {**(g.obra().campos_informe() if g.obra() else {}), **g.st["datos"]}
+
+        def obra_ok(g):
+            o = g.obra()
+            if not o:
+                return False, "no hay obra registrada"
+            faltan = [k for k in ("cui", "entidad", "distrito", "provincia", "departamento", "fecha_inicio", "plazo_dias")
+                      if o.data.get(k) in (None, "")]
+            return not faltan, o.data.get("nombre") + (" — falta: " + ", ".join(CAMPOS[k] for k in faltan) if faltan else "")
+
+        def firmantes_ok(g):
+            v = vals(g)
+            faltan = [lbl for k, lbl in (("res_nombre", "residente"), ("res_cip", "CIP del residente"),
+                                         ("sup_nombre", "supervisor/inspector"), ("sup_cip", "CIP del supervisor"),
+                                         ("res_designacion", "resolución del residente"),
+                                         ("sup_designacion", "resolución del supervisor")) if not v.get(k)]
+            return not faltan, "completos" if not faltan else "falta: " + ", ".join(faltan)
+
+        def req_ok(g):
+            v = vals(g)
+            faltan = [f["label"] for f in req if v.get(f["key"]) in (None, "")]
+            return not faltan, "falta: " + "; ".join(faltan) if faltan else "completos"
+
+        def opc_ok(g):
+            v = vals(g)
+            faltan = [f["label"] for f in opc if v.get(f["key"]) in (None, "")]
+            return not faltan, (f"{len(opc) - len(faltan)}/{len(opc)}; falta: " + "; ".join(faltan[:6])
+                                + ("…" if len(faltan) > 6 else "")) if faltan else "completos"
+
+        def tablas_ok(g):
+            tiene = set(g.st.get("tablas", {})) | {a.get("key") for a in g.st.get("anexos", [])}
+            falt = [s_.get("title") for s_ in tablas if s_.get("table") not in tiene and not g._tabla_obra(s_.get("table"))]
+            return not falt, "completos" if not falt else "pendientes: " + "; ".join(falt)
+
+        def listas_ok(g):
+            resp = g.st.get("checklists", {})
+            sin = sum(1 for s_ in listas for i in range(1, len(checklist_items(s_)) + 1)
+                      if not (resp.get(s_["id"], {}).get(str(i)) or {}).get("r"))
+            tot = sum(len(checklist_items(s_)) for s_ in listas)
+            return sin == 0, f"{tot - sin}/{tot} respondidas"
+
+        def sustento_ok(g):
+            n = len(g.st.get("anexos", [])) + len(g.st["fotos"])
+            return n > 0, f"{n} documentos/fotos" if n else "ninguno todavía"
+
+        def notas_ok(g):
+            return bool(g.st["notas"].strip()), (g.st["notas"][:60] + "…") if g.st["notas"] else "sin hechos todavía"
+
+        pasos = [Paso("obra", "Datos de la obra", "nombre, CUI, INFOBRAS, entidad, ubicación, fecha de inicio y plazo", obra_ok),
+                 Paso("firmantes", "Residente y supervisor", "nombres, DNI, CIP y resoluciones/contratos de designación (bloques II y III)",
+                      firmantes_ok, omitible=True)]
+        if req:
+            pasos.append(Paso("datos", "Datos esenciales del formato", "; ".join(f["label"] for f in req), req_ok))
+        if opc:
+            pasos.append(Paso("datos_extra", "Demás datos del formato", "el resto de casillas del formato (te las pido por grupos)",
+                              opc_ok, omitible=True))
+        if tablas:
+            pasos.append(Paso("tablas", "Cuadros", "; ".join(f"{s_['title']} ({', '.join(s_.get('columns', [])[:5])}…)" for s_ in tablas)
+                              + " — en Excel/CSV, PDF escaneado o dictados", tablas_ok, omitible=True))
+        if listas:
+            pasos.append(Paso("checklist", "Preguntas del formato", "responder Sí/No/N.A. con comentario (te las hago de a pocas; "
+                              "puedo proponerte respuestas si me das los documentos)", listas_ok, omitible=True))
+        pasos += [Paso("sustento", "Documentos de sustento", "asientos del cuaderno, informes, planos, cotizaciones, fotos (PDF/imagen)",
+                       sustento_ok, omitible=True),
+                  Paso("notas", "Hechos y explicación", "qué pasó y por qué, con tus palabras (yo lo redacto según la norma)", notas_ok)]
+        return pasos + self._pasos_redaccion()
+
+    def _tabla_obra(self, key: str | None) -> bool:
+        o = self.obra()
+        if not o or not key:
+            return False
+        if key == "ampliaciones":
+            return any(a.get("estado") == "aprobada" for a in o.data.get("ampliaciones", []))
+        if key == "mm_aprobados":
+            return any(m["tipo"] == "mayor_metrado" and m.get("estado") == "aprobada" for m in o.data.get("modificaciones", []))
+        return False
 
     def _pasos_obra(self, obj: str) -> list[Paso]:
         from .obras.obra import periodo_actual
@@ -285,6 +416,9 @@ class Guia:
             lines += ["", f"PASO ACTUAL: {act['titulo']}. Necesito: {act['necesito']}."]
             if act["pregunta"]:
                 lines.append(f"Pregunta sugerida (ask_user): {act['pregunta']} Opciones: {' | '.join(act['opciones'])}")
+            ayuda = self._ayuda_paso(act["id"])
+            if ayuda:
+                lines.append(ayuda)
             if act["omitible"]:
                 lines.append("Este paso se puede omitir si el usuario lo pide (guia action=omitir).")
         else:
@@ -350,10 +484,45 @@ class Guia:
                 if f.get("path") and f["path"] not in [x["path"] for x in self.st["fotos"]]:
                     self.st["fotos"].append({"path": f["path"], "caption": f.get("caption", ""),
                                              "group": f.get("grupo", ""), "status": f.get("etapa", "")})
-        elif paso in ("cifras", "datos"):
+        elif paso in ("cifras", "datos", "datos_extra", "firmantes"):
             self.st["datos"].update(datos)
             if paso == "cifras":
                 avisos += _chequeo_cifras(self.st["datos"])
+            if paso == "firmantes" and o is not None:   # también quedan en el perfil de la obra
+                for rol, pre in (("residente", "res"), ("supervisor", "sup")):
+                    if datos.get(f"{pre}_nombre"):
+                        o.registrar_miembro(datos[f"{pre}_nombre"], rol, dni=datos.get(f"{pre}_dni"), cip=datos.get(f"{pre}_cip"))
+                o.update(**{k: v for k, v in datos.items() if k in ("res_designacion", "res_monto", "res_fecha", "res_inicio",
+                                                                    "res_fin", "sup_designacion", "sup_monto", "sup_fecha",
+                                                                    "sup_inicio", "sup_fin")})
+            avisos += self._chequeo_formato()
+        elif paso == "tablas":
+            key = datos.get("tabla")
+            if not key:
+                raise ValueError("Indica 'tabla' (la clave del cuadro, p. ej. liquidacion, hitos, mm_cuantificacion).")
+            if datos.get("filas"):
+                self.st.setdefault("tablas", {})[key] = [[str(x) for x in r] for r in datos["filas"]]
+            for a in archivos or []:
+                if a.lower().endswith((".csv", ".xlsx", ".xlsm")):
+                    from .obras.obra import leer_tabla
+                    self.st.setdefault("tablas", {})[key] = leer_tabla(self.ws / a)
+                else:
+                    self.st.setdefault("anexos", []).append({"key": key, "path": a, "title": f"{key}: {Path(a).name}"})
+            avisos += self._chequeo_formato()
+        elif paso == "checklist":
+            sec = datos.get("seccion")
+            if not sec:
+                raise ValueError("Indica 'seccion' (id de la lista) y 'respuestas': [{n, r, c}].")
+            dst = self.st.setdefault("checklists", {}).setdefault(sec, {})
+            for r in datos.get("respuestas", []):
+                dst[str(r["n"])] = {"r": r.get("r", ""), "c": r.get("c", "")}
+        elif paso == "sustento":
+            for a in archivos or []:
+                if a.lower().endswith((".jpg", ".jpeg", ".png", ".webp", ".heic")) and datos.get("como") != "anexo":
+                    self.st["fotos"].append({"path": a, "caption": datos.get("caption", ""), "group": "", "status": ""})
+                else:
+                    self.st.setdefault("anexos", []).append({"key": "sustento", "path": a,
+                                                             "title": datos.get("titulo") or Path(a).name})
         elif paso == "notas":
             self.st["notas"] = (self.st["notas"] + "\n" + texto).strip() if texto else self.st["notas"]
             self.st["archivos"] += [a for a in archivos or [] if a not in self.st["archivos"]]
@@ -371,9 +540,62 @@ class Guia:
             raise ValueError(f"Paso desconocido: {paso}")
         self.st["omitidos"].pop(paso, None)
         pr = self.proyecto()   # si el borrador ya existe, lo nuevo también entra en él
-        if pr is not None and paso in ("fotos", "notas", "cifras", "datos"):
-            pr.update(photos=self.st["fotos"], notes=self.st["notas"], fields={**pr.data["fields"], **self.st["datos"]})
+        if pr is not None and paso in ("fotos", "notas", "cifras", "datos", "datos_extra", "firmantes", "tablas",
+                                       "checklist", "sustento"):
+            pr.update(photos=self.st["fotos"], notes=self.st["notas"], fields={**pr.data["fields"], **self.st["datos"]},
+                      tables={**(pr.data.get("tables") or {}), **self.st.get("tablas", {})},
+                      checklists=self.st.get("checklists", {}),
+                      anexos=_uniq((pr.data.get("anexos") or []) + self.st.get("anexos", [])))
         return avisos
+
+    def _ayuda_paso(self, pid: str) -> str:
+        """Detalle técnico del paso actual para el agente: claves exactas de los datos, cuadros y preguntas."""
+        t = self.plantilla()
+        if not t or self.objetivo not in FORMATOS:
+            return ""
+        from .obras.plantillas import F_OBRA, F_RES, F_SUP, F_ET
+        from .reports.engine import checklist_items
+        comunes = {k for k, _ in F_OBRA + F_RES + F_SUP + F_ET} | {"fecha"}
+        o = self.obra()
+        v = {**(o.campos_informe() if o else {}), **self.st["datos"]}
+        if pid in ("datos", "datos_extra"):
+            fs = [f for f in t["fields"] if f["key"] not in comunes and bool(f.get("required")) == (pid == "datos")
+                  and v.get(f["key"]) in (None, "")]
+            return ("Claves para aportar (pídelas de 2 a 4 por vez, agrupadas por tema): "
+                    + "; ".join(f"{f['key']} = {f['label']}" + (f" [máx. {f['max_words']} palabras]" if f.get("max_words") else "")
+                                for f in fs[:14]))
+        if pid == "firmantes":
+            return ("Claves: res_nombre, res_dni, res_cip, res_designacion, res_monto, res_fecha, res_inicio, res_fin; "
+                    "sup_nombre, sup_dni, sup_cip, sup_designacion, sup_monto, sup_fecha, sup_inicio, sup_fin.")
+        if pid == "tablas":
+            tiene = set(self.st.get("tablas", {})) | {a.get("key") for a in self.st.get("anexos", [])}
+            return "Cuadros (aportar con datos.tabla=clave y archivos o datos.filas=[[cabecera…],[fila…]]): " + "; ".join(
+                f"{s_['table']} = {s_['title']} | columnas: {' | '.join(s_.get('columns', []))}"
+                + (f" | filas fijas: {', '.join(s_['rubros'][:4])}…" if s_.get("rubros") else "")
+                for s_ in t["sections"] if s_["kind"] == "table" and s_.get("table") not in tiene)
+        if pid == "checklist":
+            resp = self.st.get("checklists", {})
+            pend = []
+            for s_ in t["sections"]:
+                if s_["kind"] != "checklist":
+                    continue
+                for i, it in enumerate(checklist_items(s_), 1):
+                    if not (resp.get(s_["id"], {}).get(str(i)) or {}).get("r"):
+                        pend.append(f"[{s_['id']} n={i}] {it['pregunta']} ({'/'.join(s_.get('opciones', ['Sí', 'No', 'N/A']))})")
+            return ("Siguientes preguntas (hazlas de 3 a 5 por vez; aporta con datos.seccion y datos.respuestas=[{n, r, c}]):\n  "
+                    + "\n  ".join(pend[:5])) if pend else ""
+        return ""
+
+    def _chequeo_formato(self) -> list[str]:
+        t = self.plantilla()
+        if not t or self.objetivo not in FORMATOS:
+            return []
+        from .obras.formatos import chequear
+        o = self.obra()
+        campos = {**(o.campos_informe() if o else {}), **self.st["datos"]}
+        return [f"[{h['nivel'].upper()}] {h['regla']}: {h['detalle']}" + (f" → esperado {h['esperado']}" if h["esperado"] else "")
+                + (f". {h['sugerencia']}" if h["sugerencia"] else "")
+                for h in chequear(t["id"], campos, self.st.get("tablas", {}), o)]
 
     def omitir(self, paso: str, motivo: str = "") -> None:
         p = next((x for x in self.pasos() if x.id == paso), None)
@@ -400,8 +622,10 @@ class Guia:
         title = (f"{t['name'].split(' (')[0]} — {self.st.get('periodo')}" if self.st.get("periodo") else t["name"])
         p = ReportProject.create(self.ws, t, title, fields, self.st["notas"], self.st["fotos"],
                                  model=self.ctx.settings.model)
-        if extra:
-            p.update(**extra)
+        extra = {**extra, "tables": {**extra.get("tables", {}), **self.st.get("tablas", {})},
+                 "anexos": _uniq(extra.get("anexos", []) + self.st.get("anexos", [])),
+                 "checklists": self.st.get("checklists", {})}
+        p.update(**extra)
         self.st["report_id"] = p.id
         est = p.estimate()
         return (f"Borrador creado: {p.id} ({len(p.ai_units())} secciones a redactar; ≈ {est['usd']} USD).{note}")
@@ -473,11 +697,21 @@ class Guia:
         pdf = build_report_pdf(self.ctx.settings, p)
         avisos = list(p.data.get("outputs", {}).get("warnings", []))
         avisos += _chequeo_cifras({**p.data["fields"], **self.st["datos"]})
+        avisos += self._chequeo_formato()
         pend = [u.title for u in p.ai_units() if u.id not in self.st["aprobadas"]]
         if pend and self.st.get("ritmo") == "paso a paso":
             avisos.append("Secciones sin aprobar: " + ", ".join(pend))
         self.st["revisado"] = True
         return pdf, avisos
+
+
+def _uniq(anexos: list[dict]) -> list[dict]:
+    seen, out = set(), []
+    for a in anexos:
+        if a["path"] not in seen:
+            seen.add(a["path"])
+            out.append(a)
+    return out
 
 
 def _chequeo_cifras(d: dict) -> list[str]:
