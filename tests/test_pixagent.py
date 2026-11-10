@@ -862,5 +862,59 @@ def test_skill_obras_se_activa_con_el_equipo(settings):
     from pixagent import skills as SK
     names = [s["name"] for s in SK.match_skills(settings, "Hola, soy el almacenero de la obra, ¿qué debo entregar?")]
     assert "obras-administracion-directa" in names
-    exp, _ = SK.expand_recipe(settings, "/informe-mensual")
-    assert "Faltan estos datos obligatorios: periodo" in exp
+    exp, _ = SK.expand_recipe(settings, "/informe-mensual 2026-10")
+    assert "objetivo=informe_mensual" in exp and "2026-10" in exp
+
+
+def test_modo_guiado_paso_a_paso(settings, monkeypatch):
+    """Dice qué quiere → la guía dice qué necesita → se aporta de a uno → secciones con aprobación → PDF."""
+    from pixagent.tools import REGISTRY, ToolContext, guia_tool
+    monkeypatch.setattr(guia_tool, "writer_factory", lambda s: FakeWriter())
+    ctx = ToolContext(settings=settings)
+    G = REGISTRY["guia"].func
+    r = G(ctx, action="iniciar", objetivo="quiero el informe mensual de octubre")
+    assert "Informe mensual del residente" in r.text and "[>] 1. Datos de la obra" in r.text
+    assert "RITMO SIN ELEGIR" in r.text and r.data["todos"][0]["status"] == "in_progress"
+    import pytest as _pt
+    from pixagent.tools import ToolError
+    with _pt.raises(ToolError, match="Antes necesito"):
+        G(ctx, action="redactar")                              # no redacta sin los datos
+    G(ctx, action="aportar", paso="ritmo", texto="paso a paso")
+    r = G(ctx, action="aportar", paso="obra", datos={"nombre": "Pistas Jr. Lima", "cui": "2345678", "entidad": "Muni X",
+                                                     "distrito": "Yanahuara", "provincia": "Arequipa",
+                                                     "departamento": "Arequipa", "costo_et": 7500000,
+                                                     "fecha_inicio": "2026-03-01", "plazo_dias": 300})
+    assert "[x] 1. Datos de la obra" in r.text and "[>] 2. Categoría" in r.text and "Pregunta sugerida" in r.text
+    r = G(ctx, action="aportar", paso="categoria", texto="No lo sé")
+    assert "Aún no se puede determinar" in r.text            # falta la zona: no se supone
+    r = G(ctx, action="aportar", paso="categoria", datos={"zona_especial": False})
+    assert "[x] 2. Categoría de la obra: Categoría B" in r.text
+    G(ctx, action="aportar", paso="periodo", texto="2026-10")
+    r = G(ctx, action="omitir", paso="equipo")
+    assert "[-] 4. Equipo" in r.text
+    G(ctx, action="omitir", paso="cuadros")
+    with _pt.raises(ToolError, match="no se puede omitir"):
+        G(ctx, action="omitir", paso="cifras")
+    photos = _photos(settings, 2)
+    G(ctx, action="aportar", paso="fotos", archivos=[p["path"] for p in photos])
+    r = G(ctx, action="aportar", paso="cifras", datos={"valorizacion_mes": 500000, "valorizacion_acumulada": 3600000,
+                                                       "adicionales": 100000, "total_ejecutado": 3800000,
+                                                       "avance_programado": 70, "avance_real": 48})
+    assert "Total ejecutado" in r.text and "Atraso de 31%" in r.text    # avisos inmediatos
+    G(ctx, action="aportar", paso="notas", texto="Lluvias del 10 al 15 paralizaron la excavación.")
+    r = G(ctx, action="redactar")                                       # crea el borrador + 1.ª sección
+    assert "Borrador creado" in r.text and "SECCIÓN «Resumen ejecutivo»" not in r.text
+    first = r.text.split("SECCIÓN «")[1].split("»")[0]
+    sid = r.text.split("» [")[1].split("]")[0]
+    r = G(ctx, action="corregir", seccion=sid, texto="Menciona las lluvias")
+    from pixagent.guia import Guia
+    p = Guia(ctx).proyecto()
+    assert p.data["units"][sid]["feedback"] == "Menciona las lluvias"
+    r = G(ctx, action="aprobar", seccion=sid)
+    assert "Siguiente sección" in r.text and first
+    G(ctx, action="redactar", todas=True)
+    G(ctx, action="aprobar", seccion="todas")
+    r = G(ctx, action="finalizar")
+    assert r.files and r.files[0].exists() and "[x] 11. PDF final" in r.text
+    assert all(t["status"] == "completed" for t in r.data["todos"])
+    assert ctx.state["todos"] == r.data["todos"]                         # el panel «Plan» lo muestra

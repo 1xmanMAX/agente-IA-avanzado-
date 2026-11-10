@@ -38,12 +38,11 @@ Responsables del Anexo 2: asistente D1–D3, D10–D11 · administrador D4–D6 
 almacenero D7–D9 · maquinaria D12 · calidad D13 · residente D14–D15 y narrativa C · SSOMA: estadísticas e
 IPERC para la sección C · supervisor: conformidad en 5 días (Anexo 13).
 
-## 4. Informe mensual del residente (Anexo 2)
-1. `obra` action=tablero del periodo; avisa de cuadros pendientes/observados.
-2. Pide/usa fotos del mes (antes, durante, final), notas del cuaderno de obra y cifras de valorización.
-3. `report_builder` create template_id=informe-mensual-residente, periodo=AAAA-MM (toma datos de la obra,
-   cuadros y anexos), luego generate y build. Plazo: 10 d.c. tras el cierre del mes.
-4. Antes de entregarlo, pásale `revisar_informe` al PDF y corrige los errores.
+## 4. Informe mensual del residente (Anexo 2) — SIEMPRE en modo guiado
+`guia` action=iniciar objetivo=informe_mensual: la guía calcula qué falta (obra, categoría, periodo, equipo,
+cuadros D1–D15, fotos, cifras, ocurrencias) y lo muestra en el panel «Plan». Pide una cosa por vez,
+aporta cada respuesta (`guia` aportar), redacta sección por sección con aprobación del residente y
+termina con `guia` finalizar. Plazo: 10 d.c. tras el cierre del mes.
 Fórmulas: acumulado = anterior + actual; saldo = monto vigente − acumulado; total ejecutado = valorización +
 mayores metrados + adicionales − deductivos. Atraso > 20 % → acciones y cronograma acelerado en C.3.
 

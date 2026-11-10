@@ -393,8 +393,10 @@ class ReportGenerator:
                 deps = u.depends_on
                 summaries = self._summaries(deps)
                 where = f"Parte: «{u.chapter} › {u.title}»" if u.chapter else f"Sección: «{u.title}»"
+                fb = self.p.data.get("units", {}).get(u.id, {}).get("feedback")
                 prompt = (f"{self._context_text()}\n\n{where}\nInstrucciones: {u.instructions or '-'}\n"
-                          f"Extensión objetivo: ~{u.words} palabras.\n"
+                          + (f"CORRECCIONES DEL USUARIO (obligatorias, prevalecen sobre lo anterior): {fb}\n" if fb else "")
+                          + f"Extensión objetivo: ~{u.words} palabras.\n"
                           + (f"Fotos de esta parte: {', '.join(f'Foto {i + 1}' for i in u.photos)}\n" if u.photos else "")
                           + (f"\nRESÚMENES DE OTRAS SECCIONES (para coherencia):\n{summaries}\n" if summaries else "")
                           + "\nRedacta ahora esta parte.")

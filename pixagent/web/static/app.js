@@ -22,6 +22,8 @@
   const PLACEHOLDER_ANSWER = "Responde al agente…";
   // Ejemplos que rotan en la bienvenida (solo texto: la conversación manda)
   const EXAMPLES = [
+    "«Quiero el informe mensual de octubre» (te digo qué necesito y lo armamos paso a paso)",
+    "«Revisa este informe escaneado y dime qué está mal»",
     "«Ubica estas 14 fotos en el plano de planta baja y genera el PDF»",
     "«Haz un informe de visita de obra con las fotos y mis notas»",
     "«Monta un panel fotográfico numerado con pie de foto y cajetín»",
@@ -31,7 +33,7 @@
   ];
   const TOOL_LABELS = {
     compose_plan: "Componer plano", render_diagram: "Diagrama", create_pdf: "Informe PDF", create_miniapp: "Mini app",
-    html_to_pdf: "HTML a PDF", image_tools: "Imagen", view_image: "Ver imagen", todo_write: "Plan", run_python: "Python",
+    html_to_pdf: "HTML a PDF", image_tools: "Imagen", view_image: "Ver imagen", todo_write: "Plan", run_python: "Python", guia: "Paso a paso", obra: "Obra", revisar_informe: "Revisión",
     run_shell: "Terminal", read_file: "Leer archivo", write_file: "Escribir archivo", edit_file: "Editar archivo",
     list_files: "Listar archivos", search_files: "Buscar", pdf_tools: "PDF", photo_panel: "Panel fotográfico",
     pixpin: "PixPin", preview_page: "Vista previa", delegate: "Subagente", load_skill: "Habilidad", remember: "Recordar", local_ai: "IA local",

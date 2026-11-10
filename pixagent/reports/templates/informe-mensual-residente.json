@@ -204,6 +204,11 @@
    "type": "number"
   },
   {
+   "key": "valorizacion_acumulada",
+   "label": "Valorización acumulada (S/)",
+   "type": "number"
+  },
+  {
    "key": "mayores_metrados",
    "label": "Mayores metrados acumulados (S/)",
    "type": "number"
@@ -279,6 +284,7 @@
     "presupuesto_aprobado",
     "presupuesto_analitico",
     "valorizacion_mes",
+    "valorizacion_acumulada",
     "mayores_metrados",
     "adicionales",
     "deductivos",

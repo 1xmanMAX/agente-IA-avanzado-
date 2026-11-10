@@ -96,6 +96,18 @@ Para el **residente de obra** (Perú). Detalle de la norma en [docs/DIRECTIVA_01
 - **Informes según la norma, en PDF**: informe mensual del residente (Anexo 2, con los 15 cuadros y los
   entregables escaneados como anexos) y liquidación parcial / pre-liquidación (contenidos a–m del 7.3.10).
 
+### Modo guiado: dime qué quieres y lo construimos paso a paso
+
+Para cualquier informe, el agente trabaja como un asistente de varios pasos, pero conversando:
+
+1. Le dices lo que quieres («quiero el informe mensual de octubre», «revisa este PDF»).
+2. Te dice **qué necesita** (datos de la obra, categoría, periodo, cuadros del equipo, fotos, cifras,
+   ocurrencias) y lo que ya tiene. Te pregunta el ritmo: **paso a paso** (apruebas cada sección) o rápido.
+3. Te pide **una cosa por vez**. Cada respuesta se comprueba al momento (p. ej. total ejecutado mal sumado
+   o atraso > 20 %) y el panel **Progreso** de la interfaz se actualiza solo.
+4. Redacta **sección por sección**: la apruebas, pides cambios («menciona las lluvias») o la editas tú.
+5. Arma el **PDF final** y hace las comprobaciones. Si lo dejas a medias, al volver sigue donde quedó.
+
 Comandos: `/informe-mensual 2026-10`, `/revisar-informe` (con el PDF adjunto), `/preliquidacion`, `/equipo`.
 
 ## Integración con PixPin
@@ -249,11 +261,13 @@ pixagent/
     panel.py        photo_panel: panel fotográfico PDF determinista
     reports_tool.py report_builder: informes por plantilla (para el agente)
     obra_tool.py    obra (perfil, categoría, equipo, órdenes, entregas, tablero, plazos) y revisar_informe
+    guia_tool.py    guia: modo guiado (qué necesito → aportes → secciones aprobadas → PDF)
   obras/            Directiva 017-2023-CG/GMPL: norma.py (datos de la norma), obra.py, revisor.py
   reports/
     engine.py       motor de informes: plantillas, unidades, redacción en paralelo, estado, ensamblado
     templates/      plantillas integradas (JSON)
   miniapps/         mini apps integradas (graderio, panel-fotografico, calculadora, detector-gestos)
+  guia.py           modo guiado: pasos por objetivo con estado calculado (nunca desactualizado)
   quick_ai.py       IA rápida y económica para las mini apps
   local/            IA local: motores (Ollama/llama.cpp/LM Studio/OpenAI), catálogo, tareas y vídeo
   web/
