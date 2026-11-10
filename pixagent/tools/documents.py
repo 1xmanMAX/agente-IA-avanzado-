@@ -62,6 +62,7 @@ def _inline(text: str) -> str:
     text = re.sub(r"`([^`]+)`", r'<font face="Courier" backColor="#f0f0f0">\1</font>', text)
     text = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", text)
     text = re.sub(r"(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])", r"<i>\1</i>", text)
+    text = re.sub(r"(?<![\w_])_(?![\s_])(.+?)(?<![\s_])_(?![\w_])", r"<i>\1</i>", text)
     text = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r'<link href="\2" color="#1a5fb4"><u>\1</u></link>', text)
     return text
 
@@ -266,9 +267,16 @@ def build_pdf(ctx, out: Path, md: str, *, title, subtitle, author, date_text, co
             if rows:
                 ncol = max(len(r) for r in rows)
                 rows = [r + [""] * (ncol - len(r)) for r in rows]
-                data = [[Paragraph(_inline(c), cellh if ri == 0 else cell) for c in r] for ri, r in enumerate(rows)]
-                tbl = Table(data, colWidths=[frame_w / ncol] * ncol, repeatRows=1)
+                # tablas anchas (cuadros de valorización, kardex…): letra más pequeña antes que cortar palabras
+                fs = 9.2 if ncol <= 5 else 8.2 if ncol <= 7 else 7.2
+                pad = 6 if ncol <= 7 else 3
+                cs = ParagraphStyle("c%s" % fs, parent=cell, fontSize=fs, leading=fs * 1.3)
+                csh = ParagraphStyle("ch%s" % fs, parent=cellh, fontSize=fs, leading=fs * 1.3)
+                data = [[Paragraph(_inline(c), csh if ri == 0 else cs) for c in r] for ri, r in enumerate(rows)]
+                # anchos proporcionales al contenido (una columna «#» no ocupa lo mismo que una descripción)
+                tbl = Table(data, colWidths=_col_widths(rows, frame_w, 5.4 * fs / 9.2, 2 * pad + 2), repeatRows=1)
                 tbl.setStyle(TableStyle([
+                    ("LEFTPADDING", (0, 0), (-1, -1), pad), ("RIGHTPADDING", (0, 0), (-1, -1), pad),
                     ("BACKGROUND", (0, 0), (-1, 0), theme_c),
                     ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f3f6fa")]),
                     ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#c8ced8")),
@@ -304,6 +312,26 @@ def build_pdf(ctx, out: Path, md: str, *, title, subtitle, author, date_text, co
         doc.multiBuild(story)
     else:
         doc.build(story)
+
+
+def _col_widths(rows: list[list[str]], total: float, char: float = 5.4, pad: float = 14) -> list[float]:
+    """Anchos de columna: cada una al menos su palabra más larga (no corta «ERROR» letra a letra) y
+    el resto del ancho repartido según la cantidad de texto."""
+    ncol = len(rows[0])
+    clean = [[re.sub(r"[*_`]", "", c) for c in r] for r in rows]
+    # la cabecera va en negrita (más ancha): su palabra más larga manda
+    minw = [min(total / ncol * 1.6, max(max(len(w) for w in (clean[0][c].split() or [""])) * char * 1.2,
+                                        max(len(w) for r in clean[1:] for w in (r[c].split() or [""])) * char
+                                        if len(clean) > 1 else 0) + pad)
+            for c in range(ncol)]
+    want = [min(70, max(len(r[c]) for r in clean)) for c in range(ncol)]
+    rest = total - sum(minw)
+    if rest <= 0:
+        return [total * m / sum(minw) for m in minw]
+    extra = [max(0.0, w * char + pad - m) for w, m in zip(want, minw)]
+    if not sum(extra):
+        return [m + rest / ncol for m in minw]
+    return [m + rest * e / sum(extra) for m, e in zip(minw, extra)]
 
 
 def register_fonts() -> tuple[str, str]:

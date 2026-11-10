@@ -99,3 +99,22 @@ checklist sin responder, máximo 50 palabras en los resúmenes de los Anexos 18 
 
 Cada orden lleva: formato exacto (columnas), fecha límite (calculada desde el cierre de
 mes), validaciones automáticas al recibirla y estado (pendiente, entregado, observado, conforme).
+
+## 6. Implementación en PixAgent
+
+Decisiones del propietario: usuario principal = **residente**; prioridad = informe mensual → revisor →
+pre-liquidación; fuentes = de todo tipo, **mayormente PDF escaneados**; el **equipo habla con el agente**
+(dice quién es y qué necesita, el agente responde); la **categoría se pregunta siempre** (con ejemplos o
+pidiendo datos para deducirla); salida en **PDF**.
+
+| Pieza | Archivo |
+|---|---|
+| Datos de la norma (categorías, personal, Anexo 2, 7.3.10, umbrales, plazos) | `pixagent/obras/norma.py` |
+| Perfil de obra, equipo, periodos, órdenes, entregas, tablero, plazos | `pixagent/obras/obra.py` |
+| Revisor: lectura por bloques de páginas (visión) + reglas + reporte PDF | `pixagent/obras/revisor.py` |
+| Herramientas `obra` y `revisar_informe` | `pixagent/tools/obra_tool.py` |
+| Plantillas `informe-mensual-residente`, `preliquidacion-obra` (tipo de sección `table` y anexos) | `pixagent/reports/templates/` |
+| Habilidad y recetas `/informe-mensual`, `/revisar-informe`, `/preliquidacion`, `/equipo` | `pixagent/library/` |
+
+Pendiente para siguientes fases: Anexo 13 (supervisión), Anexos 10 y 14–19 (modificaciones, ampliaciones,
+adicionales, mayores metrados), informe final y Anexo 20 (liquidación final).

@@ -1,0 +1,437 @@
+{
+ "id": "preliquidacion-obra",
+ "name": "Liquidación parcial / pre-liquidación de obra (7.3.10)",
+ "description": "Liquidación técnica y financiera parcial o total por administración directa con los contenidos a) a m) del numeral 7.3.10 de la Directiva 017-2023-CG/GMPL.",
+ "norma": "Directiva N.º 017-2023-CG/GMPL, numerales 7.3.9 y 7.3.10",
+ "style": {
+  "theme_color": "#14532d",
+  "page_size": "A4",
+  "cover": true,
+  "toc": true
+ },
+ "fields": [
+  {
+   "key": "obra",
+   "label": "Nombre de la obra",
+   "type": "text",
+   "required": true
+  },
+  {
+   "key": "numero",
+   "label": "Liquidación parcial N.º (o «total»)",
+   "type": "text",
+   "required": true
+  },
+  {
+   "key": "periodo",
+   "label": "Periodo liquidado (desde – hasta)",
+   "type": "text",
+   "required": true
+  },
+  {
+   "key": "nombre_inversion",
+   "label": "Nombre de la inversión",
+   "type": "text"
+  },
+  {
+   "key": "entidad",
+   "label": "Entidad",
+   "type": "text"
+  },
+  {
+   "key": "unidad_ejecutora",
+   "label": "Unidad ejecutora",
+   "type": "text"
+  },
+  {
+   "key": "pliego",
+   "label": "Pliego",
+   "type": "text"
+  },
+  {
+   "key": "oad",
+   "label": "Oficina de Obras por Administración Directa",
+   "type": "text"
+  },
+  {
+   "key": "secuencia_funcional",
+   "label": "Secuencia funcional",
+   "type": "text"
+  },
+  {
+   "key": "localidad",
+   "label": "Localidad",
+   "type": "text"
+  },
+  {
+   "key": "distrito",
+   "label": "Distrito",
+   "type": "text"
+  },
+  {
+   "key": "provincia",
+   "label": "Provincia",
+   "type": "text"
+  },
+  {
+   "key": "departamento",
+   "label": "Departamento",
+   "type": "text"
+  },
+  {
+   "key": "anio_presupuestal",
+   "label": "Año presupuestal",
+   "type": "text"
+  },
+  {
+   "key": "modalidad",
+   "label": "Modalidad de ejecución",
+   "type": "text"
+  },
+  {
+   "key": "sistema",
+   "label": "Sistema de ejecución",
+   "type": "text"
+  },
+  {
+   "key": "fuente_financiamiento",
+   "label": "Fuente de financiamiento",
+   "type": "text"
+  },
+  {
+   "key": "cui",
+   "label": "Código Único de Inversión (CUI)",
+   "type": "text"
+  },
+  {
+   "key": "infobras",
+   "label": "Código INFOBRAS",
+   "type": "text"
+  },
+  {
+   "key": "costo_et",
+   "label": "Costo de obra según expediente técnico (S/)",
+   "type": "number"
+  },
+  {
+   "key": "presupuesto_aprobado",
+   "label": "Presupuesto aprobado (S/)",
+   "type": "number"
+  },
+  {
+   "key": "presupuesto_analitico",
+   "label": "Presupuesto analítico (S/)",
+   "type": "number"
+  },
+  {
+   "key": "aprobacion_et",
+   "label": "Aprobación del ET (documento y fecha)",
+   "type": "text"
+  },
+  {
+   "key": "fecha_presupuesto",
+   "label": "Fecha del presupuesto del ET",
+   "type": "text"
+  },
+  {
+   "key": "viabilidad",
+   "label": "Declaratoria de viabilidad",
+   "type": "text"
+  },
+  {
+   "key": "acta_terreno",
+   "label": "Acta de entrega de terreno (fecha, lugar, firmantes)",
+   "type": "text"
+  },
+  {
+   "key": "acta_inicio",
+   "label": "Acta de inicio de obra (fecha, firmantes)",
+   "type": "text"
+  },
+  {
+   "key": "fecha_inicio",
+   "label": "Inicio del plazo de obra",
+   "type": "text"
+  },
+  {
+   "key": "plazo_dias",
+   "label": "Plazo de ejecución (d.c.)",
+   "type": "number"
+  },
+  {
+   "key": "fecha_fin",
+   "label": "Fin del plazo de obra",
+   "type": "text"
+  },
+  {
+   "key": "accesibilidad",
+   "label": "Accesibilidad",
+   "type": "text"
+  },
+  {
+   "key": "canteras",
+   "label": "Canteras",
+   "type": "text"
+  },
+  {
+   "key": "categoria",
+   "label": "Categoría de la obra (A/B/C)",
+   "type": "text"
+  },
+  {
+   "key": "residente",
+   "label": "Residente de obra (nombre, CIP)",
+   "type": "text"
+  },
+  {
+   "key": "supervisor",
+   "label": "Inspector / supervisor (nombre, CIP)",
+   "type": "text"
+  },
+  {
+   "key": "administrador",
+   "label": "Administrador de obra",
+   "type": "text"
+  },
+  {
+   "key": "almacenero",
+   "label": "Almacenero de obra",
+   "type": "text"
+  },
+  {
+   "key": "mayores_metrados",
+   "label": "Mayores metrados acumulados (S/)",
+   "type": "number"
+  },
+  {
+   "key": "adicionales",
+   "label": "Adicionales acumulados (S/)",
+   "type": "number"
+  },
+  {
+   "key": "deductivos",
+   "label": "Deductivos acumulados (S/)",
+   "type": "number"
+  },
+  {
+   "key": "total_ejecutado",
+   "label": "Total ejecutado (S/)",
+   "type": "number"
+  },
+  {
+   "key": "metas",
+   "label": "Metas concluidas",
+   "type": "text"
+  },
+  {
+   "key": "fecha",
+   "label": "Lugar y fecha",
+   "type": "text"
+  }
+ ],
+ "sections": [
+  {
+   "id": "resumen",
+   "title": "Resumen ejecutivo",
+   "kind": "ai",
+   "depends_on": [
+    "*"
+   ],
+   "words": 300,
+   "instructions": "Objetivos, metas alcanzadas en el periodo y balance de la ejecución presupuestal (autorizado vs ejecutado)."
+  },
+  {
+   "id": "datos",
+   "title": "Datos generales de la obra",
+   "kind": "fields_table"
+  },
+  {
+   "id": "a-seccion",
+   "title": "a) Declaratoria de viabilidad / aprobación de la inversión, resolución de aprobación del ET y modificaciones aprobadas",
+   "kind": "ai",
+   "words": 250,
+   "depends_on": [],
+   "photos": false,
+   "instructions": "Contenido exigido por el numeral 7.3.10 literal a): Declaratoria de viabilidad / aprobación de la inversión, resolución de aprobación del ET y modificaciones aprobadas."
+  },
+  {
+   "id": "b-seccion",
+   "title": "b) Memoria descriptiva",
+   "kind": "ai",
+   "words": 500,
+   "depends_on": [],
+   "photos": false,
+   "instructions": "Contenido exigido por el numeral 7.3.10 literal b): Memoria descriptiva (datos del ET, cuaderno de obra y gastos compatibilizados con Contabilidad, Tesorería y Presupuesto)."
+  },
+  {
+   "id": "c-seccion",
+   "title": "c) Descripción del proyecto por componentes y presupuestos, con los avances físicos logrados",
+   "kind": "ai",
+   "words": 600,
+   "depends_on": [],
+   "photos": true,
+   "instructions": "Contenido exigido por el numeral 7.3.10 literal c): Descripción del proyecto por componentes y presupuestos, con los avances físicos logrados."
+  },
+  {
+   "id": "d-seccion",
+   "title": "d) Antecedentes",
+   "kind": "ai",
+   "words": 350,
+   "depends_on": [],
+   "photos": false,
+   "instructions": "Contenido exigido por el numeral 7.3.10 literal d): Antecedentes (obra nueva o continuación; metas por ejercicio; saldos de materiales u órdenes pendientes)."
+  },
+  {
+   "id": "e-seccion",
+   "title": "e) Objetivos logrados",
+   "kind": "ai",
+   "words": 450,
+   "depends_on": [],
+   "photos": true,
+   "instructions": "Contenido exigido por el numeral 7.3.10 literal e): Objetivos logrados (metas físicas programadas vs. ejecutadas, población beneficiada, beneficios)."
+  },
+  {
+   "id": "f-seccion",
+   "title": "f) Especificaciones técnicas de las partidas realmente ejecutadas",
+   "kind": "ai",
+   "words": 500,
+   "depends_on": [],
+   "photos": false,
+   "instructions": "Contenido exigido por el numeral 7.3.10 literal f): Especificaciones técnicas de las partidas realmente ejecutadas."
+  },
+  {
+   "id": "g-seccion",
+   "title": "g) Grado de cumplimiento de metas por partida",
+   "kind": "ai",
+   "words": 450,
+   "depends_on": [],
+   "photos": false,
+   "instructions": "Contenido exigido por el numeral 7.3.10 literal g): Grado de cumplimiento de metas por partida (ET, adicionales, deductivos)."
+  },
+  {
+   "id": "h-valorizacion_final",
+   "title": "h) Metrados y valorización final con P.U. del ET, cuadro de metrados finales y planos de replanteo",
+   "kind": "table",
+   "table": "valorizacion_final",
+   "columns": [
+    "Partida",
+    "Descripción",
+    "Und",
+    "Metrado ET",
+    "Metrado final",
+    "P.U.",
+    "Valorizado",
+    "% vs presupuesto base"
+   ],
+   "responsable": "Administrador / asistente"
+  },
+  {
+   "id": "h-comentario",
+   "title": "Comentario h)",
+   "kind": "ai",
+   "words": 200,
+   "instructions": "Comenta el cuadro «Metrados y valorización final con P.U. del ET, cuadro de metrados finales y planos de replanteo»: totales, desviaciones relevantes y concordancia con lo informado. Solo con los datos dados."
+  },
+  {
+   "id": "i-gastos_detalle",
+   "title": "i) Cuadro analítico de detalle de gastos por clasificador del ejercicio",
+   "kind": "table",
+   "table": "gastos_detalle",
+   "columns": [
+    "Clasificador/específica",
+    "Documento",
+    "Fecha",
+    "Concepto",
+    "Importe"
+   ],
+   "responsable": "Administrador / asistente"
+  },
+  {
+   "id": "i-comentario",
+   "title": "Comentario i)",
+   "kind": "ai",
+   "words": 200,
+   "instructions": "Comenta el cuadro «Cuadro analítico de detalle de gastos por clasificador del ejercicio»: totales, desviaciones relevantes y concordancia con lo informado. Solo con los datos dados."
+  },
+  {
+   "id": "j-ejecucion_presupuestal",
+   "title": "j) Resumen de ejecución presupuestal por específica de gasto",
+   "kind": "table",
+   "table": "ejecucion_presupuestal",
+   "columns": [
+    "Específica",
+    "Presupuesto autorizado",
+    "Ejecutado",
+    "Saldo",
+    "%"
+   ],
+   "responsable": "Administrador / asistente"
+  },
+  {
+   "id": "j-comentario",
+   "title": "Comentario j)",
+   "kind": "ai",
+   "words": 200,
+   "instructions": "Comenta el cuadro «Resumen de ejecución presupuestal por específica de gasto»: totales, desviaciones relevantes y concordancia con lo informado. Solo con los datos dados."
+  },
+  {
+   "id": "k-insumos",
+   "title": "k) Relación valorizada de insumos utilizados",
+   "kind": "table",
+   "table": "insumos",
+   "columns": [
+    "Insumo/servicio",
+    "Und",
+    "Cantidad",
+    "Costo unitario",
+    "Total"
+   ],
+   "responsable": "Administrador / asistente"
+  },
+  {
+   "id": "k-comentario",
+   "title": "Comentario k)",
+   "kind": "ai",
+   "words": 200,
+   "instructions": "Comenta el cuadro «Relación valorizada de insumos utilizados (materiales, insumos y servicios)»: totales, desviaciones relevantes y concordancia con lo informado. Solo con los datos dados."
+  },
+  {
+   "id": "l-balance",
+   "title": "l) Balance de ejecución presupuestal",
+   "kind": "table",
+   "table": "balance",
+   "columns": [
+    "Insumo",
+    "Específica",
+    "Autorizado",
+    "Ejecutado (rendición)",
+    "Diferencia"
+   ],
+   "responsable": "Administrador / asistente"
+  },
+  {
+   "id": "l-comentario",
+   "title": "Comentario l)",
+   "kind": "ai",
+   "words": 200,
+   "instructions": "Comenta el cuadro «Balance de ejecución presupuestal (autorizado vs. ejecutado por insumo y específica)»: totales, desviaciones relevantes y concordancia con lo informado. Solo con los datos dados."
+  },
+  {
+   "id": "m-seccion",
+   "title": "m) Comentarios, conclusiones y recomendaciones",
+   "kind": "ai",
+   "words": 500,
+   "depends_on": [
+    "*"
+   ],
+   "photos": false,
+   "instructions": "Contenido exigido por el numeral 7.3.10 literal m): Comentarios, conclusiones y recomendaciones (problemas, materiales en cancha, etc.)."
+  },
+  {
+   "id": "firma",
+   "title": "Declaración y firma",
+   "kind": "static",
+   "content": "La información consignada tiene carácter de declaración jurada.\n\n{{fecha}}\n\n\n\n______________________________\n\n**Residente de obra:** {{residente}}\n\n\n\n______________________________\n\n**Inspector / supervisor:** {{supervisor}}"
+  }
+ ]
+}

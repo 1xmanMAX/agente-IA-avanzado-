@@ -80,6 +80,24 @@ segundos. El tiempo real depende del modelo, porque las partes se redactan en pa
 El agente del chat también puede usarlo: "créame un informe de inspección con estas fotos usando
 mi plantilla".
 
+## Obras por administración directa (Directiva 017-2023-CG/GMPL)
+
+Para el **residente de obra** (Perú). Detalle de la norma en [docs/DIRECTIVA_017_2023_ANALISIS.md](docs/DIRECTIVA_017_2023_ANALISIS.md).
+
+- **Perfil de obra**: datos maestros (CUI, INFOBRAS, entidad, ubicación, costo del ET, plazos…) que se
+  llenan una vez y alimentan todos los informes. La **categoría (A/B/C) siempre se pregunta**; si no la
+  sabes, el agente te da ejemplos o te pide el costo y la ubicación para deducirla.
+- **Equipo técnico como subagentes**: cada integrante escribe en el chat («soy María, la almacenera»),
+  queda registrado y recibe **su orden de trabajo**: cuadros del Anexo 2 que entrega, columnas, plazo.
+  Sus entregas (CSV/Excel se validan solos; PDF escaneados con el revisor) quedan en un tablero.
+- **Revisor de inconsistencias**: lee PDF **escaneados** página a página con visión y comprueba sumas
+  y saldos, atraso > 20 %, modificaciones > 15 %/50 %, plazos, coherencia con la obra y con el mes
+  anterior, apartados faltantes, fotos y firmas. Entrega un **reporte rápido en PDF** con semáforo.
+- **Informes según la norma, en PDF**: informe mensual del residente (Anexo 2, con los 15 cuadros y los
+  entregables escaneados como anexos) y liquidación parcial / pre-liquidación (contenidos a–m del 7.3.10).
+
+Comandos: `/informe-mensual 2026-10`, `/revisar-informe` (con el PDF adjunto), `/preliquidacion`, `/equipo`.
+
 ## Integración con PixPin
 
 La integración usa la [API de scripts oficial de PixPin](https://pixpin.com/docs/configuration/script)
@@ -230,6 +248,8 @@ pixagent/
     pixpin_tools.py pixpin (pin/capture/run_script), create_miniapp
     panel.py        photo_panel: panel fotográfico PDF determinista
     reports_tool.py report_builder: informes por plantilla (para el agente)
+    obra_tool.py    obra (perfil, categoría, equipo, órdenes, entregas, tablero, plazos) y revisar_informe
+  obras/            Directiva 017-2023-CG/GMPL: norma.py (datos de la norma), obra.py, revisor.py
   reports/
     engine.py       motor de informes: plantillas, unidades, redacción en paralelo, estado, ensamblado
     templates/      plantillas integradas (JSON)

@@ -19,7 +19,11 @@ from .base import ToolContext, ToolError, ToolResult, tool
         solo para auto_outline). Devuelve id y estimación de coste: COMUNÍCALA al usuario antes de generar si es alta.
       - generate: redacta las secciones pendientes (o 'sections' concretas; force=true para rehacer).
       - build: ensambla el PDF.  - status: estado de cada sección.
-      Agrupa las fotos por zona/frente con 'group' para que cada grupo tenga su apartado.""",
+      Agrupa las fotos por zona/frente con 'group' para que cada grupo tenga su apartado.
+      OBRAS POR ADMINISTRACIÓN DIRECTA: plantillas 'informe-mensual-residente' (Anexo 2) y 'preliquidacion-obra'
+      (7.3.10). Con obra_id (o la obra activa) y periodo AAAA-MM, create rellena los datos maestros desde el
+      perfil de la obra, pone en cada cuadro D1–D15 la tabla entregada por el equipo (CSV/Excel) y adjunta al
+      final los entregables en PDF/foto. Antes de generar revisa el tablero (obra action='tablero').""",
       {"properties": {
           "action": {"type": "string", "enum": ["templates", "save_template", "create", "generate", "build", "status"]},
           "template": {"type": "object"}, "template_id": {"type": "string"},
@@ -27,7 +31,8 @@ from .base import ToolContext, ToolError, ToolResult, tool
           "fields": {"type": "object"}, "notes": {"type": "string"},
           "photos": {"type": "array", "items": {"type": "object"}},
           "target_pages": {"type": "integer"}, "model": {"type": "string"},
-          "sections": {"type": "array", "items": {"type": "string"}}, "force": {"type": "boolean"}},
+          "sections": {"type": "array", "items": {"type": "string"}}, "force": {"type": "boolean"},
+          "obra_id": {"type": "string"}, "periodo": {"type": "string"}},
        "required": ["action"]})
 def report_builder(ctx: ToolContext, action: str, **kw) -> ToolResult:
     from ..reports.engine import (ReportGenerator, ReportProject, Templates, assemble_markdown,
@@ -51,12 +56,17 @@ def report_builder(ctx: ToolContext, action: str, **kw) -> ToolResult:
             raise ToolError(str(e))
         for ph in kw.get("photos") or []:
             ctx.resolve(ph["path"] if isinstance(ph, dict) else ph, must_exist=True)
-        p = ReportProject.create(ctx.ws, tpl, kw.get("title") or tpl["name"], kw.get("fields"), kw.get("notes", ""),
+        fields, extra, note = dict(kw.get("fields") or {}), {}, ""
+        if kw.get("obra_id") or str(tpl.get("norma", "")).startswith("Directiva"):
+            fields, extra, note = _from_obra(ctx, kw.get("obra_id"), kw.get("periodo"), tpl, fields)
+        p = ReportProject.create(ctx.ws, tpl, kw.get("title") or tpl["name"], fields, kw.get("notes", ""),
                                  kw.get("photos"), kw.get("target_pages"), kw.get("model") or ctx.settings.model)
+        if extra:
+            p.update(**extra)
         est = p.estimate()
         return ToolResult(f"Informe creado: {p.id}\nEstimación: {est['calls']} llamadas, ~{est['pages_estimate']} páginas, "
                           f"~{est['input_tokens']:,} tokens de entrada y ~{est['output_tokens']:,} de salida "
-                          f"(≈ {est['usd']} USD con {est['model']}).\nAbre /reports para verlo y editarlo.",
+                          f"(≈ {est['usd']} USD con {est['model']}).\nAbre /reports para verlo y editarlo." + note,
                           data={"report": p.id})
     rid = kw.get("report_id")
     if not rid:
@@ -83,3 +93,35 @@ def report_builder(ctx: ToolContext, action: str, **kw) -> ToolResult:
         return ToolResult(f"PDF del informe: {ctx.rel(out)} (~{words:,} palabras). Revisa algunas páginas con pdf_tools.",
                           files=[out])
     raise ToolError(f"Acción desconocida: {action}")
+
+
+def _from_obra(ctx: ToolContext, oid, periodo, tpl: dict, fields: dict) -> tuple[dict, dict, str]:
+    """Datos maestros, cuadros (tablas) y anexos (PDF/fotos) desde el perfil de la obra y sus entregables."""
+    from ..obras.obra import Obra, get_activa, periodo_actual
+    o = Obra(ctx.ws, oid) if oid else get_activa(ctx.ws)
+    if o is None or not o.data:
+        return fields, {}, "\nNo hay obra activa: los datos maestros deben darse en 'fields' (o crea la obra con la herramienta obra)."
+    per = periodo or periodo_actual()
+    merged = {**o.campos_informe(), "periodo": per, **{k: v for k, v in fields.items() if v not in (None, "")}}
+    p = o.periodo(per)
+    tables, anexos, pend = {}, [], []
+    wanted = {s.get("table") for s in tpl["sections"] if s.get("kind") == "table"}
+    for k, e in p["entregables"].items():
+        if k not in wanted:
+            continue
+        if e.get("tabla"):
+            tables[k] = e["tabla"]
+        for a in e.get("archivos", []):
+            if a.lower().endswith((".pdf", ".jpg", ".jpeg", ".png", ".webp", ".tif", ".tiff")):
+                anexos.append({"key": k, "path": a, "title": f"Cuadro {k} {e['titulo']} ({a.split('/')[-1]})"})
+        if e["estado"] in ("pendiente", "observado"):
+            pend.append(f"{k} ({e['estado']})")
+    faltan = [f["label"] for f in tpl.get("fields", []) if f.get("required") and not merged.get(f["key"])]
+    note = f"\nObra: {o.data.get('nombre')} · periodo {per} · {len(tables)} cuadros con datos, {len(anexos)} anexos."
+    if pend:
+        note += "\nCuadros pendientes u observados: " + ", ".join(pend) + " (quedan marcados [CUADRO PENDIENTE])."
+    if faltan:
+        note += "\nFaltan datos obligatorios: " + ", ".join(faltan)
+    if not o.data.get("categoria"):
+        note += "\nCategoría de la obra SIN DETERMINAR: pregúntala (obra action='categoria')."
+    return merged, {"tables": tables, "anexos": anexos, "obra": o.id}, note

@@ -1,0 +1,573 @@
+{
+ "id": "informe-mensual-residente",
+ "name": "Informe mensual del residente (Anexo 2)",
+ "description": "Informe mensual de residencia de obra por administración directa según el Anexo 2 de la Directiva 017-2023-CG/GMPL: generalidades, sustento documentario, ejecución, 15 cuadros y anexos.",
+ "norma": "Directiva N.º 017-2023-CG/GMPL, Anexo 2",
+ "style": {
+  "theme_color": "#1f4e79",
+  "page_size": "A4",
+  "cover": true,
+  "toc": true,
+  "cover_photo": true
+ },
+ "fields": [
+  {
+   "key": "obra",
+   "label": "Nombre de la obra",
+   "type": "text",
+   "required": true
+  },
+  {
+   "key": "periodo",
+   "label": "Periodo informado (mes y año)",
+   "type": "text",
+   "required": true
+  },
+  {
+   "key": "numero",
+   "label": "Informe mensual N.º",
+   "type": "text"
+  },
+  {
+   "key": "nombre_inversion",
+   "label": "Nombre de la inversión",
+   "type": "text"
+  },
+  {
+   "key": "entidad",
+   "label": "Entidad",
+   "type": "text"
+  },
+  {
+   "key": "unidad_ejecutora",
+   "label": "Unidad ejecutora",
+   "type": "text"
+  },
+  {
+   "key": "pliego",
+   "label": "Pliego",
+   "type": "text"
+  },
+  {
+   "key": "oad",
+   "label": "Oficina de Obras por Administración Directa",
+   "type": "text"
+  },
+  {
+   "key": "secuencia_funcional",
+   "label": "Secuencia funcional",
+   "type": "text"
+  },
+  {
+   "key": "localidad",
+   "label": "Localidad",
+   "type": "text"
+  },
+  {
+   "key": "distrito",
+   "label": "Distrito",
+   "type": "text"
+  },
+  {
+   "key": "provincia",
+   "label": "Provincia",
+   "type": "text"
+  },
+  {
+   "key": "departamento",
+   "label": "Departamento",
+   "type": "text"
+  },
+  {
+   "key": "anio_presupuestal",
+   "label": "Año presupuestal",
+   "type": "text"
+  },
+  {
+   "key": "modalidad",
+   "label": "Modalidad de ejecución",
+   "type": "text"
+  },
+  {
+   "key": "sistema",
+   "label": "Sistema de ejecución",
+   "type": "text"
+  },
+  {
+   "key": "fuente_financiamiento",
+   "label": "Fuente de financiamiento",
+   "type": "text"
+  },
+  {
+   "key": "cui",
+   "label": "Código Único de Inversión (CUI)",
+   "type": "text"
+  },
+  {
+   "key": "infobras",
+   "label": "Código INFOBRAS",
+   "type": "text"
+  },
+  {
+   "key": "costo_et",
+   "label": "Costo de obra según expediente técnico (S/)",
+   "type": "number"
+  },
+  {
+   "key": "presupuesto_aprobado",
+   "label": "Presupuesto aprobado (S/)",
+   "type": "number"
+  },
+  {
+   "key": "presupuesto_analitico",
+   "label": "Presupuesto analítico (S/)",
+   "type": "number"
+  },
+  {
+   "key": "aprobacion_et",
+   "label": "Aprobación del ET (documento y fecha)",
+   "type": "text"
+  },
+  {
+   "key": "fecha_presupuesto",
+   "label": "Fecha del presupuesto del ET",
+   "type": "text"
+  },
+  {
+   "key": "viabilidad",
+   "label": "Declaratoria de viabilidad",
+   "type": "text"
+  },
+  {
+   "key": "acta_terreno",
+   "label": "Acta de entrega de terreno (fecha, lugar, firmantes)",
+   "type": "text"
+  },
+  {
+   "key": "acta_inicio",
+   "label": "Acta de inicio de obra (fecha, firmantes)",
+   "type": "text"
+  },
+  {
+   "key": "fecha_inicio",
+   "label": "Inicio del plazo de obra",
+   "type": "text"
+  },
+  {
+   "key": "plazo_dias",
+   "label": "Plazo de ejecución (d.c.)",
+   "type": "number"
+  },
+  {
+   "key": "fecha_fin",
+   "label": "Fin del plazo de obra",
+   "type": "text"
+  },
+  {
+   "key": "accesibilidad",
+   "label": "Accesibilidad",
+   "type": "text"
+  },
+  {
+   "key": "canteras",
+   "label": "Canteras",
+   "type": "text"
+  },
+  {
+   "key": "categoria",
+   "label": "Categoría de la obra (A/B/C)",
+   "type": "text"
+  },
+  {
+   "key": "residente",
+   "label": "Residente de obra (nombre, CIP)",
+   "type": "text"
+  },
+  {
+   "key": "supervisor",
+   "label": "Inspector / supervisor (nombre, CIP)",
+   "type": "text"
+  },
+  {
+   "key": "administrador",
+   "label": "Administrador de obra",
+   "type": "text"
+  },
+  {
+   "key": "almacenero",
+   "label": "Almacenero de obra",
+   "type": "text"
+  },
+  {
+   "key": "valorizacion_mes",
+   "label": "Valorización del mes (S/)",
+   "type": "number"
+  },
+  {
+   "key": "mayores_metrados",
+   "label": "Mayores metrados acumulados (S/)",
+   "type": "number"
+  },
+  {
+   "key": "adicionales",
+   "label": "Adicionales acumulados (S/)",
+   "type": "number"
+  },
+  {
+   "key": "deductivos",
+   "label": "Deductivos acumulados (S/)",
+   "type": "number"
+  },
+  {
+   "key": "total_ejecutado",
+   "label": "Total ejecutado (S/)",
+   "type": "number"
+  },
+  {
+   "key": "avance_programado",
+   "label": "Avance físico programado acumulado (%)",
+   "type": "number"
+  },
+  {
+   "key": "avance_real",
+   "label": "Avance físico ejecutado acumulado (%)",
+   "type": "number"
+  },
+  {
+   "key": "metas",
+   "label": "Metas concluidas",
+   "type": "text"
+  },
+  {
+   "key": "fecha",
+   "label": "Lugar y fecha",
+   "type": "text"
+  }
+ ],
+ "sections": [
+  {
+   "id": "resumen",
+   "title": "Resumen ejecutivo",
+   "kind": "ai",
+   "depends_on": [
+    "*"
+   ],
+   "words": 350,
+   "instructions": "Resumen ejecutivo del mes: avance físico programado vs ejecutado, valorización del mes y acumulada, presupuesto ejecutado (valorización + mayores metrados + adicionales − deductivos), metas, principales problemas y medidas. Cifras SOLO de los datos/cuadros dados."
+  },
+  {
+   "id": "a-generalidades",
+   "title": "A. Generalidades",
+   "kind": "fields_table",
+   "keys": [
+    "obra",
+    "nombre_inversion",
+    "entidad",
+    "oad",
+    "secuencia_funcional",
+    "localidad",
+    "distrito",
+    "provincia",
+    "departamento",
+    "anio_presupuestal",
+    "residente",
+    "supervisor",
+    "administrador",
+    "almacenero",
+    "modalidad",
+    "fuente_financiamiento",
+    "presupuesto_aprobado",
+    "presupuesto_analitico",
+    "valorizacion_mes",
+    "mayores_metrados",
+    "adicionales",
+    "deductivos",
+    "total_ejecutado",
+    "metas",
+    "categoria"
+   ]
+  },
+  {
+   "id": "b-sustento",
+   "title": "B. Sustento documentario de obra",
+   "kind": "fields_table",
+   "keys": [
+    "aprobacion_et",
+    "acta_terreno",
+    "acta_inicio",
+    "viabilidad",
+    "cui",
+    "infobras"
+   ]
+  },
+  {
+   "id": "c1-descripcion",
+   "title": "C.1 Descripción de la obra en ejecución",
+   "kind": "ai",
+   "photos": true,
+   "words": 900,
+   "instructions": "Según el Anexo 2, C.1, con subtítulos ###: (1) trabajos realmente ejecutados en el mes en forma sucinta, por partida/frente, citando Foto N; (2) recursos humanos empleados; (3) maquinaria y equipo utilizado, SEPARANDO los de la entidad de los aportes de otras fuentes; (4) plazos: fecha de inicio, plazo de ejecución y fecha de conclusión; (5) canteras de agregados (distancia, traslado); (6) aporte de terceros (apoyo comunal u otros); (7) accesibilidad (distancias, tiempo, movilidad); (8) otras ocurrencias (cuaderno de obra). Lo que no esté en los datos: [POR COMPLETAR]."
+  },
+  {
+   "id": "c-plazos",
+   "title": "Plazos y avance",
+   "kind": "fields_table",
+   "keys": [
+    "fecha_inicio",
+    "plazo_dias",
+    "fecha_fin",
+    "avance_programado",
+    "avance_real",
+    "canteras",
+    "accesibilidad"
+   ]
+  },
+  {
+   "id": "c2-fotos",
+   "title": "C.2 Registro fotográfico y de video",
+   "kind": "photo_grid",
+   "layout": "2x3"
+  },
+  {
+   "id": "c3-conclusiones",
+   "title": "C.3 Conclusiones y recomendaciones",
+   "kind": "ai",
+   "depends_on": [
+    "c1-descripcion"
+   ],
+   "words": 450,
+   "instructions": "Avances realizados; problemas que generan retraso o interfieren (clima, personal, equipo, otros); recomendaciones y medidas correctivas ante desviaciones técnico-financieras. Si el atraso acumulado supera el 20 % del programado, propone acciones concretas y un cronograma acelerado (tabla | Acción | Responsable | Plazo |)."
+  },
+  {
+   "id": "d1",
+   "title": "D.1 Planilla de metrados por partida",
+   "kind": "table",
+   "table": "D1",
+   "columns": [
+    "Partida",
+    "Descripción",
+    "Und",
+    "Progresiva/ubicación",
+    "Largo",
+    "Ancho",
+    "Alto",
+    "Parcial",
+    "Total"
+   ],
+   "responsable": "Asistente de obra"
+  },
+  {
+   "id": "d2",
+   "title": "D.2 Valorización mensual de obra",
+   "kind": "table",
+   "table": "D2",
+   "columns": [
+    "Partida",
+    "Und",
+    "Metrado ET",
+    "P.U.",
+    "Anterior",
+    "Actual",
+    "Acumulado",
+    "Saldo",
+    "% avance"
+   ],
+   "responsable": "Asistente de obra"
+  },
+  {
+   "id": "d3",
+   "title": "D.3 Cronograma comparado proyectado vs. ejecutado",
+   "kind": "table",
+   "table": "D3",
+   "columns": [
+    "Partida/actividad",
+    "Programado mes",
+    "Ejecutado mes",
+    "Programado acum.",
+    "Ejecutado acum.",
+    "Desviación"
+   ],
+   "responsable": "Asistente de obra"
+  },
+  {
+   "id": "d4",
+   "title": "D.4 Planilla del personal comprometido en la obra",
+   "kind": "table",
+   "table": "D4",
+   "columns": [
+    "Nombre",
+    "DNI",
+    "Cargo/categoría",
+    "Días",
+    "Jornal/remuneración",
+    "Total"
+   ],
+   "responsable": "Administrador de obra"
+  },
+  {
+   "id": "d5",
+   "title": "D.5 Manifiesto de gastos",
+   "kind": "table",
+   "table": "D5",
+   "columns": [
+    "Fecha",
+    "Tipo doc. (boleta/factura/otro)",
+    "N.º",
+    "Emisor/RUC",
+    "Concepto",
+    "Específica de gasto",
+    "Importe"
+   ],
+   "responsable": "Administrador de obra"
+  },
+  {
+   "id": "d6",
+   "title": "D.6 Ejecución mensualizada de gastos por específica",
+   "kind": "table",
+   "table": "D6",
+   "columns": [
+    "Específica",
+    "Presupuesto analítico",
+    "Anterior",
+    "Actual",
+    "Acumulado",
+    "Saldo"
+   ],
+   "responsable": "Administrador de obra"
+  },
+  {
+   "id": "d7",
+   "title": "D.7 Movimiento diario de almacén",
+   "kind": "table",
+   "table": "D7",
+   "columns": [
+    "Fecha",
+    "Material",
+    "Und",
+    "Ingreso",
+    "Salida",
+    "Partida/destino",
+    "Saldo"
+   ],
+   "responsable": "Almacenero de obra"
+  },
+  {
+   "id": "d8",
+   "title": "D.8 Resumen de almacén (ingresos – egresos)",
+   "kind": "table",
+   "table": "D8",
+   "columns": [
+    "Material",
+    "Und",
+    "Ingresos",
+    "Egresos",
+    "Saldo"
+   ],
+   "responsable": "Almacenero de obra"
+  },
+  {
+   "id": "d9",
+   "title": "D.9 Saldo valorizado de materiales",
+   "kind": "table",
+   "table": "D9",
+   "columns": [
+    "Material",
+    "Und",
+    "Saldo",
+    "Costo unitario",
+    "Total"
+   ],
+   "responsable": "Almacenero de obra"
+  },
+  {
+   "id": "d10",
+   "title": "D.10 Reprogramación de ejecución física y financiera",
+   "kind": "table",
+   "table": "D10",
+   "columns": [
+    "Mes",
+    "Físico programado",
+    "Físico reprogramado",
+    "Financiero programado",
+    "Financiero reprogramado"
+   ],
+   "responsable": "Asistente de obra"
+  },
+  {
+   "id": "d11",
+   "title": "D.11 Reprogramación física en diagrama Gantt",
+   "kind": "table",
+   "table": "D11",
+   "columns": [
+    "Partida",
+    "Inicio",
+    "Fin",
+    "Duración"
+   ],
+   "responsable": "Asistente de obra"
+  },
+  {
+   "id": "d12",
+   "title": "D.12 Control de equipo mecánico (partes diarios)",
+   "kind": "table",
+   "table": "D12",
+   "columns": [
+    "Equipo",
+    "Propio/alquilado",
+    "Horas máquina",
+    "Partida",
+    "Combustible",
+    "Observaciones"
+   ],
+   "responsable": "Responsable / operador de equipo mecánico"
+  },
+  {
+   "id": "d13",
+   "title": "D.13 Controles de calidad (ensayos de campo y laboratorio)",
+   "kind": "table",
+   "table": "D13",
+   "columns": [
+    "Ensayo",
+    "Partida/elemento",
+    "Norma",
+    "Resultado",
+    "Especificado",
+    "Conforme",
+    "Certificado N.º"
+   ],
+   "responsable": "Ingeniero de calidad"
+  },
+  {
+   "id": "d14",
+   "title": "D.14 Panel fotográfico y videos (antes, durante, final)",
+   "kind": "table",
+   "table": "D14",
+   "columns": [
+    "Foto",
+    "Fecha",
+    "Ubicación",
+    "Descripción"
+   ],
+   "responsable": "Residente de obra"
+  },
+  {
+   "id": "d15",
+   "title": "D.15 Copias del cuaderno de obra del mes",
+   "kind": "table",
+   "table": "D15",
+   "columns": [
+    "Asiento N.º",
+    "Fecha",
+    "Autor",
+    "Resumen"
+   ],
+   "responsable": "Residente de obra"
+  },
+  {
+   "id": "firma",
+   "title": "Declaración y firma",
+   "kind": "static",
+   "content": "La información consignada en el presente informe tiene carácter de declaración jurada.\n\n{{fecha}}\n\n\n\n______________________________\n\n**Residente de obra:** {{residente}}"
+  }
+ ]
+}

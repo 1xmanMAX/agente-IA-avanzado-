@@ -115,7 +115,7 @@ class Templates:
             f.unlink()
 
 
-KINDS = {"ai", "per_group", "auto_outline", "fields_table", "photo_grid", "static"}
+KINDS = {"ai", "per_group", "auto_outline", "fields_table", "photo_grid", "static", "table"}
 
 
 def validate_template(t: dict) -> None:
@@ -189,7 +189,7 @@ class ReportProject:
         p.data = {"id": rid, "title": title, "template": template, "fields": fields or {}, "notes": notes,
                   "photos": [_norm_photo(x) for x in photos or []], "target_pages": target_pages,
                   "model": model, "units": {}, "outline": None, "created": time.time(), "updated": time.time(),
-                  "usage": {"input": 0, "output": 0}, "outputs": {}}
+                  "usage": {"input": 0, "output": 0}, "outputs": {}, "tables": {}, "anexos": []}
         p.save()
         return p
 
@@ -202,7 +202,7 @@ class ReportProject:
 
     def update(self, **kw) -> None:
         with self.lock:
-            for k in ("title", "fields", "notes", "target_pages", "model", "template"):
+            for k in ("title", "fields", "notes", "target_pages", "model", "template", "tables", "anexos", "obra"):
                 if k in kw and kw[k] is not None:
                     self.data[k] = kw[k]
             if kw.get("photos") is not None:
@@ -345,8 +345,16 @@ class ReportGenerator:
                            + (f" [estado: {ph['status']}]" if ph.get("status") else "")
                            + (f" — nota: {ph['notes']}" if ph.get("notes") else "")
                            for i, ph in enumerate(d["photos"]))
+        tables = ""
+        for key, rows in (d.get("tables") or {}).items():
+            if rows:
+                tables += f"\n[{key}] " + " || ".join(" | ".join(map(str, r)) for r in rows[:15])
+                tables += f" … ({len(rows) - 1} filas)" if len(rows) > 15 else ""
+        anexos = "\n".join(f"- {a.get('title') or a['path']}" for a in d.get("anexos") or [])
         return (f"INFORME: {d['title']}\nTIPO: {self.p.template.get('name')}\n\nDATOS DEL PROYECTO:\n{fields or '-'}\n\n"
-                f"NOTAS DEL USUARIO:\n{d.get('notes') or '-'}\n\nFOTOS DISPONIBLES:\n{photos or '-'}")
+                f"NOTAS DEL USUARIO:\n{d.get('notes') or '-'}\n\nFOTOS DISPONIBLES:\n{photos or '-'}"
+                + (f"\n\nCUADROS ENTREGADOS POR EL EQUIPO (extracto):{tables}" if tables else "")
+                + (f"\n\nANEXOS ADJUNTOS AL FINAL DEL PDF:\n{anexos}" if anexos else ""))
 
     def _summaries(self, deps: list[str]) -> str:
         if not deps:
@@ -478,8 +486,10 @@ def assemble_markdown(p: ReportProject) -> str:
         elif u.level == 2:
             out.append(f"\n## {u.title}\n")
         if u.kind == "fields_table":
-            rows = [f"| {f.get('label', f['key'])} | {d['fields'].get(f['key'], '') or '—'} |"
-                    for f in p.template.get("fields", [])]
+            sec = next((s for s in p.template["sections"] if s["id"] == u.section_id), {})
+            keys = sec.get("keys")
+            rows = [f"| {f.get('label', f['key'])} | {_cell(d['fields'].get(f['key'], '')) or '—'} |"
+                    for f in p.template.get("fields", []) if not keys or f["key"] in keys]
             out.append("| Dato | Valor |\n|---|---|\n" + "\n".join(rows))
         elif u.kind == "photo_grid":
             sec = next((s for s in p.template["sections"] if s["id"] == u.section_id), {})
@@ -490,6 +500,9 @@ def assemble_markdown(p: ReportProject) -> str:
                 out.append(":::")
             else:
                 out.append("_(Sin fotos)_")
+        elif u.kind == "table":
+            sec = next((s for s in p.template["sections"] if s["id"] == u.section_id), {})
+            out.append(_table_md(p, sec))
         elif u.kind == "static":
             sec = next((s for s in p.template["sections"] if s["id"] == u.section_id), {})
             txt = sec.get("content", "")
@@ -510,6 +523,61 @@ def assemble_markdown(p: ReportProject) -> str:
     return "\n".join(out).strip() + "\n"
 
 
+def _cell(v) -> str:
+    return str(v if v is not None else "").replace("|", "/").replace("\n", " ").strip()
+
+
+def _table_md(p: ReportProject, sec: dict) -> str:
+    """Cuadro con los datos entregados (CSV/Excel) o, si llegó en PDF/imagen, referencia al anexo."""
+    d = p.data
+    key = sec.get("table") or sec["id"]
+    rows = (d.get("tables") or {}).get(key)
+    if rows:
+        cols = max(len(r) for r in rows[:300])
+        body = [[_cell(c) for c in r] + [""] * (cols - len(r)) for r in rows[:300]]
+        md = "| " + " | ".join(body[0]) + " |\n|" + "---|" * cols + "\n"
+        md += "\n".join("| " + " | ".join(r) + " |" for r in body[1:])
+        if len(rows) > 300:
+            md += f"\n\n_(Se muestran 300 de {len(rows)} filas; el cuadro completo va en anexos.)_"
+        return md
+    anexos = [a for a in d.get("anexos") or [] if a.get("key") == key]
+    if anexos:
+        return "Ver en anexos: " + "; ".join(f"**{a.get('title') or a['path']}**" for a in anexos) + "."
+    cols = sec.get("columns") or []
+    resp = sec.get("responsable", "")
+    return (f"_[CUADRO PENDIENTE{': lo entrega ' + resp if resp else ''}]_"
+            + ("\n\n| " + " | ".join(cols) + " |\n|" + "---|" * len(cols) + "\n|" + " |" * len(cols) if cols else ""))
+
+
+def _append_anexos(settings, pdf: Path, anexos: list[dict], warnings: list[str]) -> None:
+    """Añade al final del PDF los entregables en PDF o imagen (escaneados), en el orden de los cuadros."""
+    if not anexos:
+        return
+    try:
+        import pymupdf as fitz
+    except ImportError:
+        warnings.append("Para unir anexos al PDF instala pymupdf; se listan pero no se adjuntan.")
+        return
+    doc = fitz.open(pdf)
+    for a in anexos:
+        f = (settings.ws / a["path"]).resolve()
+        if not f.exists():
+            warnings.append(f"Anexo no encontrado: {a['path']}")
+            continue
+        try:
+            if f.suffix.lower() == ".pdf":
+                doc.insert_pdf(fitz.open(f))
+            elif f.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff"):
+                img = fitz.open(f)
+                doc.insert_pdf(fitz.open("pdf", img.convert_to_pdf()))
+        except Exception as e:  # noqa: BLE001
+            warnings.append(f"Anexo {a['path']}: {e}")
+    tmp = pdf.with_suffix(".tmp.pdf")
+    doc.save(tmp, garbage=3, deflate=True)
+    doc.close()
+    tmp.replace(pdf)
+
+
 def build_report_pdf(settings, p: ReportProject) -> Path:
     from ..tools.base import ToolContext
     from ..tools.documents import build_pdf
@@ -520,12 +588,14 @@ def build_report_pdf(settings, p: ReportProject) -> Path:
     out = p.dir / f"{slug(d['title'])}.pdf"
     ctx = ToolContext(settings=settings)
     warnings: list[str] = []
-    author = d["fields"].get("inspector") or d["fields"].get("autor") or d["fields"].get("supervisor") or ""
+    author = (d["fields"].get("inspector") or d["fields"].get("autor") or d["fields"].get("residente")
+              or d["fields"].get("supervisor") or "")
     build_pdf(ctx, out, md, title=d["title"], subtitle=p.template.get("name", ""), author=author,
               date_text=d["fields"].get("fecha", ""), cover=style.get("cover", True), toc=style.get("toc", True),
               logo=d.get("logo"), cover_image=d["photos"][0]["path"] if d["photos"] and style.get("cover_photo", True) else None,
               header_text=d["title"], theme=style.get("theme_color", "#1f4e79"),
               page_size=style.get("page_size", "A4"), landscape_mode=False, warnings=warnings)
+    _append_anexos(settings, out, d.get("anexos") or [], warnings)
     warnings += check_evidence(p)
     with p.lock:
         p.data["outputs"] = {"pdf": out.relative_to(settings.ws).as_posix(),

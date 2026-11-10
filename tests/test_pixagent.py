@@ -746,3 +746,121 @@ def test_rewind_conversation_and_files(settings):
     res = a.rewind(2, restore_files=True)
     assert len(a.messages) == n1 and (settings.ws / "outputs" / "r.txt").read_text("utf-8") == "v1"
     assert res["restored"] and a.transcript[-1]["type"] == "assistant"
+
+
+# ----------------------------------------------------------------- obras por administración directa
+def test_obra_categoria_equipo_y_ordenes(settings):
+    from pixagent.tools import REGISTRY, ToolContext
+    from pixagent.obras import norma as N
+    ctx = ToolContext(settings=settings)
+    T = REGISTRY["obra"].func
+    r = T(ctx, action="nueva", nombre="Pistas Jr. Lima", datos={"cui": "2345678", "costo_et": "S/ 7,500,000.00",
+                                                                "fecha_inicio": "2026-03-01", "plazo_dias": 300})
+    assert "CATEGORÍA PENDIENTE" in r.text                       # nunca se supone: falta confirmar la zona
+    assert "Ejemplos" in T(ctx, action="categoria").text
+    assert "Categoría: B" in T(ctx, action="actualizar", datos={"zona_especial": False}).text
+    T(ctx, action="actualizar", datos={"zona_especial": "sí"})
+    assert "Categoría A" in T(ctx, action="categoria").text      # frontera/VRAEM → A por cualquier costo
+    assert N.determinar_categoria(12e6, False)["categoria"] == "C"
+    assert N.determinar_categoria(None, None)["categoria"] is None
+    assert N.normalizar_rol("la almacenera") == "almacenero" and N.normalizar_rol("Ing. de control de calidad") == "calidad"
+    r = T(ctx, action="miembro", nombre="Ana Quispe", rol="almacenera", dni="40404040")
+    assert "D7" in r.text and "D8" in r.text and "D2" not in r.text and ctx.state["miembro"]["rol"] == "almacenero"
+    assert "D2" in T(ctx, action="orden", rol="asistente técnico", periodo="2026-10").text
+    # entrega en CSV con un error de suma → observado; la corrección → entregado
+    f = settings.ws / "uploads" / "almacen.csv"
+    f.write_text("Material;Und;Ingresos;Egresos;Saldo\nCemento;bls;1000;800;250\nArena;m3;50;20;30\n", "utf-8")
+    r = T(ctx, action="entrega", cuadro="D8", archivos=["uploads/almacen.csv"], periodo="2026-10")
+    assert "observado" in r.text and "Fila 2" in r.text
+    f.write_text("Material;Und;Ingresos;Egresos;Saldo\nCemento;bls;1000;800;200\n", "utf-8")
+    assert "entregado" in T(ctx, action="entrega", cuadro="D8", archivos=["uploads/almacen.csv"], periodo="2026-10").text
+    tab = T(ctx, action="tablero", periodo="2026-10").text
+    assert "| D8 |" in tab and "Ana Quispe" in tab and "entregado" in tab
+    assert "Liquidación parcial N.º 1" in T(ctx, action="plazos").text   # 300 d → cuatrimestral
+
+
+class FakeExtractor:
+    """Lector simulado de páginas escaneadas: devuelve los datos de un informe con errores."""
+
+    def __init__(self):
+        self.images = 0
+
+    def write(self, system, content, max_tokens):
+        assert "TRANSCRIBE" in system
+        self.images += sum(1 for b in content if b["type"] == "image")
+        data = {"periodo": "2026-10", "fecha_presentacion": "2026-11-14",
+                "datos_generales": {"obra": "Pistas Jr. Lima", "cui": "2345679", "pagina": 1},
+                "resumen_valorizacion": {"monto_vigente": 7500000, "anterior": 3000000, "actual": 500000,
+                                         "acumulado": 3600000, "saldo": 3900000, "avance_financiero_pct": 48, "pagina": 2},
+                "presupuesto_ejecutado": {"valorizacion": 3600000, "adicionales": 100000, "deductivos": 50000,
+                                          "total": 3700000, "pagina": 2},
+                "avance_fisico": {"programado_acumulado_pct": 70, "ejecutado_acumulado_pct": 48, "pagina": 2},
+                "almacen": [{"material": "Cemento", "ingresos": 1000, "egresos": 800, "saldo": 250, "pagina": 2}],
+                "secciones_presentes": ["A1", "A2", "C1", "D2"], "fotos": {"cantidad": 4, "durante": True},
+                "observaciones": [{"pagina": 2, "texto": "El texto dice 52 % y el cuadro 48 %"}]}
+        return json.dumps(data), {"input": 1000, "output": 300}
+
+
+def test_revisar_informe_escaneado(settings, monkeypatch):
+    from pixagent.tools import REGISTRY, ToolContext, obra_tool
+    ctx = ToolContext(settings=settings)
+    REGISTRY["obra"].func(ctx, action="nueva", nombre="Pistas Jr. Lima", datos={"cui": "2345678"})
+    pages = []
+    for i in range(2):  # PDF escaneado: solo imágenes, sin capa de texto
+        im = Image.new("RGB", (1240, 1754), "white")
+        ImageDraw.Draw(im).text((100, 100 + i * 50), f"INFORME MENSUAL pagina {i + 1}", fill="black")
+        pages.append(im)
+    pdf = settings.ws / "uploads" / "informe_oct.pdf"
+    pages[0].save(pdf, "PDF", save_all=True, append_images=pages[1:], resolution=150)
+    fx = FakeExtractor()
+    monkeypatch.setattr(obra_tool, "writer_factory", lambda s: fx)
+    r = REGISTRY["revisar_informe"].func(ctx, paths=["uploads/informe_oct.pdf"])
+    assert fx.images == 2                                  # cada página escaneada se envió como imagen
+    t = r.text
+    assert "acumulado" in t and "anterior + actual = 3,500,000.00" in t
+    assert "CUI distinto" in t and "Atraso mayor al 20 %" in t and "saldo" in t.lower()
+    assert "Presupuesto ejecutado" in t                     # 3.6M + 0.1M − 0.05M ≠ 3.7M
+    assert "fuera de plazo" in t and "Faltan apartados del Anexo 2" in t
+    out = r.files[0]
+    assert out.exists() and out.suffix == ".pdf"
+    import pymupdf
+    assert "Qué se esperaba" in "".join(pg.get_text() for pg in pymupdf.open(out))
+
+
+def test_informe_mensual_desde_obra_con_cuadros_y_anexos(settings, monkeypatch):
+    from pixagent.reports.engine import ReportGenerator, ReportProject, assemble_markdown, build_report_pdf
+    from pixagent.tools import REGISTRY, ToolContext
+    ctx = ToolContext(settings=settings)
+    T = REGISTRY["obra"].func
+    T(ctx, action="nueva", nombre="Pistas Jr. Lima", datos={"cui": "2345678", "entidad": "Municipalidad X",
+                                                            "costo_et": 3000000, "zona_especial": False})
+    T(ctx, action="miembro", nombre="Luis Rojas", rol="residente", cip="12345")
+    (settings.ws / "uploads" / "val.csv").write_text(
+        "Partida,Und,Metrado ET,P.U.,Anterior,Actual,Acumulado,Saldo,% avance\n01.01,m2,100,10,200,300,500,500,50\n", "utf-8")
+    T(ctx, action="entrega", cuadro="D2", archivos=["uploads/val.csv"], periodo="2026-10")
+    scan = settings.ws / "uploads" / "ensayos.pdf"
+    Image.new("RGB", (800, 1100), "white").save(scan, "PDF")
+    T(ctx, action="entrega", cuadro="D13", archivos=["uploads/ensayos.pdf"], periodo="2026-10")
+    r = REGISTRY["report_builder"].func(ctx, action="create", template_id="informe-mensual-residente",
+                                        title="Informe mensual N.º 8", periodo="2026-10", photos=_photos(settings, 2))
+    assert "1 cuadros con datos, 1 anexos" in r.text and "D1 (pendiente)" in r.text
+    p = ReportProject(settings.ws, r.data["report"])
+    assert p.data["fields"]["cui"] == "2345678" and "Luis Rojas" in p.data["fields"]["residente"]
+    w = FakeWriter()
+    ReportGenerator(settings, p, writer=w).run()
+    assert any("CUADROS ENTREGADOS" in c["prompt"] and "01.01" in c["prompt"] for c in w.calls)
+    md = assemble_markdown(p)
+    assert "| 01.01 | m2 |" in md and "Ver en anexos: **Cuadro D13" in md and "[CUADRO PENDIENTE: lo entrega" in md
+    assert "Municipalidad X" in md and "declaración jurada" in md
+    out = build_report_pdf(settings, p)
+    import pymupdf
+    doc = pymupdf.open(out)
+    assert doc.page_count >= 4 and not doc[-1].get_text().strip()   # última página = anexo escaneado
+
+
+def test_skill_obras_se_activa_con_el_equipo(settings):
+    from pixagent import skills as SK
+    names = [s["name"] for s in SK.match_skills(settings, "Hola, soy el almacenero de la obra, ¿qué debo entregar?")]
+    assert "obras-administracion-directa" in names
+    exp, _ = SK.expand_recipe(settings, "/informe-mensual")
+    assert "Faltan estos datos obligatorios: periodo" in exp
